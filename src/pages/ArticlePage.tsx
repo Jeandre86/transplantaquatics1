@@ -17,7 +17,7 @@ const ARTICLE_BODIES: Record<string, string[]> = {
     '"Swimming gave me my identity back," van der Berg said after his 100m Freestyle gold in Perth. "Before the transplant, I watched from the sidelines. After, I realised I had nothing to lose. I could only go forward."',
     'That sentiment is echoed by athletes from Cape Town to Tokyo. Camille Dupont, who received a bilateral lung transplant after years living with cystic fibrosis, returned to the water eighteen months post-surgery. She now holds the world record in the Women 30–39 100m Butterfly. Her coach, Pierre Marchand, describes her as the most focused athlete he has worked with in thirty years of coaching.',
     '"She doesn\'t waste a metre," Marchand says. "Every session has a purpose. She understands what her body has been through better than any athlete I\'ve coached."',
-    'The data reflects this. Split Second\'s records show a consistent trend: transplant athletes who compete at the elite level tend to peak later than their non-transplant counterparts, with many recording personal bests in their forties and fifties. Recovery, it seems, is a form of preparation.',
+    'The data reflects this. Transplant Aquatics’ records show a consistent trend: transplant athletes who compete at the elite level tend to peak later than their non-transplant counterparts, with many recording personal bests in their forties and fifties. Recovery, it seems, is a form of preparation.',
     'For James Holloway, who received a liver transplant at 33 and returned to the competitive pool at 35, the mental component was as significant as the physical. "There was a period where I didn\'t believe I could be fast again," he says. "The transplant changed that. It recalibrated what I thought I deserved."',
     'As more transplant athletes push the boundaries of what is medically expected, the sport is attracting attention from clinicians and researchers. Papers have been published examining exercise capacity in heart and lung transplant recipients. The athletes are, in some sense, data points in a much larger conversation about post-transplant quality of life.',
     'But for the athletes themselves, the conversation is simpler. It is about competition. It is about the water. It is about a second chance used well.',
@@ -29,7 +29,7 @@ const ARTICLE_BODIES: Record<string, string[]> = {
     'The physiological changes post-transplant are complex. Immunosuppressant medications affect muscle composition, cardiovascular efficiency, and metabolic rates in ways that require adapted training programmes. Athletes and coaches who understand these dynamics tend to progress faster.',
     'Lars Eriksson, a three-time Scandinavian record-holder in the Men 50–59 100m Freestyle, trains six days a week despite competing for over fifteen years post-transplant. His weekly plan includes two technique-focused sessions, three high-intensity interval sets, and one long aerobic swim.',
     '"I don\'t try to swim like I\'m 25," Eriksson says. "I swim like I\'m 52 and I know exactly what that means. I have nothing to prove except to myself."',
-    'The data from Split Second\'s records database shows that in virtually every transplant age group, times have been improving year-on-year. This is partly a function of the sport\'s growth — more athletes means more competition and faster times. But coaches attribute much of it to better training methodology and athlete education.',
+    'The data from the Transplant Aquatics records database shows that in virtually every transplant age group, times have been improving year-on-year. This is partly a function of the sport\'s growth — more athletes means more competition and faster times. But coaches attribute much of it to better training methodology and athlete education.',
   ],
   'perth-2025-recap': [
     'The 2025 World Transplant Games swimming programme was, by any measure, one of the most competitive in the event\'s history. Held across five days at the Perth Convention and Exhibition Centre Aquatics Facility, it attracted 312 swimmers from 29 nations and produced eight world records.',
@@ -172,7 +172,7 @@ export default function ArticlePage() {
             className="mt-3 font-mono text-xs uppercase tracking-widest"
             style={{ color: 'var(--accent)' }}
           >
-            — Split Second
+            — Transplant Aquatics
           </footer>
         </blockquote>
       </article>

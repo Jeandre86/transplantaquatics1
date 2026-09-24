@@ -1,33 +1,35 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import HomePage from './pages/HomePage';
-import RankingsPage from './pages/RankingsPage';
-import AthletesPage from './pages/AthletesPage';
-import AthleteProfilePage from './pages/AthleteProfilePage';
-import ResultsPage from './pages/ResultsPage';
-import RecordsPage from './pages/RecordsPage';
-import CountriesPage from './pages/CountriesPage';
-import FromThePoolDeckPage from './pages/FromThePoolDeckPage';
-import ArticlePage from './pages/ArticlePage';
-import SearchPage from './pages/SearchPage';
-import JoinPage from './pages/JoinPage';
-import CalendarPage from './pages/CalendarPage';
-import MeetPage from './pages/MeetPage';
-import ClubsPage from './pages/ClubsPage';
-import ClubPage from './pages/ClubPage';
-import ComparePage from './pages/ComparePage';
-import SubmitResultPage from './pages/SubmitResultPage';
-import WTGPage from './pages/WTGPage';
-import NotFoundPage from './pages/NotFoundPage';
-// Full-page (no main nav) layouts
-import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const RankingsPage = lazy(() => import('./pages/RankingsPage'));
+const AthletesPage = lazy(() => import('./pages/AthletesPage'));
+const AthleteProfilePage = lazy(() => import('./pages/AthleteProfilePage'));
+const ResultsPage = lazy(() => import('./pages/ResultsPage'));
+const RecordsPage = lazy(() => import('./pages/RecordsPage'));
+const CountriesPage = lazy(() => import('./pages/CountriesPage'));
+const FromThePoolDeckPage = lazy(() => import('./pages/FromThePoolDeckPage'));
+const ArticlePage = lazy(() => import('./pages/ArticlePage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const JoinPage = lazy(() => import('./pages/JoinPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const MeetPage = lazy(() => import('./pages/MeetPage'));
+const ClubsPage = lazy(() => import('./pages/ClubsPage'));
+const ClubPage = lazy(() => import('./pages/ClubPage'));
+const ComparePage = lazy(() => import('./pages/ComparePage'));
+const SubmitResultPage = lazy(() => import('./pages/SubmitResultPage'));
+const WTGPage = lazy(() => import('./pages/WTGPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
+      <Suspense fallback={<div className="min-h-screen bg-[var(--paper)]" aria-busy="true" />}>
+        <Routes>
+          <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
           <Route path="rankings" element={<RankingsPage />} />
           <Route path="athletes" element={<AthletesPage />} />
@@ -47,11 +49,12 @@ export default function App() {
           <Route path="submit" element={<SubmitResultPage />} />
           <Route path="games" element={<WTGPage />} />
           <Route path="*" element={<NotFoundPage />} />
-        </Route>
-        {/* Full-page routes — no main nav */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-      </Routes>
+          </Route>
+          {/* Full-page routes — no main nav */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

@@ -10,10 +10,10 @@ export default function Footer() {
           <div className="md:col-span-1">
             <Logo size="md" light />
             <p className="mt-4 text-sm leading-relaxed max-w-xs" style={{ color: 'var(--muted-on-dark)' }}>
-              The world of transplant swimming, one split at a time.
+              A global home for transplant aquatics.
             </p>
-            <p className="mt-4 font-bold uppercase tracking-wider text-xs" style={{ color: 'var(--accent)', fontFamily: "'League Spartan', sans-serif" }}>
-              Every Second Counts.
+            <p className="mt-4 font-bold uppercase tracking-wider text-xs" style={{ color: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}>
+              Different journeys. Same water.
             </p>
           </div>
 
@@ -64,12 +64,12 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Split Second */}
+          {/* Transplant Aquatics */}
           <div>
-            <div className="font-mono text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted-on-dark)' }}>Split Second</div>
+            <div className="font-mono text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted-on-dark)' }}>Transplant Aquatics</div>
             <ul className="space-y-2">
               {[
-                { to: '/join',    label: 'Join Split Second' },
+                { to: '/join',    label: 'Join Transplant Aquatics' },
                 { to: '/login',   label: 'Sign In' },
                 { to: '/submit',  label: 'Submit a Result' },
               ].map((l, i) => (
@@ -92,7 +92,7 @@ export default function Footer() {
           style={{ borderTop: '1px solid var(--navy-light)' }}
         >
           <p className="font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-            Copyright © 2026 Split Second Inc. All rights reserved.
+            Copyright © 2026 Transplant Aquatics All rights reserved.
           </p>
           <p className="font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
             Demo platform — data is illustrative only.

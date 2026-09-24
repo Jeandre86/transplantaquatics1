@@ -1,11 +1,11 @@
-# SPLIT SECOND — UI Design Prompt
+# TRANSPLANT AQUATICS — UI Design Prompt
 > Copy this entire prompt into any design AI (Figma AI / Make, Galileo AI, Framer AI, V0, Uizard, Lovable, or similar) to generate an updated frontend UI.
 
 ---
 
 ## PRODUCT OVERVIEW
 
-**Split Second** is a global digital platform for transplant swimming — the competitive swimming discipline for organ transplant recipients. It is the world's only dedicated platform for athletes, rankings, results, records and editorial content in this sport.
+**Transplant Aquatics** is a global digital platform for transplant swimming — the competitive swimming discipline for organ transplant recipients. It is the world's only dedicated platform for athletes, rankings, results, records and editorial content in this sport.
 
 **Tagline:** EVERY SECOND COUNTS.  
 **Secondary slogan:** LIMITS ARE FICTION.  
@@ -66,7 +66,7 @@
 
 **Section 1 — Hero (full viewport height)**
 - Dark black/navy background with diagonal swim lane lines (white, 6% opacity)
-- TOP LEFT: Logo (white wordmark — geometric S-mark + "SPLIT SECOND" stacked)
+- TOP LEFT: Logo (white wordmark — geometric S-mark + "TRANSPLANT AQUATICS" stacked)
 - Navigation bar: dark navy, `--navy-light` border-bottom, nav links in white/60% opacity, active link in Signal Lime
 - Hero text centred-left: eyebrow "Global Transplant Swimming" in Signal Lime mono; Main heading "EVERY SECOND" line 1, "COUNTS." line 2 with "COUNTS." in Signal Lime — League Spartan 800, ~90px
 - Sub-text: "The world platform for transplant swimming — athletes, results, rankings and records captured to 0.001s resolution." in Ice/65% opacity, Inter 18px
@@ -291,4 +291,4 @@ Think: **F1 timing board + Oura Ring dark UI + Nike Training app + Whoop dashboa
 
 NOT: fitness lifestyle app, health tracker, community forum, social network.
 
-The Split Second UI should feel like a professional sports federation platform. Every pixel communicates precision, speed and the extraordinary achievement of competing after an organ transplant.
+The Transplant Aquatics UI should feel like a professional sports federation platform. Every pixel communicates precision, speed and the extraordinary achievement of competing after an organ transplant.

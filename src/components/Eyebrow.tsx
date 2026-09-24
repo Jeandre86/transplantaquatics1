@@ -6,7 +6,7 @@ interface EyebrowProps {
   onDark?: boolean;
   /** Pass `light` (legacy alias for onDark) — kept for backwards compatibility */
   light?: boolean;
-  color?: 'default' | 'accent';
+  color?: 'default' | 'accent' | 'blue';
   className?: string;
 }
 
@@ -14,6 +14,8 @@ export default function Eyebrow({ children, onDark, light, color, className = ''
   const isDark = onDark || light;
   const textColor = color === 'accent'
     ? 'var(--accent)'
+    : color === 'blue'
+      ? 'var(--blue)'
     : isDark
       ? 'var(--muted-on-dark)'
       : 'var(--muted)';

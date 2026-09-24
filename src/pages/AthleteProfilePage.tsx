@@ -580,13 +580,13 @@ export default function AthleteProfilePage() {
                   className="font-mono text-xs italic"
                   style={{ color: 'var(--muted-on-dark)' }}
                 >
-                  Every Second Counts.
+                  Different journeys. Same water.
                 </p>
                 <p
                   className="display font-black text-xs uppercase tracking-widest"
                   style={{ color: 'var(--accent)' }}
                 >
-                  Split Second
+                  Transplant Aquatics
                 </p>
               </div>
             </div>

@@ -59,7 +59,7 @@ export default function SearchPage() {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Search Split Second..."
+            placeholder="Search Transplant Aquatics..."
             large
           />
         </div>

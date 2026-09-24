@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Brand palette — Split Second 2026 (Light theme) ───────────────────────── */
+/* ── Brand palette — Transplant Aquatics 2026 (Light theme) ───────────────────────── */
 @theme {
   /* Neutral scale — mid-tones that read on both light and dark surfaces */
   --color-neutral-50:  #F9F8F5;
@@ -60,7 +60,7 @@
   * { box-sizing: border-box; }
 
   html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--paper);
     color: var(--ink);
     scroll-behavior: smooth;
@@ -72,22 +72,21 @@
     background-color: var(--paper);
   }
 
-  /* League Spartan — display / timing */
+  /* Manrope — headings and display */
   .display {
-    font-family: 'League Spartan', system-ui, sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
     font-weight: 800;
     letter-spacing: -0.02em;
-    text-transform: uppercase;
   }
   .display-bold {
-    font-family: 'League Spartan', system-ui, sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
     font-weight: 700;
     letter-spacing: -0.01em;
   }
 
   /* Monospace data labels */
   .mono {
-    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-family: 'IBM Plex Mono', 'Fira Code', 'Courier New', monospace;
   }
 }
 
@@ -119,7 +118,7 @@
   .border-border      { border-color: var(--border); }
   .border-navy-light  { border-color: var(--navy-light); }
 
-  /* ── Split Second lane rule ──────────────────────────────────────────────── */
+  /* ── Transplant Aquatics lane rule ──────────────────────────────────────────────── */
   .split-rule {
     height: 2px;
     background: linear-gradient(

@@ -374,7 +374,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     className="w-full py-3 text-sm font-bold uppercase tracking-wider text-black flex items-center justify-center gap-2 transition-opacity hover:opacity-85"
-                    style={{ backgroundColor: 'var(--accent)', fontFamily: "'League Spartan', sans-serif" }}
+                    style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
                   >
                     Save Changes <ArrowRight size={14} />
                   </button>

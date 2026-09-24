@@ -40,7 +40,7 @@ export default function JoinPage() {
           <CheckCircle size={48} className="mx-auto mb-6" style={{ color: 'var(--accent)' }} />
           <h2 className="text-3xl font-black tracking-tight">Profile request received.</h2>
           <p className="mt-4 text-neutral-600 text-base leading-relaxed">
-            Welcome to Split Second, {form.firstName}. Your athlete profile will be reviewed and activated shortly.
+            Welcome to Transplant Aquatics, {form.firstName}. Your athlete profile will be reviewed and activated shortly.
             We'll be in touch at {form.email}.
           </p>
           <div className="mt-8 flex gap-3 justify-center">
@@ -57,7 +57,7 @@ export default function JoinPage() {
       {/* Header */}
       <div style={{ backgroundColor: "var(--navy)" }} className="text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
-          <Eyebrow light className="mb-3">Join Split Second</Eyebrow>
+          <Eyebrow light className="mb-3">Join Transplant Aquatics</Eyebrow>
           <h1 className="text-5xl md:text-6xl font-black tracking-tight leading-none">
             Your swim.
             <br />

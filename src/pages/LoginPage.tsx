@@ -178,13 +178,13 @@ function SignInForm({ onSwitch }: { onSwitch: (m: Mode) => void }) {
         type="submit"
         disabled={loading}
         className="w-full py-3.5 text-sm font-bold uppercase tracking-wider text-black flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ backgroundColor: 'var(--accent)', fontFamily: "'League Spartan', sans-serif" }}
+        style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
       >
         {loading ? 'Signing in…' : <><span>Sign In</span> <ArrowRight size={16} /></>}
       </button>
 
       <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>
-        New to Split Second?{' '}
+        New to Transplant Aquatics?{' '}
         <button type="button" onClick={() => onSwitch('register')} className="font-semibold" style={{ color: 'var(--accent)' }}>
           Create an account
         </button>
@@ -246,7 +246,7 @@ function RegisterForm({ onSwitch }: { onSwitch: (m: Mode) => void }) {
         type="submit"
         disabled={!agreed || loading}
         className="w-full py-3.5 text-sm font-bold uppercase tracking-wider text-black flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
-        style={{ backgroundColor: 'var(--accent)', fontFamily: "'League Spartan', sans-serif" }}
+        style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
       >
         {loading ? 'Creating account…' : <><span>Create Account</span> <ArrowRight size={16} /></>}
       </button>
@@ -376,7 +376,7 @@ function ProfileBuilder() {
         <button
           type="submit"
           className="flex items-center gap-2 px-8 py-3.5 text-sm font-bold uppercase tracking-wider text-black transition-opacity hover:opacity-85"
-          style={{ backgroundColor: 'var(--accent)', fontFamily: "'League Spartan', sans-serif" }}
+          style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
         >
           {saved ? <><CheckCircle2 size={16} /> Saved!</> : <>Save Profile <ArrowRight size={16} /></>}
         </button>
@@ -402,7 +402,7 @@ export default function LoginPage() {
   }, [auth.isLoggedIn, navigate]);
 
   const titles: Record<Mode, { heading: string; sub: string }> = {
-    signin:   { heading: 'Sign In',          sub: 'Access your Split Second profile.' },
+    signin:   { heading: 'Sign In',          sub: 'Access your Transplant Aquatics profile.' },
     register: { heading: 'Create Account',   sub: 'Join the global transplant swimming community.' },
     profile:  { heading: 'Your Profile',     sub: 'Complete your athlete profile.' },
   };
@@ -437,7 +437,7 @@ export default function LoginPage() {
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-5" style={{ backgroundColor: 'var(--accent)' }} />
                 <span className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                  {mode === 'profile' ? 'Athlete Portal' : 'Split Second'}
+                  {mode === 'profile' ? 'Athlete Portal' : 'Transplant Aquatics'}
                 </span>
               </div>
               <h1 className="display text-3xl text-white">{titles[mode].heading}</h1>
@@ -473,7 +473,7 @@ export default function LoginPage() {
 
           {/* Brand note */}
           <p className="mt-6 text-center font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-            Captured to 0.001s resolution. · © 2026 Split Second Inc.
+            Captured to 0.001s resolution. · © 2026 Transplant Aquatics
           </p>
         </div>
       </div>

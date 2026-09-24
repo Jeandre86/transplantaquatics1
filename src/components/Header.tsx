@@ -200,7 +200,7 @@ export default function Header() {
             <Link
               to="/join"
               className="hidden sm:flex items-center px-4 py-2 text-sm font-bold uppercase tracking-wider text-black transition-opacity hover:opacity-80"
-              style={{ backgroundColor: 'var(--accent)', fontFamily: "'League Spartan', sans-serif" }}
+              style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
             >
               Join
             </Link>
@@ -308,9 +308,9 @@ export default function Header() {
                       to="/join"
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center justify-center w-full px-4 py-3 text-sm font-bold uppercase tracking-wider text-black"
-                      style={{ backgroundColor: 'var(--accent)', fontFamily: "'League Spartan', sans-serif" }}
+                      style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
                     >
-                      Join Split Second
+                      Join Transplant Aquatics
                     </Link>
                   </>
                 )}
