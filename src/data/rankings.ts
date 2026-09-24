@@ -1,0 +1,37 @@
+import type { Ranking } from '../types';
+
+export const rankings: Ranking[] = [
+  // Men 40-49 100m Freestyle LCM
+  { rank: 1, athleteId: 'michael-van-der-berg', athleteName: 'Michael van der Berg', country: 'South Africa', countryCode: 'ZA', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '58.92', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 2, athleteId: 'james-holloway', athleteName: 'James Holloway', country: 'United Kingdom', countryCode: 'GB', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:01.14', transplantType: 'Liver', date: '2025-04-15' },
+  { rank: 3, athleteId: 'david-kowalczyk', athleteName: 'David Kowalczyk', country: 'United States', countryCode: 'US', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:01.77', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 4, athleteId: 'peter-nguyen', athleteName: 'Peter Nguyen', country: 'Australia', countryCode: 'AU', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:02.88', transplantType: 'Heart', date: '2025-04-15' },
+  { rank: 5, athleteId: 'daniel-morrison', athleteName: 'Daniel Morrison', country: 'Canada', countryCode: 'CA', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:03.21', transplantType: 'Pancreas', date: '2025-04-15' },
+  { rank: 6, athleteId: 'kenji-yamamoto', athleteName: 'Kenji Yamamoto', country: 'Japan', countryCode: 'JP', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:03.88', transplantType: 'Bone Marrow', date: '2025-04-15' },
+  { rank: 7, athleteId: 'marco-ferrari', athleteName: 'Marco Ferrari', country: 'Italy', countryCode: 'IT', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:04.22', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 8, athleteId: 'carlos-morales', athleteName: 'Carlos Morales', country: 'Spain', countryCode: 'ES', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:04.88', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 9, athleteId: 'athlete-de-1', athleteName: 'Wolfgang Bauer', country: 'Germany', countryCode: 'DE', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:05.22', transplantType: 'Liver', date: '2025-04-15' },
+  { rank: 10, athleteId: 'athlete-fr-1', athleteName: 'Étienne Leclerc', country: 'France', countryCode: 'FR', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:05.88', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 11, athleteId: 'athlete-nl-1', athleteName: 'Sander Visser', country: 'Netherlands', countryCode: 'NL', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:06.14', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 12, athleteId: 'athlete-se-1', athleteName: 'Johan Lindqvist', country: 'Sweden', countryCode: 'SE', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:06.44', transplantType: 'Liver', date: '2025-04-15' },
+  { rank: 13, athleteId: 'athlete-nz-1', athleteName: 'Hamish Crawford', country: 'New Zealand', countryCode: 'NZ', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:06.88', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 14, athleteId: 'athlete-br-1', athleteName: 'Ricardo Lima', country: 'Brazil', countryCode: 'BR', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:07.22', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 15, athleteId: 'athlete-il-1', athleteName: 'Avi Grossman', country: 'Israel', countryCode: 'IL', ageGroup: '40-49', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:07.44', transplantType: 'Heart', date: '2025-04-15' },
+  // Women 40-49 100m Freestyle LCM
+  { rank: 1, athleteId: 'sarah-brennan', athleteName: 'Sarah Brennan', country: 'United Kingdom', countryCode: 'GB', ageGroup: '40-49', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:04.77', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 2, athleteId: 'agnieszka-kowalski', athleteName: 'Agnieszka Kowalski', country: 'Poland', countryCode: 'PL', ageGroup: '40-49', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:04.11', transplantType: 'Heart', date: '2025-04-15' },
+  { rank: 3, athleteId: 'athlete-za-w1', athleteName: 'Liezel Joubert', country: 'South Africa', countryCode: 'ZA', ageGroup: '40-49', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:05.88', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 4, athleteId: 'athlete-au-w1', athleteName: 'Fiona McAllister', country: 'Australia', countryCode: 'AU', ageGroup: '40-49', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:06.44', transplantType: 'Liver', date: '2025-04-15' },
+  { rank: 5, athleteId: 'athlete-de-w1', athleteName: 'Greta Schulz', country: 'Germany', countryCode: 'DE', ageGroup: '40-49', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:07.12', transplantType: 'Kidney', date: '2025-04-15' },
+  // Men 50-59 100m Freestyle LCM
+  { rank: 1, athleteId: 'hans-mueller', athleteName: 'Hans Müller', country: 'Germany', countryCode: 'DE', ageGroup: '50-59', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:04.88', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 2, athleteId: 'pieter-de-vries', athleteName: 'Pieter de Vries', country: 'Netherlands', countryCode: 'NL', ageGroup: '50-59', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:02.44', transplantType: 'Liver', date: '2025-04-15' },
+  { rank: 3, athleteId: 'lars-eriksson', athleteName: 'Lars Eriksson', country: 'Sweden', countryCode: 'SE', ageGroup: '50-59', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:03.88', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 4, athleteId: 'athlete-us-1', athleteName: 'Robert Garcia', country: 'United States', countryCode: 'US', ageGroup: '50-59', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:05.44', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 5, athleteId: 'athlete-ca-1', athleteName: 'François Tremblay', country: 'Canada', countryCode: 'CA', ageGroup: '50-59', gender: 'Men', event: '100m Freestyle', course: 'LCM', time: '1:06.11', transplantType: 'Liver', date: '2025-04-15' },
+  // Women 30-39 100m Freestyle LCM
+  { rank: 1, athleteId: 'camille-dupont', athleteName: 'Camille Dupont', country: 'France', countryCode: 'FR', ageGroup: '30-39', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:04.88', transplantType: 'Lung', date: '2025-04-15' },
+  { rank: 2, athleteId: 'ana-silva', athleteName: 'Ana Silva', country: 'Brazil', countryCode: 'BR', ageGroup: '30-39', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:02.88', transplantType: 'Kidney', date: '2025-04-15' },
+  { rank: 3, athleteId: 'emma-wilson', athleteName: 'Emma Wilson', country: 'New Zealand', countryCode: 'NZ', ageGroup: '30-39', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:06.44', transplantType: 'Liver', date: '2025-04-15' },
+  { rank: 4, athleteId: 'noa-cohen', athleteName: 'Noa Cohen', country: 'Israel', countryCode: 'IL', ageGroup: '30-39', gender: 'Women', event: '100m Freestyle', course: 'LCM', time: '1:03.44', transplantType: 'Kidney', date: '2025-04-15' },
+];

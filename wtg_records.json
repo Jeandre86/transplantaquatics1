@@ -1,0 +1,2146 @@
+{
+  "source": {
+    "organisation": "World Transplant Games Federation",
+    "document": "Swimming (Long Course) - updated February 2026",
+    "source_url": "https://wtgf.org/wp-content/uploads/2026/03/Records-Swimming-Long-Course-updated-Feb-2026.pdf",
+    "record_type": "World Transplant Games Record Performances",
+    "pool_type": "Long Course"
+  },
+  "records": [
+    {
+      "event": "50m Freestyle",
+      "age_group": "18-29",
+      "time": "00:25.47",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Malaga 2017",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "30-39",
+      "time": "00:24.73",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "40-49",
+      "time": "00:26.24",
+      "name": "R Guena Jardim de Camargo",
+      "country": "BRAZIL",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "50-59",
+      "time": "00:28.53",
+      "name": "Peter Meijer",
+      "country": "NETHERLANDS",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "60-69",
+      "time": "00:30.51",
+      "name": "Jim Shuck",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "70-79",
+      "time": "00:32.12",
+      "name": "David Landes",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "18-29",
+      "time": "00:55.62",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Durban 2013",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "30-39",
+      "time": "00:54.74",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "40-49",
+      "time": "01:00.34",
+      "name": "R Guena Jardim de Camargo",
+      "country": "BRAZIL",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "50-59",
+      "time": "01:05.90",
+      "name": "Ross Minichilli",
+      "country": "AUSTRALIA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "60-69",
+      "time": "01:14.62",
+      "name": "Richard Percival",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "70-79",
+      "time": "01:16.35",
+      "name": "David Landes",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "18-29",
+      "time": "02:05.37",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Durban 2013",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "30-39",
+      "time": "02:04.61",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "40-49",
+      "time": "02:33.79",
+      "name": "Benoit Raymond",
+      "country": "CANADA",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "50-59",
+      "time": "02:32.69",
+      "name": "Peter Meijer",
+      "country": "NETHERLANDS",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "60-69",
+      "time": "02:48.77",
+      "name": "Chikara Wakamatsu",
+      "country": "JAPAN",
+      "site": "Malaga 2017",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "70-79",
+      "time": "03:01.11",
+      "name": "David Landes",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "18-29",
+      "time": "04:29.55",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Malaga 2017",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "30-39",
+      "time": "04:56.77",
+      "name": "Jeandre Geldenhuys",
+      "country": "SOUTH AFRICA",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "40-49",
+      "time": "05:17.05",
+      "name": "Michael Brett",
+      "country": "CANADA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "50-59",
+      "time": "05:32.11",
+      "name": "Peter Meijer",
+      "country": "NETHERLANDS",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "60-69",
+      "time": "06:07.85",
+      "name": "Chikara Wakamatsu",
+      "country": "JAPAN",
+      "site": "Malaga 2017",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "70-79",
+      "time": "06:47.80",
+      "name": "Robert Kirkbride",
+      "country": "AUSTRALIA",
+      "site": "Mar Del Plata 2015",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "18-29",
+      "time": "00:31.63",
+      "name": "Andre Jorge",
+      "country": "PORTUGAL",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "30-39",
+      "time": "00:31.61",
+      "name": "Christopher Bagley",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "40-49",
+      "time": "00:31.50",
+      "name": "R Guena Jardim de Camargo",
+      "country": "BRAZIL",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "50-59",
+      "time": "00:37.53",
+      "name": "Rodrigo Cristiano Machado",
+      "country": "BRAZIL",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "60-69",
+      "time": "00:39.86",
+      "name": "Peter van Maurik",
+      "country": "NETHERLANDS",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "70-79",
+      "time": "00:44.08",
+      "name": "David Landes",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "80+",
+      "time": "03:29.13",
+      "name": "Jean-Claude Le Bourhis",
+      "country": "FRANCE",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "18-29",
+      "time": "01:12.25",
+      "name": "Andre Jorge",
+      "country": "PORTUGAL",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "30-39",
+      "time": "01:12.17",
+      "name": "Christopher Bagley",
+      "country": "USA",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "40-49",
+      "time": "01:09.29",
+      "name": "R Guena Jardim de Camargo",
+      "country": "BRAZIL",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "50-59",
+      "time": "01:24.85",
+      "name": "Rodrigo Cristiano Machado",
+      "country": "BRAZIL",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "60-69",
+      "time": "01:37.34",
+      "name": "Peter van Maurik",
+      "country": "NETHERLANDS",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "70-79",
+      "time": "02:05.39",
+      "name": "Robert Kirkbride",
+      "country": "AUSTRALIA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "18-29",
+      "time": "00:30.35",
+      "name": "Daniel Ord",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "30-39",
+      "time": "00:30.28",
+      "name": "Riccardo Canola",
+      "country": "ITALY",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "40-49",
+      "time": "00:32.68",
+      "name": "Grey Brett",
+      "country": "CANADA",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "50-59",
+      "time": "00:35.14",
+      "name": "M. Wittum",
+      "country": "GERMANY",
+      "site": "Singapore 1989",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "60-69",
+      "time": "00:37.98",
+      "name": "M. Wittum",
+      "country": "GERMANY",
+      "site": "Sydney 1997",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "70-79",
+      "time": "00:44.82",
+      "name": "Laszlo Pengo",
+      "country": "HUNGARY",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "18-29",
+      "time": "01:07.17",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Mar Del Plata 2015",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "30-39",
+      "time": "01:08.64",
+      "name": "Riccardo Canola",
+      "country": "ITALY",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "40-49",
+      "time": "01:16.12",
+      "name": "Matthew Burrows",
+      "country": "GB&NI",
+      "site": "Malaga 2017",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "50-59",
+      "time": "01:20.91",
+      "name": "Rodrigo Cristiano Machado",
+      "country": "BRAZIL",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "60-69",
+      "time": "01:29.43",
+      "name": "Theodoros Katsaros",
+      "country": "GREECE",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "70-79",
+      "time": "01:45.40",
+      "name": "William Noble",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "18-29",
+      "time": "00:26.96",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Durban 2013",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "30-39",
+      "time": "00:26.12",
+      "name": "Christopher Bagley",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "40-49",
+      "time": "00:28.80",
+      "name": "Grey Brett",
+      "country": "CANADA",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "50-59",
+      "time": "00:30.69",
+      "name": "Peter Meijer",
+      "country": "NETHERLANDS",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "60-69",
+      "time": "00:32.49",
+      "name": "M. Wittum",
+      "country": "GERMANY",
+      "site": "Sydney 1997",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "70-79",
+      "time": "00:38.84",
+      "name": "Arthur Deffaa",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "18-29",
+      "time": "02:19.70",
+      "name": "Liam Barnett",
+      "country": "GB&NI",
+      "site": "Durban 2013",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "30-39",
+      "time": "02:24.66",
+      "name": "Liam Barnett",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "40-49",
+      "time": "02:28.52",
+      "name": "R. Guena Jardim de Camargo",
+      "country": "BRAZIL",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "50-59",
+      "time": "02:49.06",
+      "name": "Rodrigo Cristiano Machado",
+      "country": "BRAZIL",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "60-69",
+      "time": "03:15.67",
+      "name": "James Gill",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "70-79",
+      "time": "03:36.85",
+      "name": "Arthur Deffaa",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult"
+    },
+    {
+      "event": "4x50 Freestyle Relay",
+      "age_group": null,
+      "time": "01:46.88",
+      "name": [
+        "Declan Bennett",
+        "Lewis Watt",
+        "Matthew Burrows",
+        "Liam Barnett"
+      ],
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "adult_relay"
+    },
+    {
+      "event": "4x50 Medley Relay",
+      "age_group": null,
+      "time": "02:04.39",
+      "name": [
+        "Daniel Ord",
+        "Nicolae Acceleanu",
+        "Liam Barnett",
+        "Lewis Watt"
+      ],
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "adult_relay"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "18-29",
+      "time": "00:30.66",
+      "name": "Nicole Mackenzie",
+      "country": "GB&NI",
+      "site": "Malaga 2017",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "30-39",
+      "time": "00:28.88",
+      "name": "Abigail Beckman-Green",
+      "country": "USA",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "40-49",
+      "time": "00:31.68",
+      "name": "Jodie Cox",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "50-59",
+      "time": "00:31.84",
+      "name": "Patricia Zuppan-Hood",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "60-69",
+      "time": "00:35.77",
+      "name": "Patricia Zuppan-Hood",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "70-79",
+      "time": "00:41.08",
+      "name": "Karen Rockell",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "18-29",
+      "time": "01:09.27",
+      "name": "Nicole Mackenzie",
+      "country": "GB&NI",
+      "site": "Malaga 2017",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "30-39",
+      "time": "01:01.26",
+      "name": "Abigail Beckman-Green",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "40-49",
+      "time": "01:11.49",
+      "name": "Jodie Cox",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "50-59",
+      "time": "01:08.67",
+      "name": "B Greenway",
+      "country": "UK",
+      "site": "Bangkok 2007",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "60-69",
+      "time": "01:25.32",
+      "name": "Patricia Zuppan-Hood",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "70-79",
+      "time": "01:43.57",
+      "name": "Karen Rockell",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "18-29",
+      "time": "02:36.02",
+      "name": "Simone Bauer",
+      "country": "GERMANY",
+      "site": "Mar Del Plata 2015",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "30-39",
+      "time": "02:19.89",
+      "name": "Abigail Beckman-Green",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "40-49",
+      "time": "02:40.07",
+      "name": "Jodie Cox",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "50-59",
+      "time": "02:53.10",
+      "name": "K. Estep-Lampley",
+      "country": "USA",
+      "site": "Gold Coast 2009",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "60-69",
+      "time": "03:13.00",
+      "name": "Patricia Zuppan-Hood",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "70-79",
+      "time": "04:03.96",
+      "name": "Margaret Mills",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "18-29",
+      "time": "05:39.26",
+      "name": "Simone Bauer",
+      "country": "GERMANY",
+      "site": "Malaga 2017",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "30-39",
+      "time": "05:04.94",
+      "name": "Abigail Beckman-Green",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "40-49",
+      "time": "05:35.90",
+      "name": "Jodie Cox",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "50-59",
+      "time": "06:32.89",
+      "name": "Maya Schlesinger",
+      "country": "ISRAEL",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "60-69",
+      "time": "06:53.84",
+      "name": "Patricia Zuppan-Hood",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "400m Freestyle",
+      "age_group": "70-79",
+      "time": "09:03.80",
+      "name": "Monica Moss",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "18-29",
+      "time": "00:37.68",
+      "name": "Nicole Mackenzie",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "30-39",
+      "time": "00:40.00",
+      "name": "Jillian Best",
+      "country": "CANADA",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "40-49",
+      "time": "00:41.20",
+      "name": "Jodie Cox",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "50-59",
+      "time": "00:45.11",
+      "name": "Michelle Daley",
+      "country": "AUSTRALIA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "60-69",
+      "time": "00:51.01",
+      "name": "Janet Monk",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "70-79",
+      "time": "01:07.80",
+      "name": "Gudrun Manuwald-Seemueller",
+      "country": "GERMANY",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "80+",
+      "time": "03:16.87",
+      "name": "Esther Mary Scott",
+      "country": "AUSTRALIA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "18-29",
+      "time": "01:23.78",
+      "name": "Nicole Mackenzie",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "30-39",
+      "time": "01:26.06",
+      "name": "Jillian Best",
+      "country": "CANADA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "40-49",
+      "time": "01:31.45",
+      "name": "Jodie Cox",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "50-59",
+      "time": "01:44.67",
+      "name": "Deirdre Faul",
+      "country": "IRELAND",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "60-69",
+      "time": "01:54.63",
+      "name": "Gillian Ferguson",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "70-79",
+      "time": "03:05.50",
+      "name": "Jeanette Dempster",
+      "country": "CANADA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "18-29",
+      "time": "00:37.72",
+      "name": "S. Kavanagh",
+      "country": "AUSTRALIA",
+      "site": "Singapore 1989",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "30-39",
+      "time": "00:35.41",
+      "name": "Caroline Rutherford",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "40-49",
+      "time": "00:38.93",
+      "name": "Marcela Navarro",
+      "country": "MEXICO",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "50-59",
+      "time": "00:38.89",
+      "name": "Marcela Navarro",
+      "country": "MEXICO",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "60-69",
+      "time": "00:47.14",
+      "name": "Patricia Zuppan-Hood",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "70-79",
+      "time": "00:53.53",
+      "name": "Karen Rockell",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "18-29",
+      "time": "01:20.44",
+      "name": "Larissa Giuliano",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "30-39",
+      "time": "01:17.53",
+      "name": "Caroline Rutherford",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "40-49",
+      "time": "01:26.79",
+      "name": "Marcela Navarro",
+      "country": "MEXICO",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "50-59",
+      "time": "01:27.18",
+      "name": "Marcela Navarro",
+      "country": "MEXICO",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "60-69",
+      "time": "01:43.77",
+      "name": "Catherine Guitard",
+      "country": "FRANCE",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "70-79",
+      "time": "02:04.92",
+      "name": "Karen Rockell",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "18-29",
+      "time": "00:32.92",
+      "name": "Larissa Giuliano",
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "30-39",
+      "time": "00:30.10",
+      "name": "Abigail Beckman-Green",
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "40-49",
+      "time": "00:35.60",
+      "name": "Lisa Du Plessis",
+      "country": "SOUTH AFRICA",
+      "site": "Malaga 2017",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "50-59",
+      "time": "00:37.20",
+      "name": "Patricia Zuppan-Hood",
+      "country": "USA",
+      "site": "Malaga 2017",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "60-69",
+      "time": "00:48.44",
+      "name": "Karen Rockell",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "70-79",
+      "time": "00:50.84",
+      "name": "Karen Rockell",
+      "country": "GB&NI",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "18-29",
+      "time": "02:47.65",
+      "name": "Nicole Mackenzie",
+      "country": "GB&NI",
+      "site": "Malaga 2017",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "30-39",
+      "time": "02:44.41",
+      "name": "Jillian Best",
+      "country": "CANADA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "40-49",
+      "time": "03:04.60",
+      "name": "Marcela Navarro",
+      "country": "MEXICO",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "50-59",
+      "time": "03:10.54",
+      "name": "Marcela Navarro",
+      "country": "MEXICO",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "200m Individual Medley",
+      "age_group": "60-69",
+      "time": "04:21.78",
+      "name": "Janis Clemis",
+      "country": "CANADA",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "adult"
+    },
+    {
+      "event": "4x50m Freestyle Relay",
+      "age_group": null,
+      "time": "02:04.01",
+      "name": [
+        "Caroline Rutherford",
+        "Jodie Cox",
+        "Cerys O'Connell",
+        "Ava Taylor"
+      ],
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult_relay"
+    },
+    {
+      "event": "4x50m Medley Relay",
+      "age_group": null,
+      "time": "02:20.50",
+      "name": [
+        "Caroline Rutherford",
+        "Nicole Mackenzine",
+        "Ava Taylor",
+        "Cerys O'Connell"
+      ],
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "adult_relay"
+    },
+    {
+      "event": "Mixed 4x50 Medley Relay",
+      "age_group": null,
+      "time": "02:57.75",
+      "name": [
+        "Cerys O'Connell",
+        "Megan O'Connell",
+        "Lewis Watt",
+        "Gillian Watt"
+      ],
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "mixed",
+      "category": "mixed_relay"
+    },
+    {
+      "event": "Mixed 4x50 Freestyle Relay",
+      "age_group": null,
+      "time": "02:06.22",
+      "name": [
+        "Matthew Castle",
+        "Ray Velasco",
+        "Patricia Zuppan-Hood",
+        "Brandon Kerrigan"
+      ],
+      "country": "USA",
+      "site": "Dresden 2025",
+      "sex": "mixed",
+      "category": "mixed_relay"
+    },
+    {
+      "event": "Mixed 200+ Years Relay",
+      "age_group": null,
+      "time": "02:08.44",
+      "name": [
+        "David Farmer",
+        "Patricia Zuppan-Hood",
+        "Fred Nelis",
+        "David Landes"
+      ],
+      "country": "USA",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "mixed",
+      "category": "mixed_relay"
+    },
+    {
+      "event": "25m Freestyle",
+      "age_group": "6-8 years",
+      "time": "00:40.75",
+      "name": "Anthony Schiller",
+      "country": "AUSTRALIA",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "25m Freestyle",
+      "age_group": "9-11 years",
+      "time": "00:18.16",
+      "name": "Robbie Laubscher",
+      "country": "RSA",
+      "site": "Durban 2013",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "9-11 years",
+      "time": "00:40.28",
+      "name": "Robbie Laubscher",
+      "country": "RSA",
+      "site": "Durban 2013",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "12-14 years",
+      "time": "00:30.06",
+      "name": "Nicolae Acceleanu",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "15-17 years",
+      "time": "00:27.77",
+      "name": "Declan Bennett",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "9-11 years",
+      "time": "00:51.81",
+      "name": "Daniel Torok",
+      "country": "HUNGARY",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "12-14 years",
+      "time": "01:17.77",
+      "name": "Rhys Bonnell",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "15-17 years",
+      "time": "01:02.79",
+      "name": "Declan Bennett",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "12-14 years",
+      "time": "02:40.76",
+      "name": "Matthew Barton",
+      "country": "UK",
+      "site": "Bangkok 2007",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "15-17 years",
+      "time": "02:19.56",
+      "name": "Declan Bennett",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "25m Backstroke",
+      "age_group": "9-11 years",
+      "time": "00:22.69",
+      "name": "Endo Fumitaka",
+      "country": "JAPAN",
+      "site": "Bangkok 2007",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "9-11 years",
+      "time": "01:00.40",
+      "name": "Patrik Rezso Orsy",
+      "country": "HUNGARY",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "12-14 years",
+      "time": "02:24.00",
+      "name": "Nicolae Acceleanu",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "15-17 years",
+      "time": "00:33.55",
+      "name": "Declan Bennett",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "12-14 years",
+      "time": "01:35.26",
+      "name": "Rhys Bonnell",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "15-17 years",
+      "time": "01:24.56",
+      "name": "Paul Meikle",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "25m Breaststroke",
+      "age_group": "9-11 years",
+      "time": "00:25.38",
+      "name": "Alek Carton",
+      "country": "FRANCE",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "9-11 years",
+      "time": "00:30.74",
+      "name": "Daniel Torok",
+      "country": "HUNGARY",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "12-14 years",
+      "time": "00:36.46",
+      "name": "Nicolae Acceleanu",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "15-17 years",
+      "time": "00:37.72",
+      "name": "Declan Bennett",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "9-11 years",
+      "time": "01:08.40",
+      "name": "Giona Addorisio",
+      "country": "ITALY",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "12-14 years",
+      "time": "01:24.37",
+      "name": "Nicolae Acceleanu",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "15-17 years",
+      "time": "01:29.90",
+      "name": "Adam Domonkos",
+      "country": "HUNGARY",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "25m Butterfly",
+      "age_group": "9-11 years",
+      "time": "00:18.16",
+      "name": "Robbie Laubscher",
+      "country": "RSA",
+      "site": "Durban 2013",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "12-14 years",
+      "time": "00:40.98",
+      "name": "Mason Baxter",
+      "country": "GB&NI",
+      "site": "Dresden 2025",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "15-17 years",
+      "time": "00:30.35",
+      "name": "Declan Bennett",
+      "country": "GB&NI",
+      "site": "Mar del Plata 2015",
+      "sex": "boys",
+      "category": "junior"
+    },
+    {
+      "event": "25m Freestyle",
+      "age_group": "6-8 years",
+      "time": "00:41.12",
+      "name": "Janka Zorka Hargitai",
+      "country": "HUNGARY",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "25m Freestyle",
+      "age_group": "9-11 years",
+      "time": "00:17.02",
+      "name": "Timea Sipos",
+      "country": "HUNGARY",
+      "site": "Malaga 2017",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "6-8 years",
+      "time": "01:28.01",
+      "name": "Janka Zorka Hargitai",
+      "country": "HUNGARY",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "9-11 years",
+      "time": "00:41.19",
+      "name": "Ava Taylor",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "12-14 years",
+      "time": "00:34.00",
+      "name": "Cerys O'Connell",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "15-17 years",
+      "time": "00:30.54",
+      "name": "Ava Taylor",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "12-14 years",
+      "time": "01:17.89",
+      "name": "Cerys O'Connell",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "100m Freestyle",
+      "age_group": "15-17 years",
+      "time": "01:09.39",
+      "name": "Ava Taylor",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "12-14 years",
+      "time": "02:30.68",
+      "name": "Miya French",
+      "country": "USA",
+      "site": "Malaga 2017",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "200m Freestyle",
+      "age_group": "15-17 years",
+      "time": "02:41.89",
+      "name": "Ava Taylor",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "25m Backstroke",
+      "age_group": "6-8 years",
+      "time": "00:32.10",
+      "name": "Indy Koelewijn",
+      "country": "NETHERLANDS",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "25m Backstroke",
+      "age_group": "9-11 years",
+      "time": "00:22.56",
+      "name": "Ava Taylor",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "6-8 years",
+      "time": "01:05.58",
+      "name": "Indy Koelewijn",
+      "country": "NETHERLANDS",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "9-11 years",
+      "time": "00:50.56",
+      "name": "Ava Taylor",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "12-14 years",
+      "time": "00:39.56",
+      "name": "Cerys O'Connell",
+      "country": "GB&NI",
+      "site": "Perth 2023",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "15-17 years",
+      "time": "00:38.31",
+      "name": "Cerys O'Connell",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "12-14 years",
+      "time": "01:33.49",
+      "name": "Emily Turner",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "100m Backstroke",
+      "age_group": "15-17 years",
+      "time": "01:27.11",
+      "name": "Cerys O'Connell",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "25m Breaststroke",
+      "age_group": "6-8 years",
+      "time": "00:33.90",
+      "name": "Lena Rasche",
+      "country": "GERMANY",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "25m Breaststroke",
+      "age_group": "9-11 years",
+      "time": "00:26.19",
+      "name": "Sina Wonneberger",
+      "country": "GERMANY",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "6-8 years",
+      "time": "01:18.98",
+      "name": "Lena Rasche",
+      "country": "GERMANY",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "9-11 years",
+      "time": "01:09.00",
+      "name": "Phoebe Pace",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "12-14 years",
+      "time": "00:43.58",
+      "name": "Flora Suli",
+      "country": "HUNGARY",
+      "site": "Malaga 2017",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "15-17 years",
+      "time": "00:40.36",
+      "name": "Nicole MacKenzie",
+      "country": "GB&NI",
+      "site": "Durban 2013",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "12-14 years",
+      "time": "01:48.39",
+      "name": "Ellie Greenwood",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "100m Breaststroke",
+      "age_group": "15-17 years",
+      "time": "01:56.52",
+      "name": "Elspeth French",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "25m Butterfly",
+      "age_group": "9-11 years",
+      "time": "00:20.35",
+      "name": "Ava Taylor",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "12-14 years",
+      "time": "00:37.53",
+      "name": "Emily Turner",
+      "country": "GB&NI",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "15-17 years",
+      "time": "00:33.09",
+      "name": "Ava Taylor",
+      "country": "GB&NI",
+      "site": "Dresden 2025",
+      "sex": "girls",
+      "category": "junior"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "18-39",
+      "time": "00:36.49",
+      "name": "Jose Manuel Munoz Duran",
+      "country": "SPAIN",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "40-49",
+      "time": "00:27.52",
+      "name": "Kari Kangasniemi",
+      "country": "FINLAND",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "50 and Over",
+      "time": "00:34.56",
+      "name": "John Wilcox",
+      "country": "AUSTRALIA",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "Under 50",
+      "time": "00:28.29",
+      "name": "Kari Kangasniemi",
+      "country": "FINLAND",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "50 and Over",
+      "time": "00:35.52",
+      "name": "Colin Liebmann",
+      "country": "AUSTRALIA",
+      "site": "Perth 2023",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "18-39",
+      "time": "00:42.83",
+      "name": "Jonathan Cunningham",
+      "country": "NORTHERN IRELAND",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "40-49",
+      "time": "00:32.15",
+      "name": "Kari Kangasniemi",
+      "country": "FINLAND",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "40-49",
+      "time": "00:37.42",
+      "name": "Kari Kangasniemi",
+      "country": "FINLAND",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "50-79",
+      "time": "00:45.42",
+      "name": "John Wilcox",
+      "country": "AUSTRALIA",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "4-17",
+      "time": "00:52.92",
+      "name": "Lars Kopp",
+      "country": "GERMANY",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "40-49",
+      "time": "00:37.59",
+      "name": "Kari Kangasniemi",
+      "country": "FINLAND",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "50-79",
+      "time": "00:48.96",
+      "name": "John Wilcox",
+      "country": "AUSTRALIA",
+      "site": "Dresden 2025",
+      "sex": "men",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "Under 17",
+      "time": "00:34.17",
+      "name": "Mette Wonneberger",
+      "country": "GERMANY",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "18-39",
+      "time": "00:36.16",
+      "name": "Frances Hill",
+      "country": "CANADA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "40-49",
+      "time": "00:30.09",
+      "name": "Kelli-Ann Reen",
+      "country": "SOUTH AFRICA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "50 and Over",
+      "time": "00:38.38",
+      "name": "Isabela Bastos",
+      "country": "BRAZIL",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "Under 50",
+      "time": "00:34.22",
+      "name": "Serena Tucker",
+      "country": "GB&NI",
+      "site": "Newcastle/Gateshead 2019",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Freestyle",
+      "age_group": "50 and Over",
+      "time": "00:44.62",
+      "name": "Shannon Cuthbertson",
+      "country": "AUSTRALIA",
+      "site": "Perth 2023",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "18-39",
+      "time": "00:43.93",
+      "name": "Frances Hill",
+      "country": "CANADA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Butterfly",
+      "age_group": "40-49",
+      "time": "00:33.70",
+      "name": "Kelli-Ann Reen",
+      "country": "SOUTH AFRICA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "4-17",
+      "time": "00:43.49",
+      "name": "Mette Wonneberger",
+      "country": "GERMANY",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "40-49",
+      "time": "00:37.00",
+      "name": "Kelli-Ann Reen",
+      "country": "SOUTH AFRICA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Backstroke",
+      "age_group": "50-79",
+      "time": "00:46.98",
+      "name": "Isabela Bastos",
+      "country": "BRAZIL",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "4-17",
+      "time": "00:44.87",
+      "name": "Mette Wonneberger",
+      "country": "GERMANY",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "18-39",
+      "time": "00:47.30",
+      "name": "Frances Hill",
+      "country": "CANADA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "40-49",
+      "time": "00:42.00",
+      "name": "Kelli-Ann Reen",
+      "country": "SOUTH AFRICA",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    },
+    {
+      "event": "50m Breaststroke",
+      "age_group": "50-79",
+      "time": "00:53.73",
+      "name": "Gillian Watt",
+      "country": "GREAT BRITAIN",
+      "site": "Dresden 2025",
+      "sex": "women",
+      "category": "donor"
+    }
+  ]
+}

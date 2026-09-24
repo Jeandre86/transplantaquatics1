@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+/* ── Brand palette — Split Second 2026 (Light theme) ───────────────────────── */
+@theme {
+  /* Neutral scale — mid-tones that read on both light and dark surfaces */
+  --color-neutral-50:  #F9F8F5;
+  --color-neutral-100: #F4F2ED;
+  --color-neutral-200: #E4E1DA;
+  --color-neutral-300: #C8C4BB;
+  --color-neutral-400: #6b7a8d;
+  --color-neutral-500: #4a5568;
+  --color-neutral-600: #354052;
+  --color-neutral-700: #1e2d3d;
+  --color-neutral-800: #0d1f30;
+  --color-neutral-900: #071a2b;
+  --color-neutral-950: #030f1a;
+  --color-black:       #030f1a;   /* Override Tailwind's text-black / bg-black */
+}
+
+@layer base {
+  :root {
+    /* ── Dark surfaces — header, hero, footer ──────────────────────────── */
+    --navy:         #071a2b;   /* Dark navy canvas          */
+    --navy-mid:     #0d2438;   /* Second dark layer         */
+    --navy-light:   #1e3a52;   /* Dark borders / dividers   */
+    --graphite:     #354052;   /* Support base              */
+
+    /* ── Light surfaces — page body ─────────────────────────────────────── */
+    --paper:        #F4F2ED;   /* Main page bg — warm off-white */
+    --paper-dark:   #EDEAE4;   /* Alt section bg                */
+    --surface:      #FFFFFF;   /* Card / panel surface          */
+    --ice:          #E8F8FA;   /* Light ice tint                */
+
+    /* ── Typography — light context (on --paper / --surface) ───────────── */
+    --ink:          #071a2b;   /* Primary text    */
+    --muted:        #354052;   /* Secondary text  */
+
+    /* ── Typography — dark context (on --navy / hero) ───────────────────── */
+    --ink-on-dark:   #FFFFFF;
+    --muted-on-dark: #8fa5b5;
+
+    /* ── Brand accent ────────────────────────────────────────────────────── */
+    --accent:       #00C2D7;   /* Split Aqua — Primary Accent */
+    --accent-dark:  #0099a8;
+    --aqua:         #00C2D7;   /* Digital Interface (same)    */
+    --lime:         #C7F368;   /* Signal Lime — reserved for PBs / records only */
+    --blue:         #155EEF;   /* Primary Brand Blue      */
+
+    /* ── Borders ─────────────────────────────────────────────────────────── */
+    --border:       rgba(7,26,43,0.12);   /* On light bg  */
+    --border-dark:  #1e3a52;              /* On dark bg   */
+    --black:        #030f1a;   /* Deep near-black for button text on accents */
+
+    /* ── Status ──────────────────────────────────────────────────────────── */
+    --verified:   #16a34a;
+    --pending:    #d97706;
+    --unverified: #6b7a8d;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--paper);
+    color: var(--ink);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--paper);
+  }
+
+  /* League Spartan — display / timing */
+  .display {
+    font-family: 'League Spartan', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+  .display-bold {
+    font-family: 'League Spartan', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  /* Monospace data labels */
+  .mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  }
+}
+
+@layer utilities {
+  /* ── Colour utilities backed by brand tokens ────────────────────────────── */
+  .text-accent    { color: var(--accent); }
+  .bg-accent      { background-color: var(--accent); }
+  .border-accent  { border-color: var(--accent); }
+
+  .text-aqua      { color: var(--aqua); }
+  .bg-aqua        { background-color: var(--aqua); }
+  .border-aqua    { border-color: var(--aqua); }
+
+  .text-blue      { color: var(--blue); }
+  .bg-blue        { background-color: var(--blue); }
+
+  .text-ice       { color: var(--ice); }
+  .text-muted     { color: var(--muted); }
+  .text-ink       { color: var(--ink); }
+  .bg-ink         { background-color: var(--ink); }
+
+  .bg-paper       { background-color: var(--paper); }
+  .bg-surface     { background-color: var(--surface); }
+  .bg-ice         { background-color: var(--ice); }
+  .bg-navy        { background-color: var(--navy); }
+  .bg-navy-mid    { background-color: var(--navy-mid); }
+  .bg-graphite    { background-color: var(--graphite); }
+
+  .border-border      { border-color: var(--border); }
+  .border-navy-light  { border-color: var(--navy-light); }
+
+  /* ── Split Second lane rule ──────────────────────────────────────────────── */
+  .split-rule {
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(7,26,43,0.15) 20%,
+      rgba(7,26,43,0.15) 48%,
+      var(--accent) 48%,
+      var(--accent) 52%,
+      rgba(7,26,43,0.15) 52%,
+      rgba(7,26,43,0.15) 80%,
+      transparent 100%
+    );
+  }
+
+  /* ── Speed-line diagonal pattern (brand section 06 — on dark) ───────────── */
+  .speed-lines {
+    background-image: repeating-linear-gradient(
+      -15deg,
+      transparent,
+      transparent 6px,
+      rgba(21, 94, 239, 0.12) 6px,
+      rgba(21, 94, 239, 0.12) 7px
+    );
+  }
+
+  /* Speed-lines on light bg */
+  .speed-lines-light {
+    background-image: repeating-linear-gradient(
+      -15deg,
+      transparent,
+      transparent 8px,
+      rgba(7, 26, 43, 0.04) 8px,
+      rgba(7, 26, 43, 0.04) 9px
+    );
+  }
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--neutral-200) 25%, var(--neutral-300) 50%, var(--neutral-200) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
