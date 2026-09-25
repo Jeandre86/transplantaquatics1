@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2, LogOut, CheckCircle2, ArrowRight, User, Mail, Globe, Heart, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -120,6 +120,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const avatarInput = useRef<HTMLInputElement>(null);
 
   // Redirect unauthenticated visitors
   useEffect(() => {
@@ -151,6 +152,17 @@ export default function ProfilePage() {
     navigate('/');
   };
 
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') auth.updateAvatar(reader.result);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
   // Profile completeness based on filled fields
   const filledFields = [
     editFirst, editLast, editEmail, editCountry, editTransplant, editClub,
@@ -172,16 +184,20 @@ export default function ProfilePage() {
         {/* Accent stripe */}
         <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: 'var(--accent)' }} />
 
-        <div className="max-w-7xl mx-auto px-6 py-10">
+        <div className="max-w-7xl mx-auto px-4 py-10">
           <div className="flex flex-col sm:flex-row sm:items-end gap-6 justify-between">
             <div className="flex items-center gap-5">
               {/* Avatar */}
-              <div
-                className="w-16 h-16 flex-shrink-0 flex items-center justify-center text-xl font-bold text-white"
+              <button
+                type="button"
+                onClick={() => avatarInput.current?.click()}
+                className="w-16 h-16 flex-shrink-0 overflow-hidden flex items-center justify-center text-xl font-bold text-white"
                 style={{ backgroundColor: 'var(--navy-light)', border: '2px solid var(--accent)' }}
+                aria-label="Upload profile photo"
               >
-                {user.avatarInitials}
-              </div>
+                {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.firstName} ${user.lastName}`} className="h-full w-full object-cover" /> : user.avatarInitials}
+              </button>
+              <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
 
               <div>
                 {/* Label */}
@@ -258,7 +274,7 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Stats row ───────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex gap-px mt-0" style={{ borderBottom: '1px solid var(--navy-light)' }}>
           <StatTile value="#12"  label="World Ranking" />
           <StatTile value="4"    label="Personal Bests" />
@@ -268,7 +284,7 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
 
         {/* Completeness bar */}
         <div className="mb-8 p-4" style={{ backgroundColor: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}>
@@ -440,7 +456,7 @@ export default function ProfilePage() {
               <h2 className="display text-sm text-white mb-5" style={{ borderBottom: '1px solid var(--navy-light)', paddingBottom: '1rem' }}>
                 My Results
               </h2>
-              <ResultsTable results={MOCK_RESULTS} />
+              <ResultsTable results={MOCK_RESULTS} dark />
             </div>
           </div>
         </div>

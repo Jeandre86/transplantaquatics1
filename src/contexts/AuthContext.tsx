@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import { getSavedAvatar, saveAvatar } from '../lib/avatars';
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 export interface AuthUser {
@@ -6,6 +7,7 @@ export interface AuthUser {
   lastName: string;
   email: string;
   avatarInitials: string;
+  avatarUrl?: string;
   transplantType?: string;
   countryCode?: string;
 }
@@ -25,6 +27,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  updateAvatar: (image: string) => void;
 }
 
 /* ── Context ───────────────────────────────────────────────────────────────── */
@@ -49,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastName: 'Wilson',
       email,
       avatarInitials: 'EW',
+      avatarUrl: getSavedAvatar('Emma', 'Wilson') ?? undefined,
       transplantType: 'Kidney',
       countryCode: 'AU',
     });
@@ -70,15 +74,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastName: last,
       email: data.email,
       avatarInitials: initials,
+      avatarUrl: getSavedAvatar(first, last) ?? undefined,
       transplantType: data.transplantType,
       countryCode: data.countryCode,
     });
   };
 
   const logout = () => setUser(null);
+  const updateAvatar = (image: string) => {
+    setUser(current => {
+      if (!current) return current;
+      saveAvatar(current.firstName, current.lastName, image);
+      return { ...current, avatarUrl: image };
+    });
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, login, register, logout, updateAvatar }}>
       {children}
     </AuthContext.Provider>
   );

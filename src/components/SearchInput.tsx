@@ -5,9 +5,10 @@ interface SearchInputProps {
   onChange: (v: string) => void;
   placeholder?: string;
   large?: boolean;
+  id?: string;
 }
 
-export default function SearchInput({ value, onChange, placeholder = 'Search...', large = false }: SearchInputProps) {
+export default function SearchInput({ value, onChange, placeholder = 'Search...', large = false, id }: SearchInputProps) {
   return (
     <div className="relative w-full">
       <Search
@@ -15,11 +16,12 @@ export default function SearchInput({ value, onChange, placeholder = 'Search...'
         size={large ? 20 : 16}
       />
       <input
+        id={id}
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full border border-neutral-200 bg-neutral-50 text-white focus:outline-none focus:ring-1 focus:ring-neutral-400 ${
+        className={`w-full border border-neutral-200 bg-neutral-50 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-400 ${
           large ? 'pl-10 pr-4 py-4 text-lg' : 'pl-9 pr-4 py-2.5 text-sm'
         }`}
         style={{

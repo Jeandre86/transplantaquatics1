@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { meets } from '../data/meets';
 import { results } from '../data/results';
@@ -7,6 +7,9 @@ import { athletes } from '../data/athletes';
 import { formatDate, getFlagEmoji } from '../lib/utils';
 import Eyebrow from '../components/Eyebrow';
 import EmptyState from '../components/EmptyState';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 // Determine meet status based on date
 function getMeetStatus(dateStr: string): 'Upcoming' | 'Completed' {
@@ -19,6 +22,8 @@ export default function MeetPage() {
   const { id } = useParams<{ id: string }>();
   const meet = meets.find(m => m.id === id);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  const [eventPages, setEventPages] = useState<Record<string, number>>({});
+  useEffect(() => setEventPages({}), [id]);
 
   if (!meet) {
     return (
@@ -27,6 +32,7 @@ export default function MeetPage() {
           <EmptyState
             title="Meet not found"
             subtitle="This meet may not exist or has been removed."
+            onDark
           />
           <div className="mt-8 flex justify-center">
             <Link
@@ -79,7 +85,11 @@ export default function MeetPage() {
       .map(aid => athletes.find(a => a.id === aid)?.countryCode)
       .filter(Boolean),
   );
-  const recordsBroken = records.filter(r => r.meet === meet.name);
+  const meetYear = meet.name.match(/\d{4}/)?.[0];
+  const recordsBroken = records.filter(r =>
+    r.meet === meet.name ||
+    (meet.name.includes('World Transplant Games') && Boolean(meetYear && r.meet.includes(meetYear))),
+  );
 
   function getAthleteFlag(athleteId: string) {
     const a = athletes.find(at => at.id === athleteId);
@@ -100,7 +110,7 @@ export default function MeetPage() {
         className="border-b"
         style={{ backgroundColor: 'var(--navy-mid)', borderColor: 'var(--navy-light)' }}
       >
-        <div className="max-w-5xl mx-auto px-6 py-14">
+        <div className="max-w-7xl mx-auto px-4 py-14">
           <Link
             to="/calendar"
             className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest mb-8 transition-colors"
@@ -146,7 +156,7 @@ export default function MeetPage() {
         className="border-b"
         style={{ backgroundColor: 'var(--navy-mid)', borderColor: 'var(--navy-light)' }}
       >
-        <div className="max-w-5xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 divide-x"
             style={{ '--tw-divide-opacity': '1' } as React.CSSProperties}
           >
@@ -172,7 +182,7 @@ export default function MeetPage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-6 py-10 space-y-12">
+      <div className="max-w-7xl mx-auto px-4 py-10 space-y-12">
         {/* Results by event */}
         <div>
           <Eyebrow light className="mb-6">Results by Event</Eyebrow>
@@ -190,6 +200,9 @@ export default function MeetPage() {
             <div className="space-y-3">
               {eventGroups.map(({ event, results: res }) => {
                 const isOpen = expandedEvent === event;
+                const eventPage = eventPages[event] ?? 1;
+                const eventPageCount = Math.ceil(res.length / PAGE_SIZE);
+                const pageResults = res.slice((eventPage - 1) * PAGE_SIZE, eventPage * PAGE_SIZE);
                 return (
                   <div
                     key={event}
@@ -227,13 +240,13 @@ export default function MeetPage() {
                     {/* Accordion body */}
                     {isOpen && (
                       <div className="border-t" style={{ borderColor: 'var(--navy-light)' }}>
-                        {res.map((r, idx) => (
+                        {pageResults.map((r, idx) => (
                           <div
                             key={r.id}
                             className="flex items-center px-6 py-3 border-b last:border-b-0"
                             style={{ borderColor: 'var(--navy-light)' }}
                           >
-                            <span className="w-8 text-lg">{rankMedal[idx]}</span>
+                            <span className="w-8 text-lg">{rankMedal[(eventPage - 1) * PAGE_SIZE + idx]}</span>
                             <span className="flex-1 font-mono text-sm" style={{ color: 'var(--ink-on-dark)' }}>
                               {getAthleteFlag(r.athleteId)} {getAthleteName(r.athleteId)}
                             </span>
@@ -257,6 +270,14 @@ export default function MeetPage() {
                             )}
                           </div>
                         ))}
+                        <div className="px-4 pb-4">
+                          <Pagination
+                            page={eventPage}
+                            pageCount={eventPageCount}
+                            onPageChange={nextPage => setEventPages(current => ({ ...current, [event]: nextPage }))}
+                            label={`${event} result pages`}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>

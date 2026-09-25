@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { results } from '../data/results';
 import { athletes } from '../data/athletes';
 import { countries } from '../data/countries';
@@ -7,8 +7,11 @@ import ResultsTable from '../components/ResultsTable';
 import SearchInput from '../components/SearchInput';
 import FilterSelect from '../components/FilterSelect';
 import Eyebrow from '../components/Eyebrow';
+import TopSwimsSection from '../components/TopSwimsSection';
+import FilterBar from '../components/FilterBar';
 
 const ALL = 'All';
+const PAGE_SIZE = 10;
 
 export default function ResultsPage() {
   const [search, setSearch] = useState('');
@@ -18,6 +21,11 @@ export default function ResultsPage() {
   const [filterGender, setFilterGender] = useState(ALL);
   const [filterCourse, setFilterCourse] = useState(ALL);
   const [filterVerified, setFilterVerified] = useState(ALL);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterCountry, filterEvent, filterAgeGroup, filterGender, filterCourse, filterVerified]);
 
   const athleteNameMap: Record<string, string> = {};
   athletes.forEach(a => { athleteNameMap[a.id] = `${a.firstName} ${a.lastName}`; });
@@ -36,6 +44,8 @@ export default function ResultsPage() {
     }
     return true;
   });
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageResults = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const countryOptions = [ALL, ...countries.map(c => c.name).sort()];
   const eventOptions = [ALL, ...EVENTS];
@@ -60,27 +70,54 @@ export default function ResultsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-10">
+        <TopSwimsSection />
         {/* Filters */}
-        <div className="mb-8 space-y-4">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search athlete or meet name..."
-          />
-          <div className="flex flex-wrap gap-4">
-            <FilterSelect label="Country" value={filterCountry} options={countryOptions} onChange={setFilterCountry} />
-            <FilterSelect label="Event" value={filterEvent} options={eventOptions} onChange={setFilterEvent} />
-            <FilterSelect label="Age Group" value={filterAgeGroup} options={ageGroupOptions} onChange={setFilterAgeGroup} />
-            <FilterSelect label="Gender" value={filterGender} options={genderOptions} onChange={setFilterGender} />
-            <FilterSelect label="Course" value={filterCourse} options={courseOptions} onChange={setFilterCourse} />
-            <FilterSelect label="Status" value={filterVerified} options={verifiedOptions} onChange={setFilterVerified} />
-          </div>
-          <div className="font-mono text-xs text-neutral-400">
-            {filtered.length} result{filtered.length !== 1 ? 's' : ''} found
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-black tracking-tight text-[var(--ink)]">Worldwide Results</h2>
+            <FilterBar className="mb-6">
+            <div className="max-w-xl">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search athlete or meet name..."
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <FilterSelect label="Country" value={filterCountry} options={countryOptions} onChange={setFilterCountry} />
+              <FilterSelect label="Event" value={filterEvent} options={eventOptions} onChange={setFilterEvent} />
+              <FilterSelect label="Age Group" value={filterAgeGroup} options={ageGroupOptions} onChange={setFilterAgeGroup} />
+              <FilterSelect label="Gender" value={filterGender} options={genderOptions} onChange={setFilterGender} />
+              <FilterSelect label="Course" value={filterCourse} options={courseOptions} onChange={setFilterCourse} />
+              <FilterSelect label="Status" value={filterVerified} options={verifiedOptions} onChange={setFilterVerified} />
+            </div>
+            </FilterBar>
+          <div className="font-mono text-xs text-neutral-600">
+            {filtered.length === 0 ? '0 results found' : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} results`}
           </div>
         </div>
 
-        <ResultsTable results={filtered} showAthlete />
+        <ResultsTable results={pageResults} showAthlete />
+        {pageCount > 1 && (
+          <nav className="mt-8 flex items-center justify-center gap-4" aria-label="Results pages">
+            <button
+              type="button"
+              onClick={() => setPage(current => Math.max(1, current - 1))}
+              disabled={page === 1}
+              className="border border-neutral-300 px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-800 transition-colors hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="font-mono text-xs text-neutral-600">Page {page} of {pageCount}</span>
+            <button
+              type="button"
+              onClick={() => setPage(current => Math.min(pageCount, current + 1))}
+              disabled={page === pageCount}
+              className="border border-neutral-300 px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-800 transition-colors hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </nav>
+        )}
       </div>
     </div>
   );

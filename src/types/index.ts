@@ -93,16 +93,18 @@ export interface Athlete {
 
 export interface Record {
   id: string;
-  event: Event;
+  event: string;
   course: Course;
-  ageGroup: AgeGroup;
-  gender: Gender;
+  ageGroup: string;
+  gender: string;
+  category?: string;
   time: string;
-  athleteId: string;
+  athleteId?: string;
   athleteName: string;
   country: string;
-  date: string;
+  date?: string;
   meet: string;
+  games?: string;
   history?: { time: string; athleteName: string; country: string; date: string; meet: string }[];
 }
 
@@ -135,6 +137,10 @@ export interface Article {
   date: string;
   readTime: number;
   featured?: boolean;
+  access?: 'free' | 'member';
+  friendLinkToken?: string;
+  coverImage?: string;
+  tags?: string[];
 }
 
 export interface Ranking {

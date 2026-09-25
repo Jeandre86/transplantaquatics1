@@ -3,17 +3,15 @@ import { Link } from 'react-router-dom';
 import { meets } from '../data/meets';
 import { formatDate } from '../lib/utils';
 import Eyebrow from '../components/Eyebrow';
+import Pagination from '../components/Pagination';
+import FilterSelect from '../components/FilterSelect';
+import FilterBar from '../components/FilterBar';
+
+const PAGE_SIZE = 10;
 
 // Extend meets with upcoming ones for a richer calendar
 const EXTENDED_MEETS = [
   ...meets,
-  {
-    id: 'wtg-2028',
-    name: 'World Transplant Games 2028',
-    location: 'Perth, Australia',
-    date: '2028-07-15',
-    course: 'LCM' as const,
-  },
   {
     id: 'etdg-2026',
     name: 'European Transplant & Dialysis Games 2026',
@@ -100,13 +98,14 @@ export default function CalendarPage() {
   const [monthFilter, setMonthFilter] = useState('All');
   const [countryFilter, setCountryFilter] = useState('All');
   const [view, setView] = useState<'list' | 'grid'>('list');
+  const [page, setPage] = useState(1);
 
   const years = getUniqueYears(EXTENDED_MEETS);
   const countries = getUniqueCountries(EXTENDED_MEETS);
 
-  // WTG 2028 countdown
-  const wtg2028 = EXTENDED_MEETS.find(m => m.id === 'wtg-2028');
-  const wtgTarget = wtg2028 ? new Date(wtg2028.date) : new Date('2028-07-15');
+  // WTG 2027 countdown
+  const wtg2027 = EXTENDED_MEETS.find(m => m.id === 'wtg-2027');
+  const wtgTarget = wtg2027 ? new Date(wtg2027.date) : new Date('2027-08-01');
   const { days, hours, mins, secs } = useCountdown(wtgTarget);
   const wtgIsUpcoming = getMeetStatus(wtgTarget.toISOString()) === 'Upcoming';
 
@@ -119,8 +118,12 @@ export default function CalendarPage() {
     return true;
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  useEffect(() => setPage(1), [yearFilter, monthFilter, countryFilter]);
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageMeets = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   // Group by month for list view
-  const byMonth = filtered.reduce<Record<string, typeof filtered>>((acc, m) => {
+  const byMonth = pageMeets.reduce<Record<string, typeof filtered>>((acc, m) => {
     const d = new Date(m.date);
     const key = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
     if (!acc[key]) acc[key] = [];
@@ -140,7 +143,7 @@ export default function CalendarPage() {
             'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto px-4 py-16">
           <Eyebrow color="accent" className="mb-4">Schedule</Eyebrow>
           <h1
             className="display text-4xl md:text-6xl font-black uppercase leading-tight tracking-tight"
@@ -156,7 +159,7 @@ export default function CalendarPage() {
 
       {/* WTG countdown feature card */}
       {wtgIsUpcoming && (
-        <section className="max-w-6xl mx-auto px-6 pt-10">
+        <section className="max-w-7xl mx-auto px-4 pt-10">
           <div
             className="border p-8 md:p-10"
             style={{
@@ -166,10 +169,10 @@ export default function CalendarPage() {
           >
             <Eyebrow color="accent" className="mb-3">Countdown</Eyebrow>
             <h2 className="font-bold text-xl md:text-2xl" style={{ color: 'var(--ink-on-dark)' }}>
-              World Transplant Games 2028 — Perth, Australia
+              World Transplant Games 2027 — Leuven, Belgium
             </h2>
             <p className="mt-1 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-              15 July 2028
+              1–8 August 2027
             </p>
 
             <div className="mt-8 grid grid-cols-4 gap-4">
@@ -195,7 +198,7 @@ export default function CalendarPage() {
 
             <div className="mt-8">
               <Link
-                to="/meets/wtg-2028"
+                to="/meets/wtg-2027"
                 className="inline-block font-mono text-xs uppercase tracking-widest px-5 py-2.5 transition-colors"
                 style={{
                   backgroundColor: 'var(--accent)',
@@ -211,79 +214,40 @@ export default function CalendarPage() {
       )}
 
       {/* Filter bar */}
-      <section className="max-w-6xl mx-auto px-6 pt-8">
-        <div
-          className="border p-4 flex flex-wrap gap-4 items-center justify-between"
-          style={{ borderColor: 'var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}
-        >
-          <div className="flex flex-wrap gap-3">
-            {/* Year */}
-            <select
-              value={yearFilter}
-              onChange={e => setYearFilter(e.target.value)}
-              className="font-mono text-xs uppercase tracking-widest px-3 py-2 border appearance-none cursor-pointer"
-              style={{
-                backgroundColor: 'var(--navy)',
-                borderColor: 'var(--navy-light)',
-                color: 'var(--muted-on-dark)',
-              }}
-            >
-              <option value="All">All Years</option>
-              {years.map(y => <option key={y} value={String(y)}>{y}</option>)}
-            </select>
-
-            {/* Month */}
-            <select
-              value={monthFilter}
-              onChange={e => setMonthFilter(e.target.value)}
-              className="font-mono text-xs uppercase tracking-widest px-3 py-2 border appearance-none cursor-pointer"
-              style={{
-                backgroundColor: 'var(--navy)',
-                borderColor: 'var(--navy-light)',
-                color: 'var(--muted-on-dark)',
-              }}
-            >
-              <option value="All">All Months</option>
-              {MONTHS.map(mo => <option key={mo} value={mo}>{mo}</option>)}
-            </select>
-
-            {/* Country */}
-            <select
-              value={countryFilter}
-              onChange={e => setCountryFilter(e.target.value)}
-              className="font-mono text-xs uppercase tracking-widest px-3 py-2 border appearance-none cursor-pointer"
-              style={{
-                backgroundColor: 'var(--navy)',
-                borderColor: 'var(--navy-light)',
-                color: 'var(--muted-on-dark)',
-              }}
-            >
-              <option value="All">All Countries</option>
-              {countries.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
+      <section className="border-b border-neutral-200" style={{ backgroundColor: 'var(--paper)' }}>
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <FilterBar className="sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+            <div className="flex flex-wrap gap-3">
+              <FilterSelect label="Year" value={yearFilter} options={['All', ...years.map(String)]} onChange={setYearFilter} />
+              <FilterSelect label="Month" value={monthFilter} options={['All', ...MONTHS]} onChange={setMonthFilter} />
+              <FilterSelect label="Country" value={countryFilter} options={['All', ...countries]} onChange={setCountryFilter} />
+            </div>
 
           {/* View toggle */}
-          <div className="flex border" style={{ borderColor: 'var(--navy-light)' }}>
+          <div className="flex border border-neutral-300">
             {(['list', 'grid'] as const).map(v => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className="px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors"
                 style={{
-                  backgroundColor: view === v ? 'var(--accent)' : 'transparent',
-                  color: view === v ? 'var(--navy)' : 'var(--muted-on-dark)',
+                  backgroundColor: view === v ? '#1769c2' : 'transparent',
+                  color: view === v ? '#fff' : '#52525b',
                 }}
               >
                 {v}
               </button>
             ))}
           </div>
+          </FilterBar>
         </div>
       </section>
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8 pb-16">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-16">
+        <p className="mb-4 font-mono text-xs text-white/60">
+          {filtered.length ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} meets` : '0 meets'}
+        </p>
         {filtered.length === 0 ? (
           <div className="py-16 text-center border" style={{ borderColor: 'var(--navy-light)' }}>
             <p className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
@@ -375,7 +339,7 @@ export default function CalendarPage() {
         ) : (
           /* Grid view */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(m => {
+            {pageMeets.map(m => {
               const status = getMeetStatus(m.date);
               return (
                 <Link
@@ -430,6 +394,7 @@ export default function CalendarPage() {
             })}
           </div>
         )}
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Calendar pages" />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ExternalLink, Globe, ArrowLeft, Play, Heart, X, ArrowRight, Share2 } from 'lucide-react';
+import { ExternalLink, Globe, ArrowLeft, Heart } from 'lucide-react';
 import { athletes } from '../data/athletes';
 import { results } from '../data/results';
 import { rankings } from '../data/rankings';
@@ -9,29 +9,21 @@ import TransplantBadge from '../components/TransplantBadge';
 import PersonalBestTable from '../components/PersonalBestTable';
 import ResultsTable from '../components/ResultsTable';
 import MedalDisplay from '../components/MedalDisplay';
-import ProgressionChart from '../components/ProgressionChart';
 import SeasonProgressionTable from '../components/SeasonProgressionTable';
 import EmptyState from '../components/EmptyState';
 import Eyebrow from '../components/Eyebrow';
-import type { Event, Course } from '../types';
+import Pagination from '../components/Pagination';
+import { getSavedAvatar } from '../lib/avatars';
 
-// ─── Mock video data ──────────────────────────────────────────────────────────
-const MOCK_VIDEOS = [
-  { id: 1, title: 'World Transplant Games 2025 — 100m Freestyle Final', duration: '2:14', date: '2025-04-15' },
-  { id: 2, title: 'Race Analysis: Sub-60 Breakdown', duration: '8:45', date: '2025-05-01' },
-  { id: 3, title: 'Training Session — Club Pool', duration: '12:30', date: '2025-03-22' },
-];
+const RESULT_PAGE_SIZE = 10;
 
-type Tab = 'Overview' | 'Results' | 'Medals' | 'Media';
+type Tab = 'Results' | 'Overview' | 'Medals';
 
 export default function AthleteProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const [tab, setTab]                   = useState<Tab>('Overview');
-  const [claimOpen, setClaimOpen]       = useState(false);
-  const [claimEmail, setClaimEmail]     = useState('');
-  const [claimMessage, setClaimMessage] = useState('');
-  const [claimSent, setClaimSent]       = useState(false);
-  const [shareOpen, setShareOpen]       = useState(false);
+  const [tab, setTab]                   = useState<Tab>('Results');
+  const [resultPage, setResultPage]     = useState(1);
+  useEffect(() => setResultPage(1), [id, tab]);
 
   const athlete = athletes.find(a => a.id === id);
 
@@ -52,12 +44,16 @@ export default function AthleteProfilePage() {
   }
 
   const flag           = getFlagEmoji(athlete.countryCode);
+  const avatarUrl      = getSavedAvatar(athlete.firstName, athlete.lastName);
   const age            = getAgeFromDOB(athlete.dateOfBirth);
   const athleteResults = results.filter(r => r.athleteId === athlete.id);
+  const resultPageCount = Math.ceil(athleteResults.length / RESULT_PAGE_SIZE);
+  const pageResults = athleteResults.slice((resultPage - 1) * RESULT_PAGE_SIZE, resultPage * RESULT_PAGE_SIZE);
   const ranking        = rankings.find(r => r.athleteId === athlete.id);
-  const bestPB         = athlete.personalBests[0];
-  const progressionEvent: Event  = bestPB?.event  ?? '100m Freestyle';
-  const progressionCourse: Course = bestPB?.course ?? 'LCM';
+  const medalCounts = athlete.medals.reduce((counts, medal) => {
+    counts[medal.color] += 1;
+    return counts;
+  }, { Gold: 0, Silver: 0, Bronze: 0 });
 
   // ─── Performance percentile ────────────────────────────────────────────────
   const rankingGroup = rankings.filter(
@@ -68,7 +64,7 @@ export default function AthleteProfilePage() {
   const percentile   = Math.max(1, Math.ceil((myRank / totalInGroup) * 100));
   const percentileLabel = `Top ${percentile}% in ${athlete.ageGroup} ${athlete.gender} 100m Freestyle`;
 
-  const TABS: Tab[] = ['Overview', 'Results', 'Medals', 'Media'];
+  const TABS: Tab[] = ['Results', 'Overview', 'Medals'];
 
   return (
     <div style={{ backgroundColor: 'var(--surface)' }}>
@@ -86,10 +82,12 @@ export default function AthleteProfilePage() {
           <div className="flex flex-col md:flex-row md:items-end gap-6">
             {/* Avatar */}
             <div
-              className="w-20 h-20 flex items-center justify-center font-mono font-black text-2xl text-white flex-shrink-0"
+              className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full border-4 border-white/15 font-mono text-2xl font-black text-white"
               style={{ backgroundColor: 'var(--navy-light)' }}
             >
-              {athlete.avatarInitials || `${athlete.firstName[0]}${athlete.lastName[0]}`}
+              {avatarUrl
+                ? <img src={avatarUrl} alt={`${athlete.firstName} ${athlete.lastName}`} className="h-full w-full rounded-full object-cover" />
+                : athlete.avatarInitials || `${athlete.firstName[0]}${athlete.lastName[0]}`}
             </div>
 
             <div className="flex-1">
@@ -117,27 +115,28 @@ export default function AthleteProfilePage() {
                 {flag} {athlete.country}
                 {athlete.club && <span className="ml-4" style={{ color: 'var(--muted-on-dark)', opacity: 0.6 }}>· {athlete.club}</span>}
               </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
+                <span>{athlete.gender}</span>
+                <span>{formatDate(athlete.dateOfBirth)}</span>
+                <span>Swimming · {athlete.discipline}</span>
+              </div>
             </div>
 
-            {/* Top PB + Share */}
-            {bestPB && (
-              <div className="text-right shrink-0">
-                <Eyebrow onDark className="mb-1">Best time</Eyebrow>
-                <div className="font-mono font-black text-3xl" style={{ color: 'var(--accent)' }}>
-                  {bestPB.time}
-                </div>
-                <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted-on-dark)' }}>
-                  {bestPB.event} · {bestPB.course}
-                </div>
-                <button
-                  onClick={() => setShareOpen(true)}
-                  className="mt-2 inline-flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 transition-colors"
-                  style={{ background: 'var(--navy-light)', color: 'var(--aqua)', border: '1px solid var(--navy-light)' }}
-                >
-                  <Share2 size={11} /> Share PB
-                </button>
+            <div className="shrink-0 md:w-80">
+              <Eyebrow onDark className="mb-3">Transplant Games Medals</Eyebrow>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { label: 'Gold', value: medalCounts.Gold, color: '#f5c542' },
+                  { label: 'Silver', value: medalCounts.Silver, color: '#d1d5db' },
+                  { label: 'Bronze', value: medalCounts.Bronze, color: '#d4956a' },
+                ]).map(medal => (
+                  <div key={medal.label} className="border border-white/15 bg-white/5 px-3 py-2 text-center">
+                    <div className="font-mono text-2xl font-black" style={{ color: medal.color }}>{medal.value}</div>
+                    <div className="font-mono text-[10px] uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>{medal.label}</div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Social */}
@@ -175,42 +174,26 @@ export default function AthleteProfilePage() {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="max-w-7xl mx-auto px-4 flex gap-0" style={{ borderTop: '1px solid var(--navy-light)' }}>
+      </div>
+
+      {/* Profile sections */}
+      <nav className="border-b border-neutral-200" style={{ backgroundColor: '#f4f2ed' }} aria-label="Athlete profile sections">
+        <div className="max-w-7xl mx-auto flex gap-0 overflow-x-auto px-4">
           {TABS.map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="font-mono text-xs tracking-widest uppercase px-5 py-3.5 border-b-2 transition-colors"
+              className="whitespace-nowrap border-b-2 px-5 py-4 font-mono text-xs uppercase tracking-widest transition-colors"
               style={{
-                color: tab === t ? 'var(--ink-on-dark)' : 'var(--muted-on-dark)',
-                borderBottomColor: tab === t ? 'var(--accent)' : 'transparent',
+                color: tab === t ? '#1769c2' : '#64748b',
+                borderBottomColor: tab === t ? '#1769c2' : 'transparent',
               }}
             >
-              {t}
+              {t === 'Results' ? 'Personal Best Results' : t}
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Claim Banner */}
-      <div
-        className="w-full px-4 py-3 flex items-center justify-between"
-        style={{ background: 'var(--navy-mid)' }}
-      >
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
-          <span className="font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-            This is a public profile — not all data may be up to date.
-          </span>
-          <button
-            onClick={() => setClaimOpen(true)}
-            className="inline-flex items-center gap-1.5 font-mono text-xs transition-opacity hover:opacity-80"
-            style={{ color: 'var(--aqua)' }}
-          >
-            Is this you? Claim this profile <ArrowRight size={12} />
-          </button>
-        </div>
-      </div>
+      </nav>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-10">
@@ -223,26 +206,6 @@ export default function AthleteProfilePage() {
                 <div>
                   <Eyebrow className="mb-3">Athlete Story</Eyebrow>
                   <p className="text-base leading-relaxed" style={{ color: 'var(--muted)' }}>{athlete.bio}</p>
-                </div>
-              )}
-
-              <div>
-                <Eyebrow className="mb-4">Personal Bests</Eyebrow>
-                <PersonalBestTable
-                  pbs={athlete.personalBests}
-                  gender={athlete.gender}
-                  ageGroup={athlete.ageGroup}
-                />
-              </div>
-
-              {bestPB && (
-                <div>
-                  <Eyebrow className="mb-4">Progression — {progressionEvent} ({progressionCourse})</Eyebrow>
-                  <ProgressionChart
-                    pbs={athlete.personalBests}
-                    event={progressionEvent}
-                    course={progressionCourse}
-                  />
                 </div>
               )}
 
@@ -349,264 +312,46 @@ export default function AthleteProfilePage() {
         )}
 
         {tab === 'Results' && (
-          <div>
-            <Eyebrow className="mb-6">
-              {athleteResults.length} result{athleteResults.length !== 1 ? 's' : ''} recorded
-            </Eyebrow>
-            {athleteResults.length > 0 ? (
-              <ResultsTable results={athleteResults} />
-            ) : (
-              <EmptyState
-                title="No results yet"
-                subtitle="Results for this athlete have not been added yet."
-              />
-            )}
+          <div className="space-y-12">
+            <section>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
+                <div>
+                  <Eyebrow>Personal Best Results</Eyebrow>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Best performances</h2>
+                </div>
+                <span className="font-mono text-xs text-[var(--muted)]">{athlete.personalBests.length} events</span>
+              </div>
+              <PersonalBestTable pbs={athlete.personalBests} gender={athlete.gender} ageGroup={athlete.ageGroup} />
+            </section>
+
+            <section>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
+                <div>
+                  <Eyebrow>Competition history</Eyebrow>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Previous results</h2>
+                </div>
+                <span className="font-mono text-xs text-[var(--muted)]">{athleteResults.length} result{athleteResults.length === 1 ? '' : 's'}</span>
+              </div>
+              {athleteResults.length > 0 ? (
+                <>
+                  <ResultsTable results={pageResults} />
+                  <Pagination page={resultPage} pageCount={resultPageCount} onPageChange={setResultPage} label="Athlete result pages" />
+                </>
+              ) : (
+                <EmptyState title="No results yet" subtitle="Competition results for this athlete have not been added yet." />
+              )}
+            </section>
           </div>
         )}
 
         {tab === 'Medals' && (
-          <div className="max-w-2xl">
+          <div className="w-full">
             <MedalDisplay medals={athlete.medals} />
           </div>
         )}
 
-        {tab === 'Media' && (
-          <div>
-            <Eyebrow className="mb-6">Race Footage &amp; Media</Eyebrow>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {MOCK_VIDEOS.map(v => (
-                <div
-                  key={v.id}
-                  className="rounded overflow-hidden cursor-pointer group"
-                  style={{ background: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}
-                >
-                  {/* Thumbnail */}
-                  <div
-                    className="relative flex items-center justify-center"
-                    style={{ height: 160, background: 'var(--navy)' }}
-                  >
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                      style={{ background: 'var(--accent)' }}
-                    >
-                      <Play size={20} fill="var(--black)" color="var(--black)" style={{ marginLeft: 2 }} />
-                    </div>
-                    <span
-                      className="absolute bottom-2 right-2 font-mono text-xs px-1.5 py-0.5"
-                      style={{ background: 'rgba(0,0,0,0.6)', color: 'var(--ink-on-dark)' }}
-                    >
-                      {v.duration}
-                    </span>
-                  </div>
-                  {/* Info */}
-                  <div className="p-4">
-                    <p className="text-sm font-medium leading-snug" style={{ color: 'var(--ink-on-dark)' }}>
-                      {v.title}
-                    </p>
-                    <p className="font-mono text-xs mt-1" style={{ color: 'var(--muted-on-dark)' }}>
-                      {formatDate(v.date)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Submit CTA */}
-            <div
-              className="mt-8 p-6 rounded text-center"
-              style={{ background: 'var(--navy-mid)', border: '1px dashed var(--navy-light)' }}
-            >
-              <p className="font-mono text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--muted-on-dark)' }}>
-                Have race footage?
-              </p>
-              <p className="text-sm mb-4" style={{ color: 'var(--ink-on-dark)' }}>
-                Race footage coming soon — submit your race video to be featured on this profile.
-              </p>
-              <button
-                className="font-mono text-xs px-4 py-2 transition-opacity hover:opacity-80"
-                style={{ background: 'var(--accent)', color: 'var(--black)' }}
-              >
-                Submit Race Video
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* ── Claim Profile Modal ─────────────────────────────────────────────── */}
-      {claimOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(1,4,16,0.85)' }}
-          onClick={e => { if (e.target === e.currentTarget) setClaimOpen(false); }}
-        >
-          <div
-            className="w-full max-w-md rounded p-6 relative"
-            style={{ background: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}
-          >
-            <button
-              onClick={() => setClaimOpen(false)}
-              className="absolute top-4 right-4 transition-opacity hover:opacity-70"
-              style={{ color: 'var(--muted-on-dark)' }}
-            >
-              <X size={16} />
-            </button>
-
-            {claimSent ? (
-              <div className="text-center py-6">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
-                  style={{ background: 'var(--accent)' }}
-                >
-                  <span className="text-black font-black text-lg">✓</span>
-                </div>
-                <h3 className="font-black text-lg mb-2" style={{ color: 'var(--ink-on-dark)' }}>Request Sent</h3>
-                <p className="text-sm" style={{ color: 'var(--muted-on-dark)' }}>
-                  Your request has been sent. We'll verify within 48 hours.
-                </p>
-              </div>
-            ) : (
-              <>
-                <h3 className="font-black text-lg mb-1" style={{ color: 'var(--ink-on-dark)' }}>
-                  Claim This Profile
-                </h3>
-                <p className="text-xs mb-6" style={{ color: 'var(--muted-on-dark)' }}>
-                  If this is your profile, we'll verify your identity and grant you access to edit your data.
-                </p>
-
-                <label className="block mb-4">
-                  <span className="font-mono text-xs tracking-widest uppercase block mb-1.5" style={{ color: 'var(--muted-on-dark)' }}>
-                    Your Email
-                  </span>
-                  <input
-                    type="email"
-                    value={claimEmail}
-                    onChange={e => setClaimEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full px-3 py-2 text-sm outline-none"
-                    style={{
-                      background: 'var(--navy)',
-                      border: '1px solid var(--navy-light)',
-                      color: 'var(--ink-on-dark)',
-                    }}
-                  />
-                </label>
-
-                <label className="block mb-6">
-                  <span className="font-mono text-xs tracking-widest uppercase block mb-1.5" style={{ color: 'var(--muted-on-dark)' }}>
-                    Message (optional)
-                  </span>
-                  <textarea
-                    rows={3}
-                    value={claimMessage}
-                    onChange={e => setClaimMessage(e.target.value)}
-                    placeholder="Tell us something that confirms your identity…"
-                    className="w-full px-3 py-2 text-sm outline-none resize-none"
-                    style={{
-                      background: 'var(--navy)',
-                      border: '1px solid var(--navy-light)',
-                      color: 'var(--ink-on-dark)',
-                    }}
-                  />
-                </label>
-
-                <button
-                  disabled={!claimEmail}
-                  onClick={() => setClaimSent(true)}
-                  className="w-full font-mono text-xs tracking-widest uppercase py-2.5 transition-opacity disabled:opacity-40"
-                  style={{ background: 'var(--accent)', color: 'var(--black)' }}
-                >
-                  Send Claim Request
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Share PB Modal ──────────────────────────────────────────────────── */}
-      {shareOpen && bestPB && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(1,4,16,0.90)' }}
-          onClick={e => { if (e.target === e.currentTarget) setShareOpen(false); }}
-        >
-          <div
-            className="w-full max-w-sm relative"
-            style={{ background: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}
-          >
-            <button
-              onClick={() => setShareOpen(false)}
-              className="absolute top-3 right-3 transition-opacity hover:opacity-70 z-10"
-              style={{ color: 'var(--muted-on-dark)' }}
-            >
-              <X size={16} />
-            </button>
-
-            {/* Preview Card */}
-            <div
-              id="share-card"
-              className="p-8"
-              style={{ background: 'var(--navy)' }}
-            >
-              <p className="font-mono text-xs tracking-widest uppercase mb-6" style={{ color: 'var(--muted-on-dark)' }}>
-                Personal Best
-              </p>
-              <h2
-                className="display text-2xl font-black uppercase tracking-tight leading-none mb-1"
-                style={{ color: 'var(--ink-on-dark)' }}
-              >
-                {athlete.firstName} {athlete.lastName}
-              </h2>
-              <p className="font-mono text-xs mb-6" style={{ color: 'var(--muted-on-dark)' }}>
-                {flag} {athlete.country} · {athlete.ageGroup} · {athlete.transplantType}
-              </p>
-
-              <div
-                className="display font-black leading-none mb-2"
-                style={{ fontSize: 52, color: 'var(--accent)' }}
-              >
-                {bestPB.time}
-              </div>
-              <p className="font-mono text-sm" style={{ color: 'var(--muted-on-dark)' }}>
-                {bestPB.event} · {bestPB.course}
-              </p>
-              <p className="font-mono text-xs mt-1" style={{ color: 'var(--muted-on-dark)' }}>
-                {formatDate(bestPB.date)} · {bestPB.meet}
-              </p>
-
-              <div className="flex items-end justify-between mt-8">
-                <p
-                  className="font-mono text-xs italic"
-                  style={{ color: 'var(--muted-on-dark)' }}
-                >
-                  Different journeys. Same water.
-                </p>
-                <p
-                  className="display font-black text-xs uppercase tracking-widest"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  Transplant Aquatics
-                </p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="px-5 py-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--navy-light)' }}>
-              <p className="font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-                Screenshot the card above to share.
-              </p>
-              <button
-                onClick={() => setShareOpen(false)}
-                className="font-mono text-xs px-4 py-2 transition-opacity hover:opacity-80"
-                style={{ background: 'var(--navy-light)', color: 'var(--muted-on-dark)' }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

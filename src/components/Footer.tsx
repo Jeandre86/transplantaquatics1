@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer style={{ backgroundColor: 'var(--navy)', borderTop: '1px solid var(--navy-light)' }}>
       <div className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]">
           {/* Brand */}
           <div className="md:col-span-1">
             <Logo size="md" light />
@@ -19,7 +19,7 @@ export default function Footer() {
 
           {/* Explore */}
           <div>
-            <div className="font-mono text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted-on-dark)' }}>Explore</div>
+            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Explore</div>
             <ul className="space-y-2">
               {[
                 { to: '/rankings',  label: 'Rankings' },
@@ -30,9 +30,7 @@ export default function Footer() {
                 { to: '/games',     label: 'WTG Hub' },
               ].map(l => (
                 <li key={l.to}>
-                  <Link to={l.to} className="text-sm transition-colors" style={{ color: 'var(--muted-on-dark)' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+                  <Link to={l.to} className="-ml-1.5 inline-flex rounded-sm px-1.5 py-1 text-sm text-white transition-colors hover:text-[#00c2d7]"
                   >
                     {l.label}
                   </Link>
@@ -43,7 +41,7 @@ export default function Footer() {
 
           {/* Discover */}
           <div>
-            <div className="font-mono text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted-on-dark)' }}>Discover</div>
+            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Discover</div>
             <ul className="space-y-2">
               {[
                 { to: '/countries',          label: 'Countries' },
@@ -53,9 +51,7 @@ export default function Footer() {
                 { to: '/search',             label: 'Search' },
               ].map(l => (
                 <li key={l.to}>
-                  <Link to={l.to} className="text-sm transition-colors" style={{ color: 'var(--muted-on-dark)' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+                  <Link to={l.to} className="-ml-1.5 inline-flex rounded-sm px-1.5 py-1 text-sm text-white transition-colors hover:text-[#00c2d7]"
                   >
                     {l.label}
                   </Link>
@@ -66,7 +62,7 @@ export default function Footer() {
 
           {/* Transplant Aquatics */}
           <div>
-            <div className="font-mono text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--muted-on-dark)' }}>Transplant Aquatics</div>
+            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Transplant Aquatics</div>
             <ul className="space-y-2">
               {[
                 { to: '/join',    label: 'Join Transplant Aquatics' },
@@ -74,13 +70,21 @@ export default function Footer() {
                 { to: '/submit',  label: 'Submit a Result' },
               ].map((l, i) => (
                 <li key={i}>
-                  <Link to={l.to} className="text-sm transition-colors" style={{ color: 'var(--muted-on-dark)' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+                  <Link to={l.to} className="-ml-1.5 inline-flex rounded-sm px-1.5 py-1 text-sm text-white transition-colors hover:text-[#00c2d7]"
                   >
                     {l.label}
                   </Link>
                 </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Socials */}
+          <div>
+            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Socials</div>
+            <ul className="space-y-2">
+              {['Facebook', 'Instagram', 'X'].map(name => (
+                <li key={name} className="text-sm" style={{ color: 'var(--muted-on-dark)' }}>{name}</li>
               ))}
             </ul>
           </div>

@@ -2,9 +2,16 @@ import type { Meet } from '../types';
 
 export const meets: Meet[] = [
   {
+    id: 'wtg-2027',
+    name: 'World Transplant Games 2027',
+    location: 'Leuven, Belgium',
+    date: '2027-08-01',
+    course: 'LCM',
+  },
+  {
     id: 'wtg-2025',
     name: 'World Transplant Games 2025',
-    location: 'Perth, Australia',
+    location: 'Dresden, Germany',
     date: '2025-04-14',
     course: 'LCM',
   },

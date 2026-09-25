@@ -1,26 +1,59 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { records } from '../data/records';
-import { AGE_GROUPS, GENDERS, EVENTS, COURSES } from '../types';
-import RecordCard from '../components/RecordCard';
+import RecordsTable from '../components/RecordsTable';
 import FilterSelect from '../components/FilterSelect';
 import Eyebrow from '../components/Eyebrow';
 import EmptyState from '../components/EmptyState';
+import SearchInput from '../components/SearchInput';
+import Pagination from '../components/Pagination';
+import FilterBar from '../components/FilterBar';
 
 const ALL = 'All';
+const PAGE_SIZE = 10;
 
 export default function RecordsPage() {
   const [filterAgeGroup, setFilterAgeGroup] = useState(ALL);
   const [filterGender, setFilterGender] = useState(ALL);
   const [filterEvent, setFilterEvent] = useState(ALL);
   const [filterCourse, setFilterCourse] = useState(ALL);
+  const [filterCategory, setFilterCategory] = useState(ALL);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterAgeGroup, filterGender, filterEvent, filterCourse, filterCategory]);
+
+  const ageGroups = [...new Set(records.map(r => r.ageGroup))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const genders = [...new Set(records.map(r => r.gender))].sort();
+  const events = [...new Set(records.map(r => r.event))].sort();
+  const courses = [...new Set(records.map(r => r.course))].sort();
+  const categories = [...new Set(records.map(r => r.category ?? 'Other'))].sort();
+
+  const query = search.trim().toLowerCase();
   const filtered = records.filter(r => {
     if (filterAgeGroup !== ALL && r.ageGroup !== filterAgeGroup) return false;
     if (filterGender !== ALL && r.gender !== filterGender) return false;
     if (filterEvent !== ALL && r.event !== filterEvent) return false;
     if (filterCourse !== ALL && r.course !== filterCourse) return false;
+    if (filterCategory !== ALL && r.category !== filterCategory) return false;
+    if (query && ![r.event, r.ageGroup, r.gender, r.category, r.course, r.athleteName, r.country, r.meet]
+      .some(value => value?.toLowerCase().includes(query))) return false;
     return true;
   });
+  const hasActiveFilters = Boolean(search.trim()) || [filterAgeGroup, filterGender, filterCategory, filterEvent, filterCourse]
+    .some(value => value !== ALL);
+
+  const clearFilters = () => {
+    setFilterAgeGroup(ALL);
+    setFilterGender(ALL);
+    setFilterCategory(ALL);
+    setFilterEvent(ALL);
+    setFilterCourse(ALL);
+    setSearch('');
+  };
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageRecords = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div style={{ backgroundColor: 'var(--paper)' }}>
@@ -31,29 +64,50 @@ export default function RecordsPage() {
             Make history.
           </h1>
           <p style={{ color: "var(--muted-on-dark)" }} className="mt-4 text-base max-w-xl">
-            Official world records in transplant swimming, by age group, gender, event and course.
+            Official World Transplant Games swimming record performances, filtered by age group, category, event and course.
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-10">
-        <div className="mb-8 flex flex-wrap gap-4">
-          <FilterSelect label="Age Group" value={filterAgeGroup} options={[ALL, ...AGE_GROUPS]} onChange={setFilterAgeGroup} />
-          <FilterSelect label="Gender" value={filterGender} options={[ALL, ...GENDERS]} onChange={setFilterGender} />
-          <FilterSelect label="Event" value={filterEvent} options={[ALL, ...EVENTS]} onChange={setFilterEvent} />
-          <FilterSelect label="Course" value={filterCourse} options={[ALL, ...COURSES]} onChange={setFilterCourse} />
-        </div>
+        <FilterBar className="mb-6">
+          <div className="max-w-xl">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search event, athlete, country or meet..."
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <FilterSelect label="Age Group" value={filterAgeGroup} options={[ALL, ...ageGroups]} onChange={setFilterAgeGroup} />
+            <FilterSelect label="Gender" value={filterGender} options={[ALL, ...genders]} onChange={setFilterGender} />
+            <FilterSelect label="Category" value={filterCategory} options={[ALL, ...categories]} onChange={setFilterCategory} />
+            <FilterSelect label="Event" value={filterEvent} options={[ALL, ...events]} onChange={setFilterEvent} />
+            <FilterSelect label="Course" value={filterCourse} options={[ALL, ...courses]} onChange={setFilterCourse} />
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="px-3 py-1.5 border border-neutral-300 font-mono text-xs uppercase tracking-wider text-neutral-700 transition-colors hover:border-neutral-500 hover:text-neutral-900"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </FilterBar>
 
-        <div className="font-mono text-xs text-neutral-400 mb-6">
-          {filtered.length} record{filtered.length !== 1 ? 's' : ''}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 font-mono text-xs text-neutral-600">
+          <span>{filtered.length === 0 ? '0 records' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} records`}</span>
+          {pageCount > 1 && <span>Page {page} of {pageCount}</span>}
         </div>
 
         {filtered.length === 0 ? (
           <EmptyState title="No records found" subtitle="Adjust your filters to see records." />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filtered.map(r => <RecordCard key={r.id} record={r} />)}
-          </div>
+          <>
+            <RecordsTable records={pageRecords} />
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Record pages" />
+          </>
         )}
       </div>
     </div>

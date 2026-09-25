@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { athletes } from '../data/athletes';
 import { records } from '../data/records';
 import { countries } from '../data/countries';
@@ -10,12 +10,25 @@ import CountryCard from '../components/CountryCard';
 import ArticleCard from '../components/ArticleCard';
 import Eyebrow from '../components/Eyebrow';
 import type { Country } from '../types';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [athletePage, setAthletePage] = useState(1);
+  const [recordPage, setRecordPage] = useState(1);
+  const [countryPage, setCountryPage] = useState(1);
+  const [articlePage, setArticlePage] = useState(1);
 
   const q = query.toLowerCase().trim();
+  useEffect(() => {
+    setAthletePage(1);
+    setRecordPage(1);
+    setCountryPage(1);
+    setArticlePage(1);
+  }, [q]);
 
   const matchedAthletes = q
     ? athletes.filter(a =>
@@ -46,6 +59,10 @@ export default function SearchPage() {
     : [];
 
   const hasResults = matchedAthletes.length + matchedRecords.length + matchedCountries.length + matchedArticles.length > 0;
+  const athletePageCount = Math.ceil(matchedAthletes.length / PAGE_SIZE);
+  const recordPageCount = Math.ceil(matchedRecords.length / PAGE_SIZE);
+  const countryPageCount = Math.ceil(matchedCountries.length / PAGE_SIZE);
+  const articlePageCount = Math.ceil(matchedArticles.length / PAGE_SIZE);
 
   return (
     <div style={{ backgroundColor: 'var(--paper)' }} className="min-h-screen">
@@ -98,10 +115,11 @@ export default function SearchPage() {
               <section>
                 <Eyebrow className="mb-5">Athletes ({matchedAthletes.length})</Eyebrow>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {matchedAthletes.map(a => (
+                  {matchedAthletes.slice((athletePage - 1) * PAGE_SIZE, athletePage * PAGE_SIZE).map(a => (
                     <AthleteCard key={a.id} athlete={a} />
                   ))}
                 </div>
+                <Pagination page={athletePage} pageCount={athletePageCount} onPageChange={setAthletePage} label="Search athlete pages" />
               </section>
             )}
 
@@ -109,10 +127,11 @@ export default function SearchPage() {
               <section>
                 <Eyebrow className="mb-5">Records ({matchedRecords.length})</Eyebrow>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {matchedRecords.slice(0, 4).map(r => (
+                  {matchedRecords.slice((recordPage - 1) * PAGE_SIZE, recordPage * PAGE_SIZE).map(r => (
                     <RecordCard key={r.id} record={r} />
                   ))}
                 </div>
+                <Pagination page={recordPage} pageCount={recordPageCount} onPageChange={setRecordPage} label="Search record pages" />
               </section>
             )}
 
@@ -120,7 +139,7 @@ export default function SearchPage() {
               <section>
                 <Eyebrow className="mb-5">Countries ({matchedCountries.length})</Eyebrow>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {matchedCountries.map(c => (
+                  {matchedCountries.slice((countryPage - 1) * PAGE_SIZE, countryPage * PAGE_SIZE).map(c => (
                     <CountryCard
                       key={c.code}
                       country={c}
@@ -129,6 +148,7 @@ export default function SearchPage() {
                     />
                   ))}
                 </div>
+                <Pagination page={countryPage} pageCount={countryPageCount} onPageChange={setCountryPage} label="Search country pages" />
               </section>
             )}
 
@@ -136,12 +156,13 @@ export default function SearchPage() {
               <section>
                 <Eyebrow className="mb-5">Stories ({matchedArticles.length})</Eyebrow>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
-                  {matchedArticles.map(a => (
+                  {matchedArticles.slice((articlePage - 1) * PAGE_SIZE, articlePage * PAGE_SIZE).map(a => (
                     <div key={a.id} className="pr-0 md:pr-8 last:pr-0">
                       <ArticleCard article={a} />
                     </div>
                   ))}
                 </div>
+                <Pagination page={articlePage} pageCount={articlePageCount} onPageChange={setArticlePage} label="Search story pages" />
               </section>
             )}
           </div>

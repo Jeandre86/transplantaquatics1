@@ -16,7 +16,7 @@ export default function RecordCard({ record }: RecordCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="font-mono text-xs text-neutral-400 uppercase tracking-widest mb-1">
-              {record.ageGroup} · {record.gender} · {record.course}
+              {record.ageGroup} · {record.gender}{record.category ? ` · ${record.category}` : ''} · {record.course}
             </div>
             <div className="font-black text-lg tracking-tight text-white">{record.event}</div>
           </div>
@@ -29,7 +29,7 @@ export default function RecordCard({ record }: RecordCardProps) {
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <span className="font-semibold text-white">{record.athleteName}</span>
           <span className="text-neutral-400">{record.country}</span>
-          <span className="font-mono text-xs text-neutral-400">{formatDate(record.date)}</span>
+          {record.date && <span className="font-mono text-xs text-neutral-400">{formatDate(record.date)}</span>}
         </div>
         <div className="mt-1 text-xs text-neutral-400 truncate">{record.meet}</div>
       </div>

@@ -173,7 +173,7 @@ export default function SubmitResultPage() {
                 onChange={e => setMeet(m => ({ ...m, meetName: e.target.value }))}
                 onFocus={() => setFocusedField('meetName')}
                 onBlur={() => setFocusedField(null)}
-                placeholder="e.g. World Transplant Games 2028"
+                placeholder="e.g. World Transplant Games 2027"
               />
             </div>
 

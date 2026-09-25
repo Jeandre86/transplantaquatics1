@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 import { athletes } from '../data/athletes';
 import { articles } from '../data/articles';
 import { rankings } from '../data/rankings';
-import { records } from '../data/records';
+import { latestRecords, records } from '../data/records';
 import { TRANSPLANT_TYPES, type AgeGroup, type Course, type Event, type Gender } from '../types';
 import { getFlagEmoji, getTransplantColor } from '../lib/utils';
 import ArticleCard from '../components/ArticleCard';
 import Eyebrow from '../components/Eyebrow';
 import RankingFilters from '../components/RankingFilters';
 
-const section = 'mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-12';
+const section = 'mx-auto w-full max-w-7xl px-4 py-16 sm:py-20';
 const title = 'mt-3 text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl';
 
 export default function HomePage() {
@@ -32,19 +32,19 @@ export default function HomePage() {
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 5);
   const featuredAthletes = athletes.slice(0, 4);
-  const featuredRecords = records.slice(0, 4);
+  const featuredRecords = latestRecords.slice(0, 4);
   const featuredArticles = articles.slice(0, 3);
 
   return (
     <div className="bg-[var(--paper)]">
-      <section className="relative isolate flex min-h-[min(760px,calc(100svh-3.5rem))] items-center overflow-hidden bg-[var(--navy)]">
+      <section className="relative isolate flex min-h-[820px] items-center overflow-hidden bg-[var(--navy)]">
         <img src="/assets/aquatics-hero.png" alt="" className="absolute inset-0 -z-20 h-full w-full object-cover object-center opacity-40" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--navy)] via-[rgba(7,26,43,.9)] to-[rgba(7,26,43,.48)]" />
+        <div className="absolute inset-0 -z-10 bg-[rgba(7,26,43,0.85)]" />
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-30">
           {Array.from({ length: 7 }, (_, i) => <div key={i} className="absolute inset-y-0 border-l border-white/30" style={{ left: `${(i + 1) * 12.5}%` }} />)}
           <div className="absolute inset-y-0 left-1/2 border-l-2 border-[var(--lime)]/70" />
         </div>
-        <div className="relative mx-auto w-full max-w-7xl px-5 py-24 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-24 sm:py-28 lg:py-36">
           <div className="max-w-3xl">
             <Eyebrow color="accent" onDark>World Transplant Aquatics</Eyebrow>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.06] tracking-tight text-white sm:text-5xl lg:text-7xl">
@@ -62,10 +62,10 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="absolute bottom-8 right-8 hidden font-mono text-xs leading-6 tracking-wider text-[var(--lime)]/60 lg:block">
-            <div>58.92</div><div>1:01.14</div><div>1:01.77</div><div>1:02.88</div>
-          </div>
-          <div className="absolute bottom-8 left-8 hidden font-mono text-[10px] leading-5 tracking-wider text-[var(--lime)]/60 sm:block">SPLIT 01 / 29.11<br />SPLIT 02 / 29.81<br />FINAL / 58.92</div>
+        </div>
+        <div className="absolute bottom-8 left-8 hidden font-mono text-[10px] leading-5 tracking-wider text-[var(--lime)]/35 sm:block">SPLIT 01 / 29.11<br />SPLIT 02 / 29.81<br />FINAL / 58.92</div>
+        <div className="absolute right-8 top-8 hidden font-mono text-xs leading-6 tracking-wider text-[var(--lime)]/35 lg:block">
+          <div>58.92</div><div>1:01.14</div><div>1:01.77</div><div>1:02.88</div>
         </div>
       </section>
 
@@ -74,8 +74,8 @@ export default function HomePage() {
           <Eyebrow color="accent" onDark>Global timings</Eyebrow>
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">World Rankings</h2>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/70 sm:text-base">The definitive master board for transplant aquatic disciplines. Explore verified performances across age groups, events, and courses.</p>
-          <div className="mt-8 rounded-lg border border-white/10 bg-[#0b233d] p-4 sm:p-5">
-          <RankingFilters ageGroup={ageGroup} gender={gender} event={event} course={course} dark onChange={({ ageGroup: ag, gender: g, event: ev, course: co }) => { setAgeGroup(ag); setGender(g); setEvent(ev); setCourse(co); }} />
+          <div className="mt-8 border border-white/15 bg-transparent p-4 sm:p-5">
+          <RankingFilters dark ageGroup={ageGroup} gender={gender} event={event} course={course} onChange={({ ageGroup: ag, gender: g, event: ev, course: co }) => { setAgeGroup(ag as AgeGroup); setGender(g as Gender); setEvent(ev as Event); setCourse(co as Course); }} />
           </div>
           <div className="mt-5 overflow-x-auto rounded-lg border border-white/10">
             <div className="min-w-[600px]">
@@ -127,7 +127,7 @@ export default function HomePage() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">The highest verified performances across transplant aquatics.</p>
           <div className="mt-9 grid gap-4 md:grid-cols-2">
             {featuredRecords.map(r => <Link key={r.id} to="/records" className="flex flex-col justify-between gap-5 border border-[var(--border)] bg-white p-5 transition hover:shadow-md sm:flex-row sm:items-center sm:p-6">
-              <div><div className="mb-3 flex items-center gap-2"><span className="rounded bg-[var(--lime)] px-2 py-1 text-[10px] font-extrabold text-[var(--navy)]">WR</span><span className="text-xs font-bold uppercase tracking-widest text-[var(--blue)]">{r.course} · {r.ageGroup}</span></div><h3 className="font-extrabold text-[var(--ink)]">{r.event}</h3><p className="mt-1 text-sm text-[var(--muted)]">{r.athleteName} · {r.country}</p><p className="mt-2 text-xs text-[var(--muted)]">{r.date} · {r.meet}</p></div>
+              <div><div className="mb-3 flex items-center gap-2"><span className="rounded bg-[var(--lime)] px-2 py-1 text-[10px] font-extrabold text-[var(--navy)]">WR</span><span className="text-xs font-bold uppercase tracking-widest text-[var(--blue)]">{r.course} · {r.ageGroup} · {r.category}</span></div><h3 className="font-extrabold text-[var(--ink)]">{r.event}</h3><p className="mt-1 text-sm text-[var(--muted)]">{r.athleteName} · {r.country}</p><p className="mt-2 text-xs text-[var(--muted)]">{r.meet}</p></div>
               <span className="shrink-0 font-mono text-2xl font-bold text-[var(--ink)] sm:text-3xl">{r.time}</span>
             </Link>)}
           </div>
@@ -139,7 +139,7 @@ export default function HomePage() {
         <img src="/assets/aquatics-stats.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
         <div className="absolute inset-0 bg-[rgba(7,26,43,.72)]" />
         <div className={`${section} relative grid grid-cols-2 gap-8 text-center sm:grid-cols-4`}>
-          {[['1,420+', 'Verified athletes'], ['54', 'Countries represented'], ['48', 'World records held'], ['0.001s', 'Timing precision']].map(([value, label]) => <div key={label}><p className="font-mono text-3xl font-bold text-[var(--accent)] sm:text-4xl">{value}</p><p className="mt-2 text-xs uppercase tracking-widest text-white/70 sm:text-sm">{label}</p></div>)}
+          {[["1,420+", 'Verified athletes'], ['54', 'Countries represented'], [String(records.length), 'WTG record performances'], ['0.001s', 'Timing precision']].map(([value, label]) => <div key={label}><p className="font-mono text-3xl font-bold text-[var(--accent)] sm:text-4xl">{value}</p><p className="mt-2 text-xs uppercase tracking-widest text-white/70 sm:text-sm">{label}</p></div>)}
           <p className="col-span-full -mt-2 text-center font-mono text-[10px] uppercase tracking-wider text-white/40">Illustrative platform statistics · sample values</p>
         </div>
       </section>

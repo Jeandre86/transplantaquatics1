@@ -159,7 +159,7 @@
 
 ### 7. Calendar Page (`/calendar`)
 - "RACE CALENDAR" heading
-- WTG Countdown featured card at top: "WORLD TRANSPLANT GAMES 2028 — PERTH, AUSTRALIA" with live countdown DAYS / HRS / MINS / SECS in League Spartan, Split Blue background with speed-lines overlay
+- WTG Countdown featured card at top: "WORLD TRANSPLANT GAMES 2027 — LEUVEN, BELGIUM" with live countdown DAYS / HRS / MINS / SECS in League Spartan, Split Blue background with speed-lines overlay
 - Month grouped list view of meets: each row = date chip (Aqua bg) + meet name + location + course badge + status badge (Upcoming/Completed)
 - Filter: year, month, country
 
@@ -167,7 +167,7 @@
 
 ### 8. WTG Hub (`/games`)
 - Hero: "WORLD TRANSPLANT GAMES" full-width, speed-lines dark bg
-- Countdown timer: massive League Spartan numbers, Signal Lime, for Perth 2028
+- Countdown timer: massive League Spartan numbers, Signal Lime, for Leuven 2027
 - Medal table: dark table, gold/silver/bronze columns with coloured dots, rank numbers in Aqua
 - Past games grid: 4 cards (2023, 2019, 2017, 2015) — dark cards, city, year
 

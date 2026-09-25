@@ -40,10 +40,10 @@ export default function SeasonProgressionTable({ results }: SeasonProgressionTab
   });
 
   return (
-    <div className="overflow-x-auto rounded" style={{ background: 'var(--navy-mid)' }}>
+    <div className="overflow-x-auto rounded border border-neutral-200" style={{ background: 'var(--paper)' }}>
       <table className="w-full border-collapse">
         <thead>
-          <tr style={{ borderBottom: '1px solid var(--navy-light)' }}>
+          <tr style={{ borderBottom: '1px solid var(--border)' }}>
             <th
               className="font-mono text-xs tracking-widest uppercase text-left py-3 px-4"
               style={{ color: 'var(--muted)' }}
@@ -68,7 +68,7 @@ export default function SeasonProgressionTable({ results }: SeasonProgressionTab
             const best = overallBest.get(key);
 
             return (
-              <tr key={key} style={{ borderBottom: '1px solid var(--navy-light)' }}>
+              <tr key={key} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td className="py-3 px-4">
                   <div className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{event}</div>
                   <div className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{course}</div>

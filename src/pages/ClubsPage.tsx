@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { clubs } from '../data/clubs';
 import { getFlagEmoji } from '../lib/utils';
 import Eyebrow from '../components/Eyebrow';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 export default function ClubsPage() {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const filtered = clubs.filter(c => {
     if (!search.trim()) return true;
@@ -16,6 +20,9 @@ export default function ClubsPage() {
       c.city.toLowerCase().includes(q)
     );
   });
+  useEffect(() => setPage(1), [search]);
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageClubs = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
@@ -29,7 +36,7 @@ export default function ClubsPage() {
             'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto px-4 py-16">
           <Eyebrow color="accent" className="mb-4">Clubs</Eyebrow>
           <h1
             className="display text-4xl md:text-6xl font-black uppercase leading-tight tracking-tight"
@@ -44,7 +51,7 @@ export default function ClubsPage() {
       </section>
 
       {/* Search */}
-      <div className="max-w-6xl mx-auto px-6 pt-8">
+      <div className="max-w-7xl mx-auto px-4 pt-8">
         <div className="relative">
           <svg
             className="absolute left-4 top-1/2 -translate-y-1/2"
@@ -71,7 +78,7 @@ export default function ClubsPage() {
       </div>
 
       {/* Grid */}
-      <div className="max-w-6xl mx-auto px-6 py-8 pb-16">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-16">
         {filtered.length === 0 ? (
           <div
             className="py-16 text-center border"
@@ -83,7 +90,7 @@ export default function ClubsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map(club => (
+            {pageClubs.map(club => (
               <Link
                 key={club.id}
                 to={`/clubs/${club.id}`}
@@ -138,6 +145,7 @@ export default function ClubsPage() {
             ))}
           </div>
         )}
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Club pages" />
       </div>
     </div>
   );

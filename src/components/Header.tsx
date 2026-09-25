@@ -74,25 +74,6 @@ export default function Header() {
 
           {/* Right */}
           <div className="flex items-center gap-2">
-            {/* "Press / to search" hint — desktop only */}
-            <span
-              className="hidden lg:inline-flex items-center gap-1 mono text-xs select-none pointer-events-none"
-              style={{ color: 'var(--muted-on-dark)' }}
-            >
-              Press
-              <kbd
-                className="mono text-xs px-1 py-0.5 rounded"
-                style={{
-                  backgroundColor: 'var(--navy-light)',
-                  color: 'var(--muted-on-dark)',
-                  border: '1px solid var(--graphite)',
-                  lineHeight: 1,
-                }}
-              >
-                /
-              </kbd>
-              to search
-            </span>
             <Link
               to="/search"
               className="w-8 h-8 flex items-center justify-center transition-colors"
@@ -111,7 +92,9 @@ export default function Header() {
                   style={{ backgroundColor: 'var(--navy-light)' }}
                   aria-label="Open user menu"
                 >
-                  {auth.user.avatarInitials}
+                  {auth.user.avatarUrl
+                    ? <img src={auth.user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                    : auth.user.avatarInitials}
                 </button>
 
                 {dropdownOpen && (
@@ -216,107 +199,93 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile drawer */}
+      {/* Full-screen mobile menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 bg-black/70"
-            onClick={() => setMobileOpen(false)}
-          />
-          <div
-            className="absolute right-0 top-0 h-full w-72 flex flex-col"
-            style={{ backgroundColor: 'var(--navy)', borderLeft: '1px solid var(--navy-light)' }}
-          >
-            <div
-              className="flex items-center justify-between px-5 h-14"
-              style={{ borderBottom: '1px solid var(--navy-light)' }}
+        <div
+          className="fixed inset-0 z-[60] flex min-h-screen flex-col overflow-y-auto"
+          style={{ backgroundColor: 'var(--navy)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Main menu"
+        >
+          <div className="flex h-14 shrink-0 items-center justify-between border-b px-5" style={{ borderColor: 'var(--navy-light)' }}>
+            <Logo size="sm" light />
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="flex size-10 items-center justify-center text-white/70 transition-colors hover:text-[var(--lime)]"
+              aria-label="Close menu"
             >
-              <Logo size="sm" light />
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="w-8 h-8 flex items-center justify-center"
-                style={{ color: 'rgba(255,255,255,0.6)' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <nav className="flex flex-col py-4">
-              {NAV_LINKS.map(l => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  end={l.to === '/'}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `px-5 py-3 text-base font-medium border-l-2 transition-colors ${
-                      isActive ? 'border-l-accent text-white' : 'border-transparent text-white/60 hover:text-white'
-                    }`
-                  }
-                  style={({ isActive }) => isActive ? { borderLeftColor: 'var(--accent)' } : {}}
-                >
-                  {l.label}
-                </NavLink>
-              ))}
-              <div
-                className="px-5 pt-4 mt-2"
-                style={{ borderTop: '1px solid var(--navy-light)' }}
-              >
-                {auth.isLoggedIn && auth.user ? (
-                  <>
-                    {/* Logged-in mobile: avatar row + links */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div
-                        className="w-9 h-9 flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                        style={{ backgroundColor: 'var(--navy-light)' }}
-                      >
-                        {auth.user.avatarInitials}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white leading-snug">{auth.user.firstName} {auth.user.lastName}</p>
-                        <p className="text-xs truncate" style={{ color: 'var(--muted-on-dark)' }}>{auth.user.email}</p>
-                      </div>
-                    </div>
-                    <Link
-                      to="/profile"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium mb-2 transition-colors"
-                      style={{ color: 'var(--ice)', border: '1px solid var(--navy-light)' }}
-                    >
-                      <User size={15} />
-                      My Profile
-                    </Link>
-                    <button
-                      onClick={() => { setMobileOpen(false); handleSignOut(); }}
-                      className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors"
-                      style={{ color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
-                    >
-                      Sign Out
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      to="/login"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium gap-2 mb-3 transition-colors"
-                      style={{ color: 'var(--ice)', borderColor: 'var(--navy-light)', border: '1px solid var(--navy-light)' }}
-                    >
-                      <User size={16} />
-                      Sign In / Register
-                    </Link>
-                    <Link
-                      to="/join"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center w-full px-4 py-3 text-sm font-bold uppercase tracking-wider text-black"
-                      style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
-                    >
-                      Join Transplant Aquatics
-                    </Link>
-                  </>
-                )}
-              </div>
-            </nav>
+              <X size={20} />
+            </button>
           </div>
+          <nav className="flex flex-1 flex-col items-center justify-center gap-1 px-6 py-10 text-center">
+            {NAV_LINKS.map(l => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end={l.to === '/'}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `px-5 py-3 text-xl font-semibold transition-colors sm:text-2xl ${
+                    isActive ? 'text-[var(--lime)]' : 'text-white/75 hover:text-[var(--lime)]'
+                  }`
+                }
+                style={({ isActive }) => isActive ? { color: 'var(--lime)' } : {}}
+              >
+                {l.label}
+              </NavLink>
+            ))}
+            <div className="mt-5 flex w-full max-w-xs flex-col items-center gap-3 border-t px-5 pt-6" style={{ borderColor: 'var(--navy-light)' }}>
+              {auth.isLoggedIn && auth.user ? (
+                <>
+                  <div className="mb-2 flex flex-col items-center gap-2 text-center">
+                    <div
+                      className="flex size-10 items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: 'var(--navy-light)' }}
+                    >
+                      {auth.user.avatarInitials}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white leading-snug">{auth.user.firstName} {auth.user.lastName}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--muted-on-dark)' }}>{auth.user.email}</p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"
+                  >
+                    My Profile
+                  </Link>
+                  <button
+                    onClick={() => { setMobileOpen(false); handleSignOut(); }}
+                    className="w-full px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"
+                  >
+                    <User size={16} />
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/join"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex w-full items-center justify-center px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-[var(--navy)] transition-colors hover:bg-[var(--lime)]"
+                    style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
         </div>
       )}
     </>

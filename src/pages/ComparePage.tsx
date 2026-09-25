@@ -67,7 +67,7 @@ export default function ComparePage() {
             'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-14">
+        <div className="max-w-7xl mx-auto px-4 py-14">
           <Eyebrow color="accent" className="mb-4">Tools</Eyebrow>
           <h1
             className="display text-4xl md:text-5xl font-black uppercase leading-tight tracking-tight"
@@ -81,7 +81,7 @@ export default function ComparePage() {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 pb-16 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-16 space-y-8">
 
         {/* Search + chips */}
         <div>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { clubs } from '../data/clubs';
 import { athletes } from '../data/athletes';
@@ -5,16 +6,21 @@ import { getFlagEmoji, timeToSeconds } from '../lib/utils';
 import Eyebrow from '../components/Eyebrow';
 import EmptyState from '../components/EmptyState';
 import TransplantBadge from '../components/TransplantBadge';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 export default function ClubPage() {
   const { id } = useParams<{ id: string }>();
+  const [rosterPage, setRosterPage] = useState(1);
+  useEffect(() => setRosterPage(1), [id]);
   const club = clubs.find(c => c.id === id);
 
   if (!club) {
     return (
       <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
         <div className="max-w-3xl mx-auto px-6 py-20">
-          <EmptyState title="Club not found" subtitle="This club may not exist or has been removed." />
+          <EmptyState title="Club not found" subtitle="This club may not exist or has been removed." onDark />
           <div className="mt-8 flex justify-center">
             <Link
               to="/clubs"
@@ -31,6 +37,8 @@ export default function ClubPage() {
 
   // Get roster athletes
   const roster = athletes.filter(a => club.athleteIds.includes(a.id));
+  const rosterPageCount = Math.ceil(roster.length / PAGE_SIZE);
+  const pageRoster = roster.slice((rosterPage - 1) * PAGE_SIZE, rosterPage * PAGE_SIZE);
 
   // Build "Fastest in club" leaderboard across all PBs of roster athletes
   // Group by event, find the fastest time per event within the club
@@ -66,7 +74,7 @@ export default function ClubPage() {
             'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
         }}
       >
-        <div className="max-w-5xl mx-auto px-6 py-14">
+        <div className="max-w-7xl mx-auto px-4 py-14">
           <Link
             to="/clubs"
             className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest mb-8"
@@ -107,7 +115,7 @@ export default function ClubPage() {
         className="border-b"
         style={{ borderColor: 'var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}
       >
-        <div className="max-w-5xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-wrap gap-8">
             {[
               { value: String(club.memberCount), label: 'Members' },
@@ -127,7 +135,7 @@ export default function ClubPage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-6 py-10 space-y-14">
+      <div className="max-w-7xl mx-auto px-4 py-10 space-y-14">
 
         {/* Description */}
         <section>
@@ -151,7 +159,7 @@ export default function ClubPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {roster.map(a => (
+              {pageRoster.map(a => (
                 <div
                   key={a.id}
                   className="border p-5"
@@ -200,6 +208,7 @@ export default function ClubPage() {
               ))}
             </div>
           )}
+          <Pagination page={rosterPage} pageCount={rosterPageCount} onPageChange={setRosterPage} label="Club roster pages" />
         </section>
 
         {/* Fastest in club */}

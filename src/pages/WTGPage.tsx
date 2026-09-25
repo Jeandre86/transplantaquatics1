@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { records } from '../data/records';
+import { latestRecords } from '../data/records';
 import { getFlagEmoji } from '../lib/utils';
 import Eyebrow from '../components/Eyebrow';
 
@@ -46,7 +46,7 @@ const MEDAL_TABLE = [
 const PAST_GAMES = [
   {
     year: 2025,
-    location: 'Perth, Australia',
+    location: 'Dresden, Germany',
     swimmers: 312,
     nations: 29,
     records: 8,
@@ -54,7 +54,7 @@ const PAST_GAMES = [
   },
   {
     year: 2023,
-    location: 'Transplant Games of America / International',
+    location: 'Perth, Australia',
     swimmers: 274,
     nations: 26,
     records: 5,
@@ -86,20 +86,11 @@ const PAST_GAMES = [
   },
 ];
 
-// WTG records (subset from records data)
-const WTG_RECORD_IDS = [
-  'wr-m4049-100fr-lcm',
-  'wr-w4049-100bk-lcm',
-  'wr-w3039-100fl-lcm',
-  'wr-m4049-200im-lcm',
-  'wr-m5059-100br-lcm',
-];
-
 export default function WTGPage() {
-  const WTG_DATE = new Date('2028-07-15T09:00:00');
+  const WTG_DATE = new Date('2027-08-01T09:00:00');
   const { days, hrs, mins, secs } = useCountdown(WTG_DATE);
 
-  const wtgRecords = records.filter(r => WTG_RECORD_IDS.includes(r.id));
+  const wtgRecords = latestRecords.slice(0, 5);
 
   return (
     <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
@@ -112,7 +103,7 @@ export default function WTGPage() {
           ...speedLines,
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4 py-20 md:py-28">
           <Eyebrow color="accent" className="mb-4">The Games</Eyebrow>
           <h1
             className="display text-4xl md:text-6xl lg:text-7xl font-black uppercase leading-tight tracking-tight"
@@ -127,15 +118,15 @@ export default function WTGPage() {
         </div>
       </section>
 
-      {/* Countdown to WTG 2028 */}
+      {/* Countdown to WTG 2027 */}
       <section
         className="border-b"
         style={{ backgroundColor: 'var(--navy-mid)', borderColor: 'var(--navy-light)' }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-14">
+        <div className="max-w-7xl mx-auto px-4 py-14">
           <Eyebrow color="accent" className="mb-2">Next Games</Eyebrow>
           <h2 className="font-bold text-2xl md:text-3xl" style={{ color: 'var(--ink-on-dark)' }}>
-            Perth, Australia — 15 July 2028
+            Leuven, Belgium — 1–8 August 2027
           </h2>
 
           <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -167,12 +158,12 @@ export default function WTGPage() {
           </div>
 
           <p className="mt-6 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-            Live countdown · World Transplant Games 2028 · Perth Aquatic Centre
+            Live countdown · World Transplant Games 2027 · Leuven, Belgium
           </p>
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-6 py-12 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 py-12 space-y-16">
 
         {/* Medal table */}
         <section>

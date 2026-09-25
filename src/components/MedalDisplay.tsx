@@ -8,7 +8,7 @@ interface MedalDisplayProps {
 
 // WTG host city lookup
 const WTG_EDITIONS: Record<number, { city: string; country: string }> = {
-  2025: { city: 'Padua',          country: 'Italy' },
+  2025: { city: 'Dresden',        country: 'Germany' },
   2023: { city: 'Perth',          country: 'Australia' },
   2019: { city: 'Newcastle',      country: 'United Kingdom' },
   2017: { city: 'Malaga',         country: 'Spain' },
@@ -19,18 +19,11 @@ const WTG_EDITIONS: Record<number, { city: string; country: string }> = {
   2007: { city: 'Bangkok',        country: 'Thailand' },
 };
 
-// Tint colours for each column — dark-mode friendly
+// Medal accents tuned for the light profile surface.
 const TINT = {
-  Gold:   { bg: 'rgba(255,195,0,0.10)',  border: 'rgba(255,195,0,0.18)',   text: '#FFD966', dim: 'rgba(255,195,0,0.35)' },
-  Silver: { bg: 'rgba(180,180,200,0.08)',border: 'rgba(180,180,200,0.16)', text: '#C8C8D8', dim: 'rgba(180,180,200,0.3)' },
-  Bronze: { bg: 'rgba(180,100,30,0.10)', border: 'rgba(180,100,30,0.18)',  text: '#D4956A', dim: 'rgba(180,100,30,0.35)' },
-};
-
-// Proportional bar gradients
-const BAR_GRADIENT = {
-  Gold:   'linear-gradient(180deg, #FFE066 0%, #F5A800 55%, #B87A00 100%)',
-  Silver: 'linear-gradient(180deg, #E8E8F0 0%, #B0B0C0 55%, #808090 100%)',
-  Bronze: 'linear-gradient(180deg, #D4956A 0%, #A0622A 55%, #7A4A1A 100%)',
+  Gold:   { bg: 'rgba(255,195,0,0.12)',  border: 'rgba(154,107,0,0.24)',   text: '#8a5b00', dim: 'rgba(154,107,0,0.35)' },
+  Silver: { bg: 'rgba(100,116,139,0.08)',border: 'rgba(100,116,139,0.2)',  text: '#475569', dim: 'rgba(100,116,139,0.3)' },
+  Bronze: { bg: 'rgba(160,82,45,0.10)',  border: 'rgba(160,82,45,0.24)',   text: '#8b451f', dim: 'rgba(160,82,45,0.35)' },
 };
 
 // Small medal icon for column headers
@@ -80,16 +73,11 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
     });
   }
 
-  // ── Bar chart sizing ──────────────────────────────────────────────────────
-  const maxCount   = Math.max(totalGold, totalSilver, totalBronze, 1);
-  const BAR_MAX    = 120; // px
-  const barH = (n: number) => n === 0 ? 4 : Math.max(16, Math.round((n / maxCount) * BAR_MAX));
-
   if (totalMedals === 0) {
     return (
       <div
         className="py-16 text-center font-mono text-sm"
-        style={{ color: 'var(--muted)', border: '1px solid var(--navy-light)' }}
+        style={{ color: 'var(--muted)', border: '1px solid var(--border)', backgroundColor: 'var(--paper)' }}
       >
         No World Transplant Games medals recorded yet.
       </div>
@@ -98,90 +86,19 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
 
   return (
     <div className="space-y-0">
-
-      {/* ── Summary bar chart ───────────────────────────────────────────────── */}
-      <div
-        className="px-8 pt-8 pb-6"
-        style={{ backgroundColor: 'var(--navy-mid)', borderBottom: '1px solid var(--navy-light)' }}
-      >
-        {/* Label + total */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <p className="font-mono text-xs tracking-widest uppercase mb-1" style={{ color: 'var(--muted)' }}>
-              World Transplant Games
-            </p>
-            <p className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--aqua)' }}>
-              Medal Summary
-            </p>
-          </div>
-          <div className="text-right">
-            <span
-              className="font-mono font-black leading-none"
-              style={{ fontSize: 48, color: 'var(--ink)' }}
-            >
-              {totalMedals}
-            </span>
-            <p className="font-mono text-xs tracking-widest uppercase mt-0.5" style={{ color: 'var(--muted)' }}>
-              Total
-            </p>
-          </div>
-        </div>
-
-        {/* Bars */}
-        <div className="flex items-end gap-6" style={{ height: BAR_MAX + 72 }}>
-          {(['Gold', 'Silver', 'Bronze'] as const).map(color => {
-            const count = color === 'Gold' ? totalGold : color === 'Silver' ? totalSilver : totalBronze;
-            const h     = barH(count);
-            const t     = TINT[color];
-            const empty = count === 0;
-
-            return (
-              <div key={color} className="flex flex-col items-center gap-2" style={{ minWidth: 72 }}>
-                {/* Count number */}
-                <span
-                  className="font-mono font-black leading-none"
-                  style={{ fontSize: 36, color: empty ? 'var(--muted)' : t.text, opacity: empty ? 0.35 : 1 }}
-                >
-                  {count}
-                </span>
-
-                {/* Proportional bar */}
-                <div
-                  style={{
-                    width: 72,
-                    height: `${h}px`,
-                    background: empty ? 'var(--navy-light)' : BAR_GRADIENT[color],
-                    opacity: empty ? 0.4 : 1,
-                    transition: 'height 0.35s ease',
-                  }}
-                />
-
-                {/* Label */}
-                <span
-                  className="font-mono text-xs tracking-[0.12em] uppercase"
-                  style={{ color: empty ? 'var(--muted)' : t.text, opacity: empty ? 0.4 : 0.8 }}
-                >
-                  {color}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* ── Medals Breakdown table ───────────────────────────────────────────── */}
-      <div style={{ backgroundColor: 'var(--navy)' }}>
+      <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
 
         {/* Table header */}
         <div
           className="grid items-center px-5 py-3"
           style={{
             gridTemplateColumns: '1fr 72px 72px 72px 56px 36px',
-            borderBottom: '1px solid var(--navy-light)',
+            borderBottom: '1px solid var(--border)',
           }}
         >
           <span className="font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
-            Edition
+            World Transplant Games
           </span>
           {(['Gold', 'Silver', 'Bronze'] as const).map(color => (
             <div key={color} className="flex flex-col items-center gap-1">
@@ -204,14 +121,14 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
           const isOpen    = expanded.has(year);
 
           return (
-            <div key={year} style={{ borderBottom: '1px solid var(--navy-light)' }}>
+            <div key={year} style={{ borderBottom: '1px solid var(--border)' }}>
 
               {/* Main row */}
               <div
                 className="grid items-center px-5 py-4 cursor-pointer group"
                 style={{ gridTemplateColumns: '1fr 72px 72px 72px 56px 36px' }}
                 onClick={() => toggleRow(year)}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)')}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(23,105,194,0.04)')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 {/* Edition info */}
@@ -286,7 +203,7 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
                   <div
                     className="w-6 h-6 flex items-center justify-center transition-colors"
                     style={{
-                      border: '1px solid var(--navy-light)',
+                      border: '1px solid var(--border)',
                       color: 'var(--muted)',
                     }}
                   >
@@ -302,7 +219,7 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
               {isOpen && (
                 <div
                   className="px-5 pb-4"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.015)', borderTop: '1px solid var(--navy-light)' }}
+                  style={{ backgroundColor: 'var(--paper)', borderTop: '1px solid var(--border)' }}
                 >
                   <div className="space-y-0 mt-3">
                     {[
@@ -313,10 +230,10 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
                       <div
                         key={i}
                         className="flex items-center gap-4 py-2.5 px-3"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                        style={{ borderBottom: '1px solid var(--border)' }}
                       >
                         <MedalDot color={m.colorKey} />
-                        <span className="text-sm flex-1" style={{ color: 'var(--ice)' }}>
+                        <span className="text-sm flex-1" style={{ color: 'var(--ink)' }}>
                           {m.event}
                         </span>
                         <span
@@ -343,8 +260,8 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
           className="grid items-center px-5 py-4"
           style={{
             gridTemplateColumns: '1fr 72px 72px 72px 56px 36px',
-            borderTop: '2px solid var(--navy-light)',
-            backgroundColor: 'var(--navy-mid)',
+            borderTop: '2px solid var(--border)',
+            backgroundColor: 'var(--paper)',
           }}
         >
           <span className="font-mono text-xs tracking-widest uppercase font-bold" style={{ color: 'var(--muted)' }}>

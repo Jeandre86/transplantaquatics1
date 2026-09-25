@@ -1,27 +1,38 @@
-import { useState } from 'react';
 import { rankings } from '../data/rankings';
-import { TRANSPLANT_TYPES, type AgeGroup, type Gender, type Event, type Course } from '../types';
+import { TRANSPLANT_TYPES } from '../types';
 import RankingTable from '../components/RankingTable';
-import RankingFilters from '../components/RankingFilters';
 import Eyebrow from '../components/Eyebrow';
 import { Link } from 'react-router-dom';
 import { getFlagEmoji, getTransplantColor } from '../lib/utils';
+import { getTransplantPoints } from '../lib/transplantPoints';
+import TransplantCohortExplorer from '../components/TransplantCohortExplorer';
+
+const GENDER_PREVIEW_SIZE = 5;
 
 export default function RankingsPage() {
-  const [ageGroup, setAgeGroup] = useState<AgeGroup>('40-49');
-  const [gender, setGender] = useState<Gender>('Men');
-  const [event, setEvent] = useState<Event>('100m Freestyle');
-  const [course, setCourse] = useState<Course>('LCM');
-
-  const filtered = rankings
-    .filter(r => r.ageGroup === ageGroup && r.gender === gender && r.event === event && r.course === course)
-    .sort((a, b) => a.rank - b.rank);
+  const categoryRankings = rankings
+    .sort((a, b) => {
+      const pointsA = getTransplantPoints(a);
+      const pointsB = getTransplantPoints(b);
+      if (pointsA !== null && pointsB !== null && pointsA !== pointsB) return pointsB - pointsA;
+      if (pointsA !== null && pointsB === null) return -1;
+      if (pointsA === null && pointsB !== null) return 1;
+      return a.rank - b.rank || a.athleteName.localeCompare(b.athleteName);
+    });
+  const rankPositions = new Map<string, number>();
+  for (const group of ['Men', 'Women']) {
+    categoryRankings.filter(r => r.gender === group).forEach((r, index) => {
+      rankPositions.set([r.athleteId, r.ageGroup, r.gender, r.event, r.course].join('|'), index + 1);
+    });
+  }
+  const menRankings = categoryRankings.filter(r => r.gender === 'Men');
+  const womenRankings = categoryRankings.filter(r => r.gender === 'Women');
 
   return (
     <div>
       {/* Header */}
       <section style={{ backgroundColor: 'var(--navy)' }}>
-        <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto px-4 py-16">
           <Eyebrow color="accent" onDark>Official Rankings</Eyebrow>
           <h1 className="mt-4 font-bold text-5xl md:text-6xl" style={{ color: 'var(--ink-on-dark)' }}>World Rankings</h1>
           <p className="mt-4 max-w-2xl" style={{ color: 'var(--muted-on-dark)' }}>
@@ -35,40 +46,44 @@ export default function RankingsPage() {
         </div>
       </section>
 
-      {/* Filters + Table */}
-      <section style={{ backgroundColor: 'var(--surface)' }}>
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="sticky top-14 z-10 py-4" style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-            <RankingFilters
-              ageGroup={ageGroup} gender={gender} event={event} course={course}
-              onChange={({ ageGroup: ag, gender: g, event: ev, course: co }) => {
-                setAgeGroup(ag); setGender(g); setEvent(ev); setCourse(co);
-              }}
-            />
+      {/* Gender leaderboard previews */}
+      <section style={{ backgroundColor: '#f4f2ed' }}>
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
+            <div>
+              <Eyebrow>Leaderboard</Eyebrow>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Top swims by points</h2>
+            </div>
           </div>
-          <div className="mt-6">
-            {filtered.length > 0 ? (
-              <RankingTable rankings={filtered} showExtras showVerified={false} />
-            ) : (
-              <div className="py-20 text-center">
-                <p className="text-neutral-400 font-mono text-sm uppercase tracking-widest">No rankings available for this selection</p>
-              </div>
-            )}
+          <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8 xl:gap-12">
+            <section>
+              <RankingTable rankings={menRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} title="Men" />
+              {menRankings.length > GENDER_PREVIEW_SIZE && (
+                <Link to="/rankings/men" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[#1769c2] hover:underline">
+                  More <span aria-hidden="true">›</span>
+                </Link>
+              )}
+            </section>
+            <section>
+              <RankingTable rankings={womenRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} title="Women" />
+              {womenRankings.length > GENDER_PREVIEW_SIZE && (
+                <Link to="/rankings/women" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[#1769c2] hover:underline">
+                  More <span aria-hidden="true">›</span>
+                </Link>
+              )}
+            </section>
           </div>
         </div>
       </section>
 
       {/* Fastest by Transplant Type — Discovery */}
       <section style={{ backgroundColor: 'var(--navy-mid)', borderTop: '1px solid var(--navy-light)' }}>
-        <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="flex flex-col md:flex-row md:items-end gap-3 mb-8">
             <div>
               <Eyebrow>Discovery</Eyebrow>
               <h2 className="mt-2 font-bold text-3xl" style={{ color: 'var(--ink-on-dark)' }}>Fastest by Transplant Type</h2>
             </div>
-            <span className="font-mono text-xs px-3 py-1 uppercase tracking-wider self-start" style={{ border: '1px solid var(--navy-light)', color: 'var(--muted-on-dark)' }}>
-              Discovery view — not an official ranking category
-            </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {TRANSPLANT_TYPES.map(type => {
@@ -95,8 +110,16 @@ export default function RankingsPage() {
               );
             })}
           </div>
+          <Link
+            to="/rankings/transplant-type"
+            className="mt-8 inline-flex items-center gap-2 border border-[var(--accent)] px-5 py-3 font-mono text-xs font-bold uppercase tracking-widest text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--navy)]"
+          >
+            See my transplant ranking <span aria-hidden="true">→</span>
+          </Link>
         </div>
       </section>
+
+      <TransplantCohortExplorer />
     </div>
   );
 }

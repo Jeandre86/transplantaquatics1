@@ -25,7 +25,7 @@ export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBes
               <th
                 key={h}
                 className={`font-mono text-xs tracking-widest uppercase py-2 text-left text-neutral-400 ${
-                  h === 'Time' ? 'text-right' : ''
+                  h === 'Time' ? 'text-right pr-4' : h === 'WTG' ? 'pl-5' : ''
                 }`}
               >
                 {h}
@@ -39,7 +39,7 @@ export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBes
               <td className="py-3 pr-4 font-medium text-sm text-black">{pb.event}</td>
               <td className="py-3 pr-4 font-mono text-xs text-neutral-500">{pb.course}</td>
               <td className="py-3 pr-4 text-right font-mono font-bold text-sm text-black">{pb.time}</td>
-              <td className="py-3 pr-4">
+              <td className="py-3 pl-5 pr-4">
                 {gender && (
                   <TimeStandard
                     time={pb.time}

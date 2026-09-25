@@ -1,21 +1,21 @@
-import type { PersonalBest, Event, Course } from '../types';
+import type { Result, Event, Course } from '../types';
 import { timeToSeconds } from '../lib/utils';
 
 interface ProgressionChartProps {
-  pbs: PersonalBest[];
+  results: Result[];
   event: Event;
   course: Course;
 }
 
-export default function ProgressionChart({ pbs, event, course }: ProgressionChartProps) {
-  // Filter to relevant event/course, sort by date
-  const data = pbs
-    .filter(pb => pb.event === event && pb.course === course)
+export default function ProgressionChart({ results, event, course }: ProgressionChartProps) {
+  // Use every dated swim for this event so the chart shows a real season trend.
+  const data = results
+    .filter(result => result.event === event && result.course === course)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   if (data.length < 1) {
     return (
-      <div className="h-40 flex items-center justify-center bg-neutral-50 border border-neutral-200">
+      <div className="h-48 flex items-center justify-center bg-white border border-neutral-200">
         <span className="font-mono text-xs text-neutral-400">No progression data available for {event} {course}</span>
       </div>
     );
@@ -23,7 +23,7 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
 
   if (data.length === 1) {
     return (
-      <div className="h-40 border border-neutral-200 bg-neutral-50 flex items-center justify-center">
+      <div className="h-48 border border-neutral-200 bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="font-mono font-black text-3xl">{data[0].time}</div>
           <div className="font-mono text-xs text-neutral-400 mt-1">{new Date(data[0].date).getFullYear()}</div>
@@ -33,14 +33,16 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
   }
 
   const W = 600;
-  const H = 180;
+  const H = 240;
   const PAD = { top: 20, right: 30, bottom: 40, left: 60 };
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
 
   const times = data.map(d => timeToSeconds(d.time));
-  const minTime = Math.min(...times) * 0.99;
-  const maxTime = Math.max(...times) * 1.01;
+  const spread = Math.max(...times) - Math.min(...times);
+  const padding = Math.max(spread * 0.2, 0.5);
+  const minTime = Math.min(...times) - padding;
+  const maxTime = Math.max(...times) + padding;
   const dates = data.map(d => new Date(d.date).getTime());
   const minDate = Math.min(...dates);
   const maxDate = Math.max(...dates);
@@ -62,8 +64,8 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
   const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxWidth: '100%', minWidth: 280 }}>
+    <div className="w-full overflow-x-auto border border-neutral-200 bg-white p-3 sm:p-5">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block w-full h-auto" role="img" aria-label={`${event} ${course} swim times over time`}>
         {/* Grid lines */}
         {[0, 0.25, 0.5, 0.75, 1].map(t => {
           const y = PAD.top + innerH * t;
@@ -73,8 +75,8 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
           const label = mins > 0 ? `${mins}:${secs}` : `${timeVal.toFixed(2)}`;
           return (
             <g key={t}>
-              <line x1={PAD.left} y1={y} x2={PAD.left + innerW} y2={y} stroke="#e5e5e5" strokeWidth={1} />
-              <text x={PAD.left - 4} y={y + 4} textAnchor="end" fontSize={9} fill="#9ca3af" fontFamily="monospace">
+              <line x1={PAD.left} y1={y} x2={PAD.left + innerW} y2={y} stroke="#d6dbe1" strokeWidth={1} />
+              <text x={PAD.left - 7} y={y + 4} textAnchor="end" fontSize={10} fill="#475569" fontFamily="monospace">
                 {label}
               </text>
             </g>
@@ -85,8 +87,8 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
         <polyline
           points={polyline}
           fill="none"
-          stroke="#c8f135"
-          strokeWidth={2.5}
+          stroke="#1769c2"
+          strokeWidth={3.5}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -94,14 +96,13 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
         {/* Dots + labels */}
         {points.map((p, i) => (
           <g key={i}>
-            <circle cx={p.x} cy={p.y} r={5} fill="#0a0a0a" />
-            <circle cx={p.x} cy={p.y} r={3} fill="#c8f135" />
+            <circle cx={p.x} cy={p.y} r={6} fill="#ffffff" stroke="#1769c2" strokeWidth={3} />
             <text
               x={p.x}
               y={H - PAD.bottom + 14}
               textAnchor="middle"
-              fontSize={9}
-              fill="#9ca3af"
+              fontSize={10}
+              fill="#475569"
               fontFamily="monospace"
             >
               {p.year}
@@ -110,8 +111,8 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
               x={p.x}
               y={p.y - 10}
               textAnchor="middle"
-              fontSize={9}
-              fill="#0a0a0a"
+              fontSize={10}
+              fill="#17324d"
               fontFamily="monospace"
               fontWeight="bold"
             >
@@ -121,7 +122,7 @@ export default function ProgressionChart({ pbs, event, course }: ProgressionChar
         ))}
 
         {/* Axis labels */}
-        <text x={PAD.left - 40} y={PAD.top + innerH / 2} textAnchor="middle" fontSize={9} fill="#6b7280" fontFamily="monospace"
+        <text x={PAD.left - 42} y={PAD.top + innerH / 2} textAnchor="middle" fontSize={10} fill="#475569" fontFamily="monospace"
           transform={`rotate(-90, ${PAD.left - 40}, ${PAD.top + innerH / 2})`}>
           TIME
         </text>

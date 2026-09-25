@@ -410,7 +410,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--navy)' }}>
       {/* Top bar */}
-      <div className="max-w-7xl mx-auto px-6 py-8 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-between">
         <Link to="/">
           <Logo size="md" light />
         </Link>
@@ -424,7 +424,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 pb-20">
+      <div className="max-w-7xl mx-auto px-4 pb-20">
         <div className={`mx-auto ${mode === 'profile' ? 'max-w-2xl' : 'max-w-md'}`}>
 
           {/* Panel */}
