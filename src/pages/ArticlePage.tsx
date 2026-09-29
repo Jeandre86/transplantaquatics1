@@ -246,21 +246,40 @@ export default function ArticlePage() {
           {linkCopied && <p role="status" className="mt-2 text-right font-mono text-xs text-[#007d89]">Story link copied</p>}
         </header>
 
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 pb-16 lg:grid-cols-[minmax(0,760px)_280px] lg:gap-14">
-          <article className="min-w-0">
-            {article.access === 'member' && <p className="mb-7 border-l-4 border-[#00c2d7] bg-white/70 px-5 py-4 text-sm leading-relaxed text-neutral-700">{hasFriendAccess ? 'You are reading with a Friend Link.' : `Member-only story · ${Math.max(0, FREE_MEMBER_STORIES_PER_MONTH - memberReads.length)} free reads remaining this month.`}</p>}
-            {!canReadFullStory ? (
-              <div className="border border-neutral-200 bg-white p-6 md:p-8">
-                <p className="font-mono text-xs uppercase tracking-widest text-[#007d89]">Monthly free reads used</p>
-                <h2 className="mt-3 text-2xl font-bold text-neutral-950">You’ve read three member-only stories this month.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-neutral-600">Free stories remain unlimited. Subscribe for unlimited member-only reading, or use a Friend Link shared by this story’s author.</p>
-                <Link to="/join" className="mt-6 inline-flex items-center border border-[#007d89] px-5 py-3 font-mono text-xs font-bold uppercase tracking-widest text-[#007d89] transition-colors hover:bg-[#007d89] hover:text-white">Explore membership</Link>
+        {!canReadFullStory ? (
+          <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="membership-gate-title">
+            <div className="relative isolate flex min-h-[680px] items-center justify-center overflow-hidden py-16">
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[360px] select-none overflow-hidden">
+                <div className="mx-auto max-w-3xl space-y-7 px-4 pt-8 text-lg leading-8 text-neutral-600 opacity-[0.18] blur-[1px]">
+                  {bodyParagraphs.slice(0, 4).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+                </div>
               </div>
-            ) : <>
+              <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-b from-white/10 via-[var(--paper)]/90 to-[var(--paper)]" />
+              <div className="relative mx-auto w-full max-w-2xl px-3 text-center sm:px-8">
+                <span className="inline-flex items-center bg-[#ffbf24] px-4 py-2 text-sm font-semibold text-neutral-950">Membership access</span>
+                <p className="mt-8 font-mono text-xs uppercase tracking-[0.18em] text-neutral-500">You’ve reached your monthly limit</p>
+                <h2 id="membership-gate-title" className="mt-4 text-4xl font-semibold leading-tight tracking-tight text-neutral-950 sm:text-5xl">Access to every story.</h2>
+                <p className="mx-auto mt-3 max-w-xl text-xl leading-snug text-neutral-800">Unlock every member-only story.</p>
+                <ul className="mx-auto mt-8 inline-flex flex-col gap-3 text-left text-sm text-neutral-700 sm:text-base">
+                  <li className="flex items-start gap-3"><Check size={19} className="mt-0.5 shrink-0 text-neutral-800" /><span>Read member-only stories without a monthly limit</span></li>
+                  <li className="flex items-start gap-3"><Check size={19} className="mt-0.5 shrink-0 text-neutral-800" /><span>Support the writers sharing transplant swimming stories</span></li>
+                  <li className="flex items-start gap-3"><Check size={19} className="mt-0.5 shrink-0 text-neutral-800" /><span>Keep up with every new story from the pool deck</span></li>
+                </ul>
+                <Link to="/join" className="mx-auto mt-9 flex min-h-14 w-full max-w-sm items-center justify-center rounded-full bg-neutral-950 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-[#007d89]">Upgrade now</Link>
+                <p className="mx-auto mt-5 max-w-lg text-xs leading-relaxed text-neutral-500">Free stories remain unlimited. You can also read this member-only story with a Friend Link from its author.</p>
+                <Link to="/from-the-pool-deck" className="mt-5 inline-flex text-sm font-medium text-neutral-700 underline underline-offset-4 transition-colors hover:text-[#007d89]">Browse more stories</Link>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 pb-16 lg:grid-cols-[minmax(0,760px)_280px] lg:gap-14">
+            <article className="min-w-0">
+              {article.access === 'member' && <p className="mb-7 border-l-4 border-[#00c2d7] bg-white/70 px-5 py-4 text-sm leading-relaxed text-neutral-700">{hasFriendAccess ? 'You are reading with a Friend Link.' : `Member-only story · ${Math.max(0, FREE_MEMBER_STORIES_PER_MONTH - memberReads.length)} free reads remaining this month.`}</p>}
               <div className="space-y-7 text-lg leading-[1.85] text-neutral-800">
                 {bodyParagraphs.map((para, i) => <div key={i}>
                   <p>{para}</p>
-                  {i === 2 && <div className="my-10 lg:hidden"><AdSpace compact /></div>}
+                  {i === 2 && <div className="my-10"><AdSpace compact /></div>}
+                  {i === 6 && bodyParagraphs.length >= 8 && <div className="my-10"><AdSpace compact /></div>}
                   {i === 3 && <blockquote className="my-10 border-l-4 border-[#00c2d7] py-2 pl-6 text-2xl font-semibold leading-snug text-neutral-900">“Every split matters. Every lane tells a story.”<footer className="mt-3 font-mono text-xs font-normal uppercase tracking-widest text-[#007d89]">— Transplant Aquatics</footer></blockquote>}
                 </div>)}
               </div>
@@ -273,35 +292,33 @@ export default function ArticlePage() {
                   <button type="button" onClick={toggleSaved} aria-pressed={saved} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-700 transition-colors hover:bg-neutral-200"><Bookmark size={17} fill={saved ? 'currentColor' : 'none'} /> {saved ? 'Saved' : 'Save for later'}</button>
                 </div>
               </div>
-            </>}
-
-            <section id="comments" ref={commentsRef} className="mt-12 scroll-mt-24" aria-label="Comments">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-neutral-950">Responses <span className="font-mono text-base font-normal text-neutral-500">({comments.length})</span></h2>
-                <button type="button" onClick={() => setCommentsOpen(value => !value)} aria-expanded={commentsOpen} className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-neutral-600 hover:text-[#007d89]">{commentsOpen ? <X size={16} /> : <MessageCircle size={16} />}{commentsOpen ? 'Close' : 'Respond'}</button>
+              <section id="comments" ref={commentsRef} className="mt-12 scroll-mt-24" aria-label="Comments">
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-neutral-950">Responses <span className="font-mono text-base font-normal text-neutral-500">({comments.length})</span></h2>
+                  <button type="button" onClick={() => setCommentsOpen(value => !value)} aria-expanded={commentsOpen} className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-neutral-600 hover:text-[#007d89]">{commentsOpen ? <X size={16} /> : <MessageCircle size={16} />}{commentsOpen ? 'Close' : 'Respond'}</button>
+                </div>
+                {commentsOpen && <form onSubmit={addComment} className="mt-5 border border-neutral-200 bg-white p-4 sm:p-5">
+                  <label htmlFor="story-comment" className="sr-only">Write a response</label>
+                  <textarea id="story-comment" value={commentDraft} onChange={event => setCommentDraft(event.target.value)} rows={3} placeholder="What did you think?" className="w-full resize-y border-0 bg-transparent text-sm leading-relaxed text-neutral-900 outline-none placeholder:text-neutral-400" />
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-3"><span className="font-mono text-[10px] text-neutral-400">Preview responses are saved on this device.</span><button type="submit" disabled={!commentDraft.trim()} className="bg-[#0c233f] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#007d89] disabled:cursor-not-allowed disabled:opacity-40">Post response</button></div>
+                </form>}
+                <div className="mt-5 space-y-4">{comments.map(comment => <div key={comment.id} className="border-b border-neutral-200 pb-4"><p className="font-semibold text-neutral-900">Reader</p><p className="mt-2 text-sm leading-relaxed text-neutral-700">{comment.text}</p><time className="mt-2 block font-mono text-[10px] text-neutral-400">{formatDate(comment.createdAt)}</time></div>)}</div>
+              </section>
+            </article>
+            <aside className="space-y-6 lg:pt-2">
+              <AdSpace />
+              <div className="border-t border-neutral-200 pt-5">
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-400">More from the deck</p>
+                {related.map(item => <Link key={item.id} to={`/from-the-pool-deck/${item.slug}`} className="mt-4 block border-b border-neutral-200 pb-4 text-neutral-900 hover:text-[#007d89]"><span className="font-mono text-[10px] uppercase tracking-wider text-[#007d89]">{item.category}</span><span className="mt-1 block font-semibold leading-snug">{item.title}</span><span className="mt-2 block font-mono text-[10px] text-neutral-500">{item.readTime} min read</span></Link>)}
               </div>
-              {commentsOpen && <form onSubmit={addComment} className="mt-5 border border-neutral-200 bg-white p-4 sm:p-5">
-                <label htmlFor="story-comment" className="sr-only">Write a response</label>
-                <textarea id="story-comment" value={commentDraft} onChange={event => setCommentDraft(event.target.value)} rows={3} placeholder="What did you think?" className="w-full resize-y border-0 bg-transparent text-sm leading-relaxed text-neutral-900 outline-none placeholder:text-neutral-400" />
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-3"><span className="font-mono text-[10px] text-neutral-400">Preview responses are saved on this device.</span><button type="submit" disabled={!commentDraft.trim()} className="bg-[#0c233f] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#007d89] disabled:cursor-not-allowed disabled:opacity-40">Post response</button></div>
-              </form>}
-              <div className="mt-5 space-y-4">{comments.map(comment => <div key={comment.id} className="border-b border-neutral-200 pb-4"><p className="font-semibold text-neutral-900">Reader</p><p className="mt-2 text-sm leading-relaxed text-neutral-700">{comment.text}</p><time className="mt-2 block font-mono text-[10px] text-neutral-400">{formatDate(comment.createdAt)}</time></div>)}</div>
-            </section>
-          </article>
-
-          <aside className="space-y-6 lg:pt-2">
-            <AdSpace />
-            <div className="border-t border-neutral-200 pt-5">
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-400">More from the deck</p>
-              {related.map(item => <Link key={item.id} to={`/from-the-pool-deck/${item.slug}`} className="mt-4 block border-b border-neutral-200 pb-4 text-neutral-900 hover:text-[#007d89]"><span className="font-mono text-[10px] uppercase tracking-wider text-[#007d89]">{item.category}</span><span className="mt-1 block font-semibold leading-snug">{item.title}</span><span className="mt-2 block font-mono text-[10px] text-neutral-500">{item.readTime} min read</span></Link>)}
-            </div>
-          </aside>
-        </div>
+            </aside>
+          </div>
+        )}
       </main>
 
-      <section className="border-t border-neutral-200 bg-white/60 py-10">
+      {canReadFullStory && <section className="border-t border-neutral-200 bg-white/60 py-10">
         <div className="mx-auto max-w-6xl px-4 sm:px-6"><AdSpace compact /></div>
-      </section>
+      </section>}
     </div>
   );
 }

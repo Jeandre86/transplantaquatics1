@@ -168,17 +168,11 @@ export default function WTGPage() {
         {/* Medal table */}
         <section>
           <Eyebrow light className="mb-6">All-Time Medal Table</Eyebrow>
-          <div
-            className="border overflow-hidden"
-            style={{ borderColor: 'var(--navy-light)' }}
-          >
+          <div className="w-full">
             {/* Table header */}
             <div
-              className="grid text-left font-mono text-xs uppercase tracking-widest px-4 py-3 border-b"
+              className="ta-table-header grid w-full text-left font-mono text-[10px] font-semibold uppercase tracking-widest px-3 py-3 sm:px-5 sm:text-xs"
               style={{
-                backgroundColor: 'var(--navy-mid)',
-                borderColor: 'var(--navy-light)',
-                color: 'var(--muted-on-dark)',
                 gridTemplateColumns: '2.5rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem',
               }}
             >
@@ -193,10 +187,8 @@ export default function WTGPage() {
             {MEDAL_TABLE.map((row, idx) => (
               <div
                 key={row.code}
-                className="grid items-center px-4 py-3.5 border-b last:border-b-0"
+                className="ta-table-row-dark grid w-full items-center px-3 py-5 sm:px-5"
                 style={{
-                  borderColor: 'var(--navy-light)',
-                  backgroundColor: idx === 0 ? 'rgba(199,243,104,0.04)' : 'transparent',
                   gridTemplateColumns: '2.5rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem',
                 }}
               >
@@ -206,8 +198,8 @@ export default function WTGPage() {
                 >
                   {row.rank}
                 </span>
-                <span className="font-mono text-sm" style={{ color: 'var(--ink-on-dark)' }}>
-                  {getFlagEmoji(row.code)} {row.country}
+                <span className="flex items-center gap-2 font-mono text-sm" style={{ color: 'var(--ink-on-dark)' }}>
+                  <span className="ta-table-flag" aria-hidden="true">{getFlagEmoji(row.code)}</span>{row.country}
                 </span>
                 <span className="font-mono font-bold text-sm text-center" style={{ color: '#F5C542' }}>
                   {row.gold}

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Ranking } from '../types';
-import { getFlagEmoji, getTransplantColor, timeToSeconds } from '../lib/utils';
+import { getCountryAlpha3, getFlagEmoji, timeToSeconds } from '../lib/utils';
 import { getTransplantPoints } from '../lib/transplantPoints';
 import { getSavedAvatar } from '../lib/avatars';
 import TimeStandard from './TimeStandard';
@@ -20,6 +20,9 @@ interface RankingTableProps {
   title?: string;
   showGenderInEvent?: boolean;
   showEventMeta?: boolean;
+  showAgeGroup?: boolean;
+  showGender?: boolean;
+  paperSurface?: boolean;
 }
 
 // Verification badge — shown inline next to the time
@@ -49,7 +52,7 @@ function VerifiedBadge({ status }: { status: 'verified' | 'pending' | 'unverifie
   return null; // unverified — no badge (keeps table clean)
 }
 
-export default function RankingTable({ rankings, light = false, showExtras = false, showVerified = true, showCategory = false, showGap = true, rankByPoints = false, rankOffset = 0, rankPositions, genderCard = false, showPoints = true, title, showGenderInEvent = false, showEventMeta = true }: RankingTableProps) {
+export default function RankingTable({ rankings, light = false, showExtras = false, showVerified = true, showCategory = false, showGap = true, rankByPoints = false, rankOffset = 0, rankPositions, genderCard = false, showPoints = true, title, showGenderInEvent = false, showEventMeta = true, showAgeGroup = false, showGender = false, paperSurface = false }: RankingTableProps) {
   if (rankings.length === 0) {
     return (
       <div className="py-12 text-center font-mono text-sm" style={{ color: 'var(--muted)' }}>
@@ -86,21 +89,22 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
   }
 
   return (
-    <div className={genderCard ? 'overflow-hidden rounded-lg border border-neutral-200 bg-white' : light ? 'overflow-x-auto' : 'overflow-hidden border border-neutral-200 bg-white'}>
-      {genderCard && title && <h3 className="px-5 pt-5 text-xl font-semibold text-neutral-900">{title}</h3>}
-      <div className={genderCard ? 'overflow-x-auto px-4 pt-4' : undefined}>
+    <div className={genderCard ? `ta-table-shell${paperSurface ? ' ta-table-shell-paper' : ''}` : light ? 'overflow-x-auto' : 'ta-table-shell'}>
+      {genderCard && title && <h3 className={`px-4 ${paperSurface ? 'pt-4' : 'pt-5'} text-xl font-semibold text-[var(--ink)]`}>{title}</h3>}
+      <div className={genderCard ? `w-full overflow-x-auto ${paperSurface ? 'pt-3' : 'pt-4'}` : undefined}>
       <table className="w-full border-collapse">
         <thead>
-          <tr className={light ? 'bg-white/5' : 'bg-[#f4f5f6]'} style={{ borderBottom: `1px solid ${light ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}` }}>
-            <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 pl-3 text-left w-10" style={{ color: light ? 'var(--muted)' : '#64748b' }}>{genderCard ? '' : '#'}</th>
-            <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 text-left" style={{ color: light ? 'var(--muted)' : '#64748b' }}>{genderCard ? 'Name' : 'Athlete'}</th>
-            <th className={`font-mono text-[10px] font-semibold tracking-widest uppercase py-4 text-center hidden sm:table-cell ${genderCard ? 'pr-6' : ''}`} style={{ color: light ? 'var(--muted)' : '#64748b' }}>Country</th>
-            {genderCard && <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 pl-5 text-left" style={{ color: '#64748b' }}>Event</th>}
-            <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 text-right" style={{ color: light ? 'var(--muted)' : '#64748b' }}>Time</th>
-            {showPoints && <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 pl-3 pr-3 text-right" style={{ color: light ? 'var(--muted)' : '#64748b' }} title="Transplant Aquatics points, scored against the matching WTG age-group world record">TA Pts</th>}
-            {showGap && <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 text-right hidden md:table-cell" style={{ color: light ? 'var(--muted)' : '#64748b' }}>Gap</th>}
-            {showExtras && <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 pl-4 text-center hidden lg:table-cell" style={{ color: light ? 'var(--muted)' : '#64748b' }}>WTG</th>}
-            {showExtras && <th className="font-mono text-[10px] font-semibold tracking-widest uppercase py-4 text-right hidden lg:table-cell" style={{ color: light ? 'var(--muted)' : '#64748b' }}>Pct</th>}
+          <tr className="ta-table-header">
+            <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left w-10 sm:px-5">{genderCard ? '' : '#'}</th>
+            <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">{genderCard ? 'Name' : 'Athlete'}</th>
+            {showAgeGroup && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Age Group</th>}
+            {showGender && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Gender</th>}
+            {genderCard && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Event</th>}
+            <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5">Time</th>
+            {showPoints && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="Transplant Aquatics points, scored against the matching WTG age-group world record">PTS</th>}
+            {showGap && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden md:table-cell sm:px-5">Gap</th>}
+            {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-center hidden lg:table-cell sm:px-5">WTG</th>}
+            {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden lg:table-cell sm:px-5">Pct</th>}
           </tr>
         </thead>
         <tbody>
@@ -112,7 +116,6 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
             const flag      = getFlagEmoji(r.countryCode);
             const topPct    = Math.ceil((displayRank / total) * 100);
             const gap       = formatGap(timeToSeconds(r.time));
-            const dotColor  = getTransplantColor(r.transplantType);
             const verified  = getVerifiedStatus(r);
             const transplantPoints = getTransplantPoints(r);
             const athleteParts = r.athleteName.trim().split(/\s+/);
@@ -120,70 +123,64 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
             const firstName = athleteParts.join(' ');
             const avatar = getSavedAvatar(firstName, lastName);
             const initials = `${firstName[0] ?? r.athleteName[0] ?? '?'}${lastName[0] ?? ''}`.toUpperCase();
-            const stripe = index % 2 === 1;
-
             return (
               <tr
                 key={`${r.athleteId}-${r.rank}`}
-                style={{ borderBottom: `1px solid ${light ? 'rgba(255,255,255,0.06)' : '#e5e7eb'}` }}
-                className={`transition-colors group ${light ? 'hover:bg-white/5' : `hover:bg-neutral-50 ${stripe ? 'bg-[#f7f8fa]' : 'bg-white'}`}`}
+                className={`group ${light ? 'ta-table-row-dark' : paperSurface ? 'ta-table-row-paper' : 'ta-table-row'}`}
               >
                 {/* Rank */}
-                <td className="py-4 pr-3">
+                <td className="px-3 py-4 sm:px-5">
                   <span
                     className="font-mono font-black text-lg leading-none"
-                    style={{ color: isTop3 && !light ? '#1769c2' : 'var(--muted)' }}
+                    style={{ color: isTop3 ? (light ? 'var(--accent)' : 'var(--accent-dark)') : light ? 'var(--muted-on-dark)' : 'var(--muted)' }}
                   >
                     {displayRank}
                   </span>
                 </td>
 
-                {/* Athlete — name + transplant dot */}
-                <td className="py-4 pr-4">
-                  <div className={`flex items-center ${genderCard ? '' : 'gap-2.5'}`}>
-                    {!genderCard && <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full font-mono text-[10px] font-bold ${light ? 'bg-white/10 text-white' : 'bg-[#eef0f2] text-[#334155]'}`}>
+                {/* Athlete identity: avatar, name, and country */}
+                <td className="px-3 py-4 sm:px-5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full font-mono text-[10px] font-bold sm:h-11 sm:w-11 ${light ? 'bg-white/10 text-white' : 'bg-[var(--ice)] text-[var(--navy)]'}`}>
                       {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initials}
-                    </span>}
-                    {!genderCard && <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: dotColor }}
-                      title={r.transplantType}
-                    />}
-                    <Link
-                      to={`/athletes/${r.athleteId}`}
-                      className="font-medium text-sm hover:underline sm:text-base"
-                      style={{ color: genderCard ? '#1769c2' : light ? 'var(--ink-on-dark)' : 'var(--ink)' }}
-                    >
-                      {r.athleteName}
-                    </Link>
+                    </span>
+                    <span className="min-w-0">
+                      <Link
+                        to={`/athletes/${r.athleteId}`}
+                        className="block truncate font-medium text-base hover:underline"
+                        style={{ color: light ? 'var(--ink-on-dark)' : 'var(--ink)' }}
+                      >
+                        {r.athleteName}
+                      </Link>
+                      <span className={`mt-1 flex items-center gap-1.5 font-mono text-xs ${light ? 'text-white/70' : 'text-[var(--muted)]'}`} title={r.country}>
+                        <span className="ta-table-flag" aria-hidden="true">{flag}</span>
+                        <span className="font-semibold tracking-wider">{getCountryAlpha3(r.countryCode)}</span>
+                      </span>
+                    </span>
                   </div>
                   {showCategory && !genderCard && (
-                    <div className="mt-1 pl-4 font-mono text-[10px] leading-relaxed text-neutral-500">
+                  <div className={`mt-1 pl-4 font-mono text-[10px] leading-relaxed ${light ? 'text-white/55' : 'text-[var(--muted)]'}`}>
                       {r.ageGroup}
                     </div>
                   )}
                 </td>
 
-                {/* Country */}
-                <td className={`py-4 px-2 text-center hidden sm:table-cell ${genderCard ? 'pr-6' : ''}`}>
-                  <span className="font-mono text-sm" title={r.country} aria-label={r.country} style={{ color: light ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>
-                    {flag}
-                  </span>
-                </td>
+                {showAgeGroup && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.ageGroup}</td>}
+                {showGender && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.gender}</td>}
 
                 {genderCard && (
-                  <td className="py-4 pl-5 pr-3 text-sm text-neutral-900">
+                  <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">
                     <div>{r.event.replace('m ', ' ')}</div>
-                    {showEventMeta && <div className="mt-1 font-mono text-[10px] text-neutral-500">{showGenderInEvent && `${r.gender} · `}{r.ageGroup} · {r.course}</div>}
+                    {showEventMeta && <div className="mt-1 font-mono text-[10px] text-[var(--muted)]">{showGenderInEvent && `${r.gender} · `}{r.ageGroup} · {r.course}</div>}
                   </td>
                 )}
 
                 {/* Time */}
-                <td className="py-4 text-right">
+                <td className="px-3 py-4 text-right sm:px-5">
                   <div className="inline-flex items-center justify-end gap-1">
                     <span
-                      className="font-mono font-bold text-sm"
-                    style={{ color: isLeader && !genderCard && light ? 'var(--accent)' : light ? 'var(--ink-on-dark)' : '#1769c2' }}
+                      className="font-mono font-bold text-base"
+                    style={{ color: light ? (isLeader ? 'var(--accent)' : 'var(--ink-on-dark)') : isLeader ? 'var(--accent-dark)' : 'var(--navy)' }}
                     >
                       {r.time}
                     </span>
@@ -191,10 +188,10 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                   </div>
                 </td>
 
-                {showPoints && <td className="py-4 pl-4 text-right">
+                {showPoints && <td className="px-3 py-4 text-right sm:px-5">
                   <span
                     className="font-mono text-sm font-bold"
-                    style={{ color: transplantPoints === null ? 'var(--muted)' : genderCard ? '#202124' : 'var(--navy)' }}
+                    style={{ color: transplantPoints === null ? 'var(--muted)' : 'var(--navy)' }}
                     title={transplantPoints === null
                       ? 'No matching WTG world-record baseline is available for this course and category.'
                       : 'Transplant Aquatics points: 1,000 points equals the matching WTG age-group world record.'}
@@ -205,7 +202,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
 
                 {/* Gap */}
                 {showGap && (
-                    <td className="py-4 pl-4 text-right hidden md:table-cell">
+                    <td className="px-3 py-4 text-right hidden md:table-cell sm:px-5">
                     <span
                       className="font-mono text-xs"
                       style={{ color: isLeader ? 'var(--accent)' : 'var(--muted)' }}
@@ -216,7 +213,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                 )}
 
                 {showExtras && (
-                  <td className="py-4 pl-4 text-center hidden lg:table-cell">
+                  <td className="px-3 py-4 text-center hidden lg:table-cell sm:px-5">
                     <TimeStandard
                       time={r.time}
                       event={r.event}
@@ -228,7 +225,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                 )}
 
                 {showExtras && (
-                  <td className="py-4 pl-4 text-right hidden lg:table-cell">
+                  <td className="px-3 py-4 text-right hidden lg:table-cell sm:px-5">
                     <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>
                       Top {topPct}%
                     </span>

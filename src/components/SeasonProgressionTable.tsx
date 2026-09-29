@@ -40,21 +40,19 @@ export default function SeasonProgressionTable({ results }: SeasonProgressionTab
   });
 
   return (
-    <div className="overflow-x-auto rounded border border-neutral-200" style={{ background: 'var(--paper)' }}>
+    <div className="ta-table-shell overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+          <tr className="ta-table-header">
             <th
-              className="font-mono text-xs tracking-widest uppercase text-left py-3 px-4"
-              style={{ color: 'var(--muted)' }}
+              className="font-mono text-[10px] font-semibold tracking-widest uppercase text-left py-3 px-3 sm:px-5"
             >
               Event / Course
             </th>
             {allYears.map(y => (
               <th
                 key={y}
-                className="font-mono text-xs tracking-widest uppercase text-right py-3 px-4"
-                style={{ color: 'var(--muted)' }}
+                className="font-mono text-[10px] font-semibold tracking-widest uppercase text-right py-3 px-3 sm:px-5"
               >
                 {y}
               </th>
@@ -68,10 +66,10 @@ export default function SeasonProgressionTable({ results }: SeasonProgressionTab
             const best = overallBest.get(key);
 
             return (
-              <tr key={key} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td className="py-3 px-4">
-                  <div className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{event}</div>
-                  <div className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{course}</div>
+              <tr key={key} className="ta-table-row">
+                <td className="px-3 py-4 sm:px-5">
+                  <div className="text-base font-medium text-[var(--ink)]">{event}</div>
+                  <div className="font-mono text-xs text-[var(--muted)]">{course}</div>
                 </td>
                 {allYears.map((year, yi) => {
                   const time = ym.get(year);
@@ -88,29 +86,29 @@ export default function SeasonProgressionTable({ results }: SeasonProgressionTab
                   }
 
                   return (
-                    <td key={year} className="py-3 px-4 text-right align-top">
+                    <td key={year} className="px-3 py-4 text-right align-top sm:px-5">
                       {time ? (
                         <>
                           <span
-                            className="font-mono font-bold text-sm"
-                            style={{ color: isOverallBest ? 'var(--accent)' : 'var(--ink)' }}
+                            className="font-mono text-base font-bold"
+                            style={{ color: isOverallBest ? 'var(--accent-dark)' : 'var(--navy)' }}
                           >
                             {time}
                           </span>
                           {isOverallBest && (
                             <span
                               className="ml-1 font-mono text-xs"
-                              style={{ color: 'var(--accent)' }}
+                              style={{ color: 'var(--accent-dark)' }}
                             >PB</span>
                           )}
                           {improvStr && (
-                            <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--aqua)' }}>
+                            <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--accent-dark)' }}>
                               {improvStr}
                             </div>
                           )}
                         </>
                       ) : (
-                        <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>—</span>
+                        <span className="font-mono text-xs text-[var(--muted)]">—</span>
                       )}
                     </td>
                   );

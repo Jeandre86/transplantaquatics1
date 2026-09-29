@@ -7,8 +7,8 @@
 
 **Transplant Aquatics** is a global digital platform for transplant swimming — the competitive swimming discipline for organ transplant recipients. It is the world's only dedicated platform for athletes, rankings, results, records and editorial content in this sport.
 
-**Tagline:** EVERY SECOND COUNTS.  
-**Secondary slogan:** LIMITS ARE FICTION.  
+**Tagline:** Different journeys. Same water.  
+**Secondary slogan:** The global home of transplant swimming.  
 **Voice:** Confident, technical, exact. Never casual. Speak the language of absolute high performance and chronological precision. "Captured to 0.001s resolution." — not "A great companion for your morning swim."
 
 ---

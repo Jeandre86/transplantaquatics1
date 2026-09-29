@@ -1,25 +1,38 @@
 import { useState, useRef, useEffect } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Search, Menu, X, User } from 'lucide-react';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Search, Menu, X, User, ChevronDown, ArrowUpRight } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth } from '../contexts/AuthContext';
 
 const NAV_LINKS = [
-  { to: '/', label: 'Home' },
   { to: '/rankings', label: 'Rankings' },
   { to: '/athletes', label: 'Athletes' },
   { to: '/results', label: 'Results' },
   { to: '/records', label: 'Records' },
   { to: '/countries', label: 'Countries' },
-  { to: '/from-the-pool-deck', label: 'From the Pool Deck' },
+  { to: '/from-the-pool-deck', label: 'News' },
+];
+
+const ABOUT_LINKS = [
+  { to: '/about/our-story', label: 'Our Story', detail: 'The people and purpose behind Transplant Aquatics.' },
+  { to: '/about/what-we-do', label: 'What We Do', detail: 'How swimming brings transplant communities together.' },
+  { to: '/about/transplant-swimming-and-the-games', label: 'Transplant Swimming and the Games', detail: 'Discover the sport and the Games.' },
+  { to: '/about/community-and-clubs', label: 'Community and Clubs', detail: 'Find your place in the community.' },
+  { to: '/about/partners', label: 'Partners', detail: 'The organisations helping us move forward.' },
+  { to: '/about/contact-us', label: 'Contact Us', detail: 'Get in touch with the Transplant Aquatics team.' },
 ];
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const aboutMenuRef = useRef<HTMLDivElement>(null);
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAboutActive = location.pathname.startsWith('/about');
 
   // Close dropdown on click-outside
   useEffect(() => {
@@ -32,6 +45,28 @@ export default function Header() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [dropdownOpen]);
+
+  useEffect(() => {
+    if (!aboutOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (aboutMenuRef.current && !aboutMenuRef.current.contains(event.target as Node)) setAboutOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAboutOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [aboutOpen]);
+
+  useEffect(() => {
+    setAboutOpen(false);
+    setMobileOpen(false);
+    setMobileAboutOpen(location.pathname.startsWith('/about'));
+  }, [location.pathname]);
 
   const handleSignOut = () => {
     setDropdownOpen(false);
@@ -52,7 +87,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
             {NAV_LINKS.map(l => (
               <NavLink
                 key={l.to}
@@ -70,12 +105,61 @@ export default function Header() {
                 {l.label}
               </NavLink>
             ))}
+            <div className="relative" ref={aboutMenuRef}>
+              <button
+                type="button"
+                aria-expanded={aboutOpen}
+                aria-controls="about-navigation-menu"
+                aria-current={isAboutActive ? 'page' : undefined}
+                onClick={() => setAboutOpen(open => !open)}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${isAboutActive ? 'text-[var(--accent)]' : 'text-white/70 hover:text-white'}`}
+                onKeyDown={event => { if (event.key === 'ArrowDown') setAboutOpen(true); }}
+              >
+                About <ChevronDown size={14} className={`transition-transform ${aboutOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {aboutOpen && (
+                <div
+                  id="about-navigation-menu"
+                  role="region"
+                  aria-label="About navigation"
+                  onMouseLeave={() => setAboutOpen(false)}
+                  className="absolute left-1/2 top-full z-50 mt-3 grid w-[min(760px,calc(100vw-2rem))] -translate-x-1/2 grid-cols-[1.2fr_0.8fr] overflow-hidden border shadow-2xl"
+                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+                >
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 p-6">
+                    {ABOUT_LINKS.map(item => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setAboutOpen(false)}
+                        className={({ isActive }) => `group border-l-2 px-3 py-3 transition-colors ${isActive ? 'border-[var(--accent)] bg-[var(--paper)]' : 'border-transparent hover:bg-[var(--paper)]'}`}
+                      >
+                        <span className="block text-sm font-bold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">{item.label}</span>
+                        <span className="mt-1 block text-xs leading-relaxed text-[var(--muted)]">{item.detail}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                  <div className="relative flex min-h-72 flex-col justify-end overflow-hidden p-7 text-white" style={{ backgroundColor: 'var(--navy-mid)' }}>
+                  <img src="/assets/aquatics-hero.png" alt="Transplant aquatics community" className="absolute inset-0 h-full w-full object-cover opacity-45" />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(7,26,43,.96), rgba(7,26,43,.05))' }} />
+                    <div className="relative">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">Transplant Aquatics</p>
+                      <p className="mt-2 text-2xl font-bold leading-tight">Different journeys.<br />Same water.</p>
+                      <Link to="/about/our-story" onClick={() => setAboutOpen(false)} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white transition-colors hover:text-[var(--accent)]">
+                        Get to know us <ArrowUpRight size={15} />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Right */}
           <div className="flex items-center gap-2">
             <Link
               to="/search"
+              aria-label="Search"
               className="w-8 h-8 flex items-center justify-center transition-colors"
               style={{ color: 'rgba(255,255,255,0.5)' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
@@ -91,6 +175,8 @@ export default function Header() {
                   className="w-8 h-8 flex items-center justify-center text-xs font-bold text-white transition-opacity hover:opacity-80 flex-shrink-0"
                   style={{ backgroundColor: 'var(--navy-light)' }}
                   aria-label="Open user menu"
+                  aria-haspopup="menu"
+                  aria-expanded={dropdownOpen}
                 >
                   {auth.user.avatarUrl
                     ? <img src={auth.user.avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -192,6 +278,9 @@ export default function Header() {
               onClick={() => setMobileOpen(true)}
               className="lg:hidden w-8 h-8 flex items-center justify-center"
               style={{ color: 'rgba(255,255,255,0.6)' }}
+              aria-label="Open main menu"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-main-menu"
             >
               <Menu size={20} />
             </button>
@@ -202,6 +291,7 @@ export default function Header() {
       {/* Full-screen mobile menu */}
       {mobileOpen && (
         <div
+          id="mobile-main-menu"
           className="fixed inset-0 z-[60] flex min-h-screen flex-col overflow-y-auto"
           style={{ backgroundColor: 'var(--navy)' }}
           role="dialog"
@@ -218,7 +308,7 @@ export default function Header() {
               <X size={20} />
             </button>
           </div>
-          <nav className="flex flex-1 flex-col items-center justify-center gap-1 px-6 py-10 text-center">
+          <nav className="flex flex-1 flex-col items-center justify-center gap-1 px-6 py-10 text-center" aria-label="Main navigation">
             {NAV_LINKS.map(l => (
               <NavLink
                 key={l.to}
@@ -235,6 +325,29 @@ export default function Header() {
                 {l.label}
               </NavLink>
             ))}
+              <button
+                type="button"
+                aria-expanded={mobileAboutOpen}
+                aria-controls="mobile-about-navigation-menu"
+                onClick={() => setMobileAboutOpen(open => !open)}
+                className={`flex items-center gap-2 px-5 py-3 text-xl font-semibold transition-colors sm:text-2xl ${isAboutActive ? 'text-[var(--accent)]' : 'text-white/75 hover:text-[var(--accent)]'}`}
+              >
+              About <ChevronDown size={18} className={`transition-transform ${mobileAboutOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {mobileAboutOpen && (
+              <div id="mobile-about-navigation-menu" className="flex w-full max-w-sm flex-col border-y py-2 text-left" style={{ borderColor: 'var(--navy-light)' }}>
+                {ABOUT_LINKS.map(item => (
+                  <NavLink key={item.to} to={item.to} onClick={() => setMobileOpen(false)} className={({ isActive }) => `border-l-2 px-4 py-2.5 transition-colors ${isActive ? 'border-[var(--accent)] bg-white/5 text-[var(--accent)]' : 'border-transparent text-white/75 hover:text-[var(--accent)]'}`}>
+                    <span className="block text-sm font-semibold">{item.label}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-white/45">{item.detail}</span>
+                  </NavLink>
+                ))}
+                <div className="relative mx-3 mt-2 flex min-h-28 items-end overflow-hidden p-4">
+                  <img src="/assets/aquatics-hero.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-30" />
+                  <p className="relative text-sm font-bold text-white">Different journeys. Same water.</p>
+                </div>
+              </div>
+            )}
             <div className="mt-5 flex w-full max-w-xs flex-col items-center gap-3 border-t px-5 pt-6" style={{ borderColor: 'var(--navy-light)' }}>
               {auth.isLoggedIn && auth.user ? (
                 <>

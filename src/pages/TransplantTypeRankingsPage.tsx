@@ -9,6 +9,10 @@ import FilterSelect from '../components/FilterSelect';
 import Eyebrow from '../components/Eyebrow';
 import Pagination from '../components/Pagination';
 import FilterBar from '../components/FilterBar';
+import PageHeading from '../components/PageHeading';
+import DatasetNotice from '../components/DatasetNotice';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -52,23 +56,19 @@ export default function TransplantTypeRankingsPage() {
 
   return (
     <div>
-      <section style={{ backgroundColor: 'var(--navy)' }}>
-        <div className="max-w-7xl mx-auto px-4 py-14">
-          <Link to="/rankings" className="mb-8 inline-flex font-mono text-xs uppercase tracking-widest text-white/60 hover:text-white">← All rankings</Link>
-          <Eyebrow color="accent" onDark>Explore swim times</Eyebrow>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-white md:text-5xl">Rank by transplant type</h1>
-          <p className="mt-3 max-w-2xl text-sm text-white/70">All ranked swims are shown by fastest time. Use the filters to compare a transplant type, age group, gender, event, or course.</p>
-        </div>
-      </section>
+      <PageHeading eyebrow="Explore swim times" title="Rank by transplant type" description="All ranked swims are shown by fastest time. Use the filters to compare a transplant type, age group, gender, event, or course.">
+        <Link to="/rankings" className="inline-flex font-mono text-xs uppercase tracking-widest text-white/65 transition-colors hover:text-[var(--accent)]">← All rankings</Link>
+      </PageHeading>
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
+          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Swim time leaderboard</Eyebrow>
               <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Fastest swims</h2>
             </div>
-            {hasFilters && <button type="button" onClick={clearFilters} className="font-mono text-xs uppercase tracking-wider text-neutral-600 underline underline-offset-4 hover:text-black">Clear filters</button>}
+            {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
           </div>
 
           <FilterBar className="mb-6">
@@ -82,10 +82,7 @@ export default function TransplantTypeRankingsPage() {
           </FilterBar>
 
           {filteredRankings.length === 0 ? (
-            <div className="border border-dashed border-[var(--border)] bg-white py-14 text-center">
-              <p className="font-mono text-xs uppercase tracking-widest text-neutral-600">No swims match these filters</p>
-              <p className="mt-2 text-sm text-neutral-600">Try changing a filter or clear them to see all ranked swims.</p>
-            </div>
+            <EmptyState title="No swims match these filters" subtitle="Try changing a filter or reset them to see all available sample swims." action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />
           ) : (
             <>
               <p className="mb-3 font-mono text-xs text-neutral-600">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredRankings.length)} of {filteredRankings.length} swims · sorted by fastest time</p>
@@ -98,6 +95,7 @@ export default function TransplantTypeRankingsPage() {
                 showGap={false}
                 showPoints={false}
                 genderCard
+                paperSurface
                 showGenderInEvent
                 title="All swimmers"
               />

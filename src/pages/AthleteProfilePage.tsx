@@ -14,6 +14,7 @@ import EmptyState from '../components/EmptyState';
 import Eyebrow from '../components/Eyebrow';
 import Pagination from '../components/Pagination';
 import { getSavedAvatar } from '../lib/avatars';
+import DatasetNotice from '../components/DatasetNotice';
 
 const RESULT_PAGE_SIZE = 10;
 
@@ -21,7 +22,7 @@ type Tab = 'Results' | 'Overview' | 'Medals';
 
 export default function AthleteProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const [tab, setTab]                   = useState<Tab>('Results');
+  const [tab, setTab]                   = useState<Tab>('Overview');
   const [resultPage, setResultPage]     = useState(1);
   useEffect(() => setResultPage(1), [id, tab]);
 
@@ -64,7 +65,7 @@ export default function AthleteProfilePage() {
   const percentile   = Math.max(1, Math.ceil((myRank / totalInGroup) * 100));
   const percentileLabel = `Top ${percentile}% in ${athlete.ageGroup} ${athlete.gender} 100m Freestyle`;
 
-  const TABS: Tab[] = ['Results', 'Overview', 'Medals'];
+  const TABS: Tab[] = ['Overview', 'Results', 'Medals'];
 
   return (
     <div style={{ backgroundColor: 'var(--surface)' }}>
@@ -176,27 +177,52 @@ export default function AthleteProfilePage() {
 
       </div>
 
+      <section className="border-b border-[var(--border)] bg-[var(--paper)]">
+        <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="mb-5"><DatasetNotice /></div>
+          <dl className="grid grid-cols-2 gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-4">
+            {[
+              { label: 'Personal bests', value: athlete.personalBests.length, detail: 'events recorded' },
+              { label: 'Competition results', value: athleteResults.length, detail: 'results listed' },
+              { label: 'Games medals', value: medalCounts.Gold + medalCounts.Silver + medalCounts.Bronze, detail: `${medalCounts.Gold} gold · ${medalCounts.Silver} silver · ${medalCounts.Bronze} bronze` },
+              { label: 'Ranked swim', value: ranking ? `#${ranking.rank}` : '—', detail: ranking ? `${ranking.event} · ${ranking.course}` : 'No ranking listed' },
+            ].map(stat => (
+              <div key={stat.label} className="min-w-0 bg-[var(--paper)] px-4 py-4 sm:px-5">
+                <dt className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">{stat.label}</dt>
+                <dd className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">{stat.value}</dd>
+                <p className="mt-1 truncate text-xs text-[var(--muted)]">{stat.detail}</p>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
       {/* Profile sections */}
       <nav className="border-b border-neutral-200" style={{ backgroundColor: '#f4f2ed' }} aria-label="Athlete profile sections">
-        <div className="max-w-7xl mx-auto flex gap-0 overflow-x-auto px-4">
+        <div className="mx-auto flex max-w-7xl gap-0 overflow-x-auto px-4" role="tablist" aria-label="Athlete profile details">
           {TABS.map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="whitespace-nowrap border-b-2 px-5 py-4 font-mono text-xs uppercase tracking-widest transition-colors"
+              type="button"
+              role="tab"
+              id={`athlete-tab-${t.toLowerCase()}`}
+              aria-controls="athlete-profile-panel"
+              aria-selected={tab === t}
+              className="whitespace-nowrap border-b-2 px-5 py-4 font-mono text-xs font-semibold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               style={{
-                color: tab === t ? '#1769c2' : '#64748b',
-                borderBottomColor: tab === t ? '#1769c2' : 'transparent',
+                color: tab === t ? 'var(--accent-dark)' : 'var(--muted)',
+                borderBottomColor: tab === t ? 'var(--accent)' : 'transparent',
               }}
             >
-              {t === 'Results' ? 'Personal Best Results' : t}
+              {t}
             </button>
           ))}
         </div>
       </nav>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-10">
+      <div id="athlete-profile-panel" role="tabpanel" aria-labelledby={`athlete-tab-${tab.toLowerCase()}`} tabIndex={0} className="mx-auto max-w-7xl px-4 py-10 focus-visible:outline-none">
 
         {tab === 'Overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -316,7 +342,7 @@ export default function AthleteProfilePage() {
             <section>
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
                 <div>
-                  <Eyebrow>Personal Best Results</Eyebrow>
+                  <Eyebrow>Results</Eyebrow>
                   <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Best performances</h2>
                 </div>
                 <span className="font-mono text-xs text-[var(--muted)]">{athlete.personalBests.length} events</span>

@@ -7,16 +7,18 @@ interface FilterSelectProps {
 }
 
 export default function FilterSelect({ label, value, options, onChange, dark = false }: FilterSelectProps) {
+  const generatedId = useId();
   return (
     <div className="flex flex-col gap-0.5">
-      <label className={`font-mono text-xs tracking-widest uppercase ${dark ? 'text-white/60' : 'text-neutral-500'}`}>
+      <label htmlFor={generatedId} className={`font-mono text-xs tracking-widest uppercase ${dark ? 'text-white/70' : 'text-[var(--muted)]'}`}>
         {label}
       </label>
       <select
+        id={generatedId}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className={`font-mono text-sm border px-2 py-1.5 appearance-none cursor-pointer focus:outline-none focus:ring-1 ${dark ? 'border-white/20 bg-[#0b233d] text-white focus:ring-white/50' : 'border-neutral-200 bg-white text-neutral-900 focus:ring-neutral-400'}`}
-        style={{ borderRadius: 0, colorScheme: dark ? 'dark' : 'light' }}
+        className={`ta-select font-mono text-sm border px-3 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 ${dark ? 'border-white/20 bg-[var(--navy-mid)] text-white focus:ring-[var(--accent)]' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] focus:ring-[var(--accent)]'}`}
+        style={{ borderRadius: 0, colorScheme: dark ? 'dark' : 'light', minHeight: 40 }}
       >
         {options.map(o => (
           <option key={o} value={o}>{o}</option>
@@ -25,3 +27,4 @@ export default function FilterSelect({ label, value, options, onChange, dark = f
     </div>
   );
 }
+import { useId } from 'react';

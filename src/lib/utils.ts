@@ -7,6 +7,18 @@ export function getFlagEmoji(countryCode: string): string {
   return String.fromCodePoint(...codePoints);
 }
 
+const COUNTRY_ALPHA3: Record<string, string> = {
+  AU: 'AUS', BR: 'BRA', CA: 'CAN', DE: 'DEU', ES: 'ESP', FI: 'FIN', FR: 'FRA',
+  GB: 'GBR', GR: 'GRC', HU: 'HUN', IE: 'IRL', IL: 'ISR', IT: 'ITA', JP: 'JPN',
+  MX: 'MEX', NL: 'NLD', NO: 'NOR', NZ: 'NZL', PL: 'POL', PT: 'PRT', SE: 'SWE',
+  US: 'USA', ZA: 'ZAF',
+};
+
+export function getCountryAlpha3(countryCode: string): string {
+  const code = countryCode.toUpperCase();
+  return COUNTRY_ALPHA3[code] ?? code;
+}
+
 export function getAgeFromDOB(dob: string): number {
   const birth = new Date(dob);
   const now = new Date();

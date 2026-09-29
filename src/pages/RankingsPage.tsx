@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 import { getFlagEmoji, getTransplantColor } from '../lib/utils';
 import { getTransplantPoints } from '../lib/transplantPoints';
 import TransplantCohortExplorer from '../components/TransplantCohortExplorer';
+import PageHeading from '../components/PageHeading';
+import DatasetNotice from '../components/DatasetNotice';
 
 const GENDER_PREVIEW_SIZE = 5;
 
@@ -31,24 +33,18 @@ export default function RankingsPage() {
   return (
     <div>
       {/* Header */}
-      <section style={{ backgroundColor: 'var(--navy)' }}>
-        <div className="max-w-7xl mx-auto px-4 py-16">
-          <Eyebrow color="accent" onDark>Official Rankings</Eyebrow>
-          <h1 className="mt-4 font-bold text-5xl md:text-6xl" style={{ color: 'var(--ink-on-dark)' }}>World Rankings</h1>
-          <p className="mt-4 max-w-2xl" style={{ color: 'var(--muted-on-dark)' }}>
-            Official age-group rankings. Kidney, liver, heart, lung, pancreas and bone marrow transplant athletes compete together in the official ranking.
-          </p>
+      <PageHeading eyebrow="Leaderboard" title="World Rankings" description="Explore transplant swimming performances by points, time, age group, gender, event and course.">
           <div className="mt-4 flex items-center gap-2">
             <span className="font-mono text-xs px-2 py-1 uppercase tracking-wider" style={{ backgroundColor: 'var(--navy-mid)', color: 'var(--muted-on-dark)' }}>
               Age Group → Gender → Event → Course
             </span>
           </div>
-        </div>
-      </section>
+      </PageHeading>
 
       {/* Gender leaderboard previews */}
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Leaderboard</Eyebrow>
@@ -57,17 +53,17 @@ export default function RankingsPage() {
           </div>
           <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8 xl:gap-12">
             <section>
-              <RankingTable rankings={menRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} title="Men" />
+              <RankingTable rankings={menRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Men" />
               {menRankings.length > GENDER_PREVIEW_SIZE && (
-                <Link to="/rankings/men" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[#1769c2] hover:underline">
+                <Link to="/rankings/men" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[var(--accent-dark)] hover:underline">
                   More <span aria-hidden="true">›</span>
                 </Link>
               )}
             </section>
             <section>
-              <RankingTable rankings={womenRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} title="Women" />
+              <RankingTable rankings={womenRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Women" />
               {womenRankings.length > GENDER_PREVIEW_SIZE && (
-                <Link to="/rankings/women" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[#1769c2] hover:underline">
+                <Link to="/rankings/women" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[var(--accent-dark)] hover:underline">
                   More <span aria-hidden="true">›</span>
                 </Link>
               )}

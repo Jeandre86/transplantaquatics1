@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { records } from '../data/records';
 import RecordsTable from '../components/RecordsTable';
 import FilterSelect from '../components/FilterSelect';
-import Eyebrow from '../components/Eyebrow';
 import EmptyState from '../components/EmptyState';
 import SearchInput from '../components/SearchInput';
 import Pagination from '../components/Pagination';
+import PageHeading from '../components/PageHeading';
+import DatasetNotice from '../components/DatasetNotice';
 import FilterBar from '../components/FilterBar';
+import Button from '../components/Button';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -57,19 +59,10 @@ export default function RecordsPage() {
 
   return (
     <div style={{ backgroundColor: 'var(--paper)' }}>
-      <div style={{ backgroundColor: "var(--navy)" }} className="text-white py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <Eyebrow light className="mb-3">World Records</Eyebrow>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight leading-none">
-            Make history.
-          </h1>
-          <p style={{ color: "var(--muted-on-dark)" }} className="mt-4 text-base max-w-xl">
-            Official World Transplant Games swimming record performances, filtered by age group, category, event and course.
-          </p>
-        </div>
-      </div>
+      <PageHeading eyebrow="World Records" title="Make history." description="Explore swimming records by age group, category, event and course." />
 
       <div className="max-w-7xl mx-auto px-4 py-10">
+        <div className="mb-6"><DatasetNotice /></div>
         <FilterBar className="mb-6">
           <div className="max-w-xl">
             <SearchInput
@@ -85,24 +78,17 @@ export default function RecordsPage() {
             <FilterSelect label="Event" value={filterEvent} options={[ALL, ...events]} onChange={setFilterEvent} />
             <FilterSelect label="Course" value={filterCourse} options={[ALL, ...courses]} onChange={setFilterCourse} />
             {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="px-3 py-1.5 border border-neutral-300 font-mono text-xs uppercase tracking-wider text-neutral-700 transition-colors hover:border-neutral-500 hover:text-neutral-900"
-              >
-                Clear filters
-              </button>
+              <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>
             )}
           </div>
         </FilterBar>
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 font-mono text-xs text-neutral-600">
           <span>{filtered.length === 0 ? '0 records' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} records`}</span>
-          {pageCount > 1 && <span>Page {page} of {pageCount}</span>}
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState title="No records found" subtitle="Adjust your filters to see records." />
+          <EmptyState title="No records found" subtitle="Adjust your search or filters, or reset them to see all available sample records." action={hasActiveFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />
         ) : (
           <>
             <RecordsTable records={pageRecords} />

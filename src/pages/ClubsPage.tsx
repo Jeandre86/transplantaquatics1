@@ -4,6 +4,11 @@ import { clubs } from '../data/clubs';
 import { getFlagEmoji } from '../lib/utils';
 import Eyebrow from '../components/Eyebrow';
 import Pagination from '../components/Pagination';
+import SearchInput from '../components/SearchInput';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
+import FilterBar from '../components/FilterBar';
+import { ArrowRight } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -25,7 +30,7 @@ export default function ClubsPage() {
   const pageClubs = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
+    <div>
       {/* Header */}
       <section
         className="border-b"
@@ -50,103 +55,44 @@ export default function ClubsPage() {
         </div>
       </section>
 
-      {/* Search */}
-      <div className="max-w-7xl mx-auto px-4 pt-8">
-        <div className="relative">
-          <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2"
-            width="16" height="16" viewBox="0 0 16 16" fill="none"
-            style={{ color: 'var(--muted-on-dark)' }}
-          >
-            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by club name, city or country…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border font-mono text-sm"
-            style={{
-              backgroundColor: 'var(--navy-mid)',
-              borderColor: 'var(--navy-light)',
-              color: 'var(--ink-on-dark)',
-              outline: 'none',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Grid */}
+      <section style={{ backgroundColor: '#f4f2ed' }}>
       <div className="max-w-7xl mx-auto px-4 py-8 pb-16">
+        <FilterBar className="mb-6 max-w-xl">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search by club name, city or country…" />
+        </FilterBar>
         {filtered.length === 0 ? (
-          <div
-            className="py-16 text-center border"
-            style={{ borderColor: 'var(--navy-light)' }}
-          >
-            <p className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-              No clubs match your search
-            </p>
-          </div>
+          <EmptyState title="No clubs match your search" subtitle="Try a different club, city or country name." action={<Button variant="secondary" size="sm" onClick={() => setSearch('')}>Clear search</Button>} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="ta-table-shell">
+            <div className="ta-table-header grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:grid-cols-[minmax(200px,1.6fr)_minmax(150px,1.2fr)_100px_90px_28px] sm:gap-4 sm:px-5 sm:text-xs">
+              <span>Club</span><span className="hidden sm:block">Location</span><span className="hidden text-right sm:block">Members</span><span className="hidden text-right sm:block">Founded</span><span aria-hidden="true" />
+            </div>
+            <div>
             {pageClubs.map(club => (
               <Link
                 key={club.id}
                 to={`/clubs/${club.id}`}
-                className="border flex flex-col gap-4 p-6 group transition-colors"
-                style={{
-                  borderColor: 'var(--navy-light)',
-                  backgroundColor: 'var(--navy-mid)',
-                  textDecoration: 'none',
-                }}
+                className="ta-table-row group grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 px-3 py-5 no-underline sm:grid-cols-[minmax(200px,1.6fr)_minmax(150px,1.2fr)_100px_90px_28px] sm:gap-4 sm:px-5"
               >
-                {/* Avatar / initials */}
-                <div
-                  className="w-12 h-12 flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
-                  style={{ backgroundColor: 'var(--navy)', color: 'var(--accent)' }}
-                >
-                  {club.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()}
-                </div>
-
-                {/* Name */}
-                <div>
-                  <h2
-                    className="font-bold text-base leading-snug group-hover:underline"
-                    style={{ color: 'var(--ink-on-dark)' }}
-                  >
-                    {club.name}
-                  </h2>
-                  <p className="mt-1 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-                    {getFlagEmoji(club.countryCode)} {club.city}, {club.country}
-                  </p>
-                </div>
-
-                {/* Stats */}
-                <div className="mt-auto pt-4 border-t flex items-center justify-between" style={{ borderColor: 'var(--navy-light)' }}>
-                  <div>
-                    <div className="font-mono font-bold text-lg" style={{ color: 'var(--aqua)' }}>
-                      {club.memberCount}
-                    </div>
-                    <div className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                      Members
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono font-bold text-lg" style={{ color: 'var(--muted-on-dark)' }}>
-                      {club.foundedYear}
-                    </div>
-                    <div className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                      Founded
-                    </div>
-                  </div>
-                </div>
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-[var(--ice)] font-mono text-xs font-bold text-[var(--navy)]" aria-hidden="true">{club.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">{club.name}</span>
+                    <span className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm text-[var(--muted)] sm:hidden"><span className="ta-table-flag shrink-0">{getFlagEmoji(club.countryCode)}</span><span className="truncate">{club.city}, {club.country} · {club.memberCount} members · Est. {club.foundedYear}</span></span>
+                  </span>
+                </span>
+                  <span className="hidden min-w-0 truncate text-sm text-[var(--muted)] sm:block"><span className="ta-table-flag mr-2 align-middle" aria-hidden="true">{getFlagEmoji(club.countryCode)}</span>{club.city}, {club.country}</span>
+                <span className="hidden text-right font-mono text-sm font-semibold text-[var(--ink)] sm:block">{club.memberCount}</span>
+                <span className="hidden text-right font-mono text-sm text-[var(--muted)] sm:block">{club.foundedYear}</span>
+                <span className="flex justify-end text-[var(--muted)] transition-colors group-hover:text-[var(--accent-dark)]"><ArrowRight size={20} aria-hidden="true" /></span>
               </Link>
             ))}
+            </div>
           </div>
         )}
         <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Club pages" />
       </div>
+      </section>
     </div>
   );
 }

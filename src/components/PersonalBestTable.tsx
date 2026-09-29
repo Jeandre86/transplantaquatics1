@@ -2,6 +2,7 @@ import type { PersonalBest, Gender, AgeGroup } from '../types';
 import VerificationBadge from './VerificationBadge';
 import TimeStandard from './TimeStandard';
 import { formatDate } from '../lib/utils';
+import EmptyState from './EmptyState';
 
 interface PersonalBestTableProps {
   pbs: PersonalBest[];
@@ -11,20 +12,20 @@ interface PersonalBestTableProps {
 
 export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBestTableProps) {
   if (pbs.length === 0) {
-    return <p className="text-sm text-neutral-500">No personal bests recorded.</p>;
+    return <EmptyState title="No personal bests recorded" subtitle="Personal best times will appear here when they are added to this profile." />;
   }
 
   const headers = ['Event', 'Course', 'Time', 'WTG', 'Date', 'Meet', 'Status'];
 
   return (
-    <div className="overflow-x-auto">
+    <div className="ta-table-shell overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-neutral-200">
+          <tr className="ta-table-header">
             {headers.map(h => (
               <th
                 key={h}
-                className={`font-mono text-xs tracking-widest uppercase py-2 text-left text-neutral-400 ${
+                className={`font-mono text-[10px] font-semibold tracking-widest uppercase py-3 text-left px-3 sm:px-5 ${
                   h === 'Time' ? 'text-right pr-4' : h === 'WTG' ? 'pl-5' : ''
                 }`}
               >
@@ -35,11 +36,11 @@ export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBes
         </thead>
         <tbody>
           {pbs.map((pb, i) => (
-            <tr key={i} className="border-b border-neutral-100 hover:bg-neutral-50">
-              <td className="py-3 pr-4 font-medium text-sm text-black">{pb.event}</td>
-              <td className="py-3 pr-4 font-mono text-xs text-neutral-500">{pb.course}</td>
-              <td className="py-3 pr-4 text-right font-mono font-bold text-sm text-black">{pb.time}</td>
-              <td className="py-3 pl-5 pr-4">
+            <tr key={i} className="ta-table-row">
+              <td className="px-3 py-4 font-medium text-base text-[var(--ink)] sm:px-5">{pb.event}</td>
+              <td className="px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{pb.course}</td>
+              <td className="px-3 py-4 text-right font-mono font-bold text-base text-[var(--navy)] sm:px-5">{pb.time}</td>
+              <td className="px-3 py-4 sm:px-5">
                 {gender && (
                   <TimeStandard
                     time={pb.time}
@@ -50,9 +51,9 @@ export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBes
                   />
                 )}
               </td>
-              <td className="py-3 pr-4 font-mono text-xs text-neutral-500">{formatDate(pb.date)}</td>
-              <td className="py-3 pr-4 text-xs text-neutral-600 max-w-[180px] truncate">{pb.meet}</td>
-              <td className="py-3"><VerificationBadge status={pb.verified} /></td>
+              <td className="px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{formatDate(pb.date)}</td>
+              <td className="px-3 py-4 text-xs text-[var(--muted)] max-w-[180px] truncate sm:px-5">{pb.meet}</td>
+              <td className="px-3 py-4 sm:px-5"><VerificationBadge status={pb.verified} /></td>
             </tr>
           ))}
         </tbody>

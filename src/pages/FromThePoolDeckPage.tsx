@@ -32,11 +32,11 @@ export default function FromThePoolDeckPage() {
     <div>
       {/* Header */}
       <section style={{ backgroundColor: "var(--navy)", borderBottom: "1px solid var(--navy-light)" }}>
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 md:py-16">
           <div>
-            <Eyebrow color="accent">From the Pool Deck · Stories</Eyebrow>
-            <h1 className="mt-5 max-w-3xl text-white font-bold text-4xl leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">
-              Life, competition<br className="hidden sm:block" /> and community in the water.
+            <Eyebrow color="accent">News</Eyebrow>
+            <h1 className="mt-4 max-w-4xl text-white font-extrabold text-4xl leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
+              From the Pool Deck
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70">
               Athlete stories, training advice and news from across transplant swimming.
@@ -76,13 +76,6 @@ export default function FromThePoolDeckPage() {
             </div>
           ) : (
             <>
-              <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-neutral-200 pb-4">
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#007d89]">The Pool Deck journal</p>
-                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950">{category === 'All' ? 'Latest stories' : category}</h2>
-                </div>
-                <span className="font-mono text-xs text-neutral-500">{filtered.length} {filtered.length === 1 ? 'story' : 'stories'}</span>
-              </div>
               {/* Featured article */}
               {featured && (
                 <div className="mb-10"><ArticleCard article={featured} featured /></div>

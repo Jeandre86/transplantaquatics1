@@ -1,6 +1,8 @@
 import { lazy, Suspense, useLayoutEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
+import PageLoading from './components/PageLoading';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 function ScrollToTop() {
   const { key } = useLocation();
@@ -38,12 +40,13 @@ const WTGPage = lazy(() => import('./pages/WTGPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
 
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <Suspense fallback={<div className="min-h-screen bg-[var(--paper)]" aria-busy="true" />}>
+      <RouteErrorBoundary>
         <Routes>
           <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
@@ -59,6 +62,8 @@ export default function App() {
           <Route path="countries/:code" element={<CountryPage />} />
           <Route path="from-the-pool-deck" element={<FromThePoolDeckPage />} />
           <Route path="from-the-pool-deck/:slug" element={<ArticlePage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="about/:section" element={<AboutPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="join" element={<JoinPage />} />
           <Route path="calendar" element={<CalendarPage />} />
@@ -71,10 +76,10 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
           </Route>
           {/* Full-page routes — no main nav */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/login" element={<Suspense fallback={<PageLoading />}><LoginPage /></Suspense>} />
+          <Route path="/profile" element={<Suspense fallback={<PageLoading />}><ProfilePage /></Suspense>} />
         </Routes>
-      </Suspense>
+      </RouteErrorBoundary>
     </BrowserRouter>
   );
 }

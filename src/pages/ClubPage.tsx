@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { clubs } from '../data/clubs';
 import { athletes } from '../data/athletes';
-import { getFlagEmoji, timeToSeconds } from '../lib/utils';
+import { getCountryAlpha3, getFlagEmoji, timeToSeconds } from '../lib/utils';
+import { getSavedAvatar } from '../lib/avatars';
 import Eyebrow from '../components/Eyebrow';
 import EmptyState from '../components/EmptyState';
-import TransplantBadge from '../components/TransplantBadge';
 import Pagination from '../components/Pagination';
+import AthleteDirectoryTable from '../components/AthleteDirectoryTable';
 
 const PAGE_SIZE = 10;
 
@@ -42,7 +43,7 @@ export default function ClubPage() {
 
   // Build "Fastest in club" leaderboard across all PBs of roster athletes
   // Group by event, find the fastest time per event within the club
-  const pbMap = new Map<string, { athleteName: string; time: string; timeSec: number }>();
+  const pbMap = new Map<string, { athleteId: string; athleteName: string; countryCode: string; time: string; timeSec: number }>();
   roster.forEach(a => {
     a.personalBests.forEach(pb => {
       const key = `${pb.event} · ${pb.course}`;
@@ -50,6 +51,8 @@ export default function ClubPage() {
       if (!pbMap.has(key) || timeSec < pbMap.get(key)!.timeSec) {
         pbMap.set(key, {
           athleteName: `${a.firstName} ${a.lastName}`,
+          athleteId: a.id,
+          countryCode: a.countryCode,
           time: pb.time,
           timeSec,
         });
@@ -63,17 +66,9 @@ export default function ClubPage() {
     .slice(0, 10);
 
   return (
-    <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
+    <div>
       {/* Header */}
-      <section
-        className="border-b"
-        style={{
-          backgroundColor: 'var(--navy-mid)',
-          borderColor: 'var(--navy-light)',
-          backgroundImage:
-            'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
-        }}
-      >
+      <section className="border-b border-[var(--navy-light)] bg-[var(--navy)]">
         <div className="max-w-7xl mx-auto px-4 py-14">
           <Link
             to="/clubs"
@@ -111,22 +106,19 @@ export default function ClubPage() {
       </section>
 
       {/* Stats strip */}
-      <section
-        className="border-b"
-        style={{ borderColor: 'var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}
-      >
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex flex-wrap gap-8">
+      <section className="border-b border-[var(--border)] bg-[var(--paper)]">
+        <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {[
               { value: String(club.memberCount), label: 'Members' },
               { value: String(club.foundedYear), label: 'Founded' },
               { value: String(roster.length), label: 'Registered Athletes' },
             ].map(s => (
               <div key={s.label}>
-                <div className="font-mono font-black text-2xl" style={{ color: 'var(--aqua)' }}>
+                <div className="font-mono text-2xl font-black text-[var(--ink)]">
                   {s.value}
                 </div>
-                <div className="font-mono text-xs uppercase tracking-widest mt-0.5" style={{ color: 'var(--muted-on-dark)' }}>
+                <div className="mt-0.5 font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
                   {s.label}
                 </div>
               </div>
@@ -135,78 +127,30 @@ export default function ClubPage() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 py-10 space-y-14">
+      <div className="bg-[var(--paper)]">
+      <div className="mx-auto max-w-7xl space-y-12 px-4 py-10">
 
         {/* Description */}
         <section>
-          <Eyebrow light className="mb-4">About</Eyebrow>
-          <p className="text-base leading-8 max-w-3xl" style={{ color: 'var(--muted-on-dark)' }}>
+          <Eyebrow className="mb-4">About</Eyebrow>
+          <p className="max-w-3xl text-base leading-8 text-[var(--muted)]">
             {club.description}
           </p>
         </section>
 
         {/* Roster */}
         <section>
-          <Eyebrow light className="mb-6">Roster</Eyebrow>
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
+            <div>
+              <Eyebrow>Club roster</Eyebrow>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Athletes</h2>
+            </div>
+            <span className="font-mono text-xs text-[var(--muted)]">{roster.length} registered</span>
+          </div>
           {roster.length === 0 ? (
-            <div
-              className="border py-12 text-center"
-              style={{ borderColor: 'var(--navy-light)' }}
-            >
-              <p className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                No registered athletes
-              </p>
-            </div>
+            <EmptyState title="No registered athletes" subtitle="Athletes linked to this club will appear here." />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {pageRoster.map(a => (
-                <div
-                  key={a.id}
-                  className="border p-5"
-                  style={{ borderColor: 'var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}
-                >
-                  <Link
-                    to={`/athletes/${a.id}`}
-                    className="flex items-start gap-4 group"
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <div
-                      className="w-12 h-12 flex-shrink-0 flex items-center justify-center font-mono font-bold text-sm"
-                      style={{ backgroundColor: 'var(--navy)', color: 'var(--ink-on-dark)' }}
-                    >
-                      {a.avatarInitials || `${a.firstName[0]}${a.lastName[0]}`}
-                    </div>
-                    <div>
-                      <div
-                        className="font-bold text-base leading-snug group-hover:underline"
-                        style={{ color: 'var(--ink-on-dark)' }}
-                      >
-                        {a.firstName} {a.lastName}
-                      </div>
-                      <div className="mt-0.5 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-                        {getFlagEmoji(a.countryCode)} {a.country}
-                      </div>
-                      <div className="mt-2">
-                        <TransplantBadge type={a.transplantType} />
-                      </div>
-                    </div>
-                  </Link>
-                  {a.personalBests[0] && (
-                    <div
-                      className="mt-4 pt-4 border-t flex items-center justify-between"
-                      style={{ borderColor: 'var(--navy-light)' }}
-                    >
-                      <span className="font-mono text-xs uppercase tracking-wide" style={{ color: 'var(--muted-on-dark)' }}>
-                        {a.personalBests[0].event} · {a.personalBests[0].course}
-                      </span>
-                      <span className="font-mono font-bold text-sm" style={{ color: 'var(--accent)' }}>
-                        {a.personalBests[0].time}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <AthleteDirectoryTable athletes={pageRoster} />
           )}
           <Pagination page={rosterPage} pageCount={rosterPageCount} onPageChange={setRosterPage} label="Club roster pages" />
         </section>
@@ -214,50 +158,50 @@ export default function ClubPage() {
         {/* Fastest in club */}
         {leaderboard.length > 0 && (
           <section>
-            <Eyebrow light className="mb-6">Fastest in Club</Eyebrow>
-            <div
-              className="border overflow-hidden"
-              style={{ borderColor: 'var(--navy-light)' }}
-            >
+          <div className="mb-5 border-b border-[var(--border)] pb-4">
+            <Eyebrow>Club records</Eyebrow>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Fastest in Club</h2>
+          </div>
+            <div className="ta-table-shell">
               {/* Header */}
               <div
-                className="grid px-4 py-3 font-mono text-xs uppercase tracking-widest border-b"
-                style={{
-                  backgroundColor: 'var(--navy-mid)',
-                  borderColor: 'var(--navy-light)',
-                  color: 'var(--muted-on-dark)',
-                  gridTemplateColumns: '1fr 1fr auto',
-                }}
+                className="ta-table-header grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 sm:text-xs"
               >
                 <span>Event</span>
                 <span>Athlete</span>
                 <span>Time</span>
               </div>
-
-              {leaderboard.map((row, idx) => (
-                <div
-                  key={row.event}
-                  className="grid items-center px-4 py-3.5 border-b last:border-b-0"
-                  style={{
-                    borderColor: 'var(--navy-light)',
-                    backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
-                    gridTemplateColumns: '1fr 1fr auto',
-                  }}
-                >
-                  <span className="font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-                    {row.event}
-                  </span>
-                  <span className="font-mono text-sm" style={{ color: 'var(--ink-on-dark)' }}>
-                    {row.athleteName}
-                  </span>
-                  <span className="font-mono font-bold text-base" style={{ color: 'var(--accent)' }}>
-                    {row.time}
-                  </span>
-                </div>
-              ))}
+              <div>
+                {leaderboard.map(row => {
+                  const nameParts = row.athleteName.trim().split(/\s+/);
+                  const lastName = nameParts.pop() ?? '';
+                  const firstName = nameParts.join(' ');
+                  const avatar = getSavedAvatar(firstName, lastName);
+                  const initials = `${firstName[0] ?? row.athleteName[0]}${lastName[0] ?? ''}`.toUpperCase();
+                  return (
+                    <div key={row.event} className="ta-table-row grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-3 px-3 py-5 sm:gap-4 sm:px-5">
+                      <span className="text-sm text-[var(--muted)]">{row.event}</span>
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] font-mono text-[10px] font-bold text-[var(--navy)] sm:h-11 sm:w-11">
+                          {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initials}
+                        </span>
+                        <span className="min-w-0">
+                          <Link to={`/athletes/${row.athleteId}`} className="block truncate text-base font-medium text-[var(--ink)] hover:text-[var(--accent-dark)]">{row.athleteName}</Link>
+                          <span className="mt-1 flex items-center gap-1.5 font-mono text-xs text-[var(--muted)]">
+                            <span className="ta-table-flag">{getFlagEmoji(row.countryCode)}</span>
+                            <span className="font-semibold tracking-wider">{getCountryAlpha3(row.countryCode)}</span>
+                          </span>
+                        </span>
+                      </span>
+                      <span className="font-mono text-base font-bold text-[var(--accent-dark)]">{row.time}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </section>
         )}
+      </div>
       </div>
     </div>
   );

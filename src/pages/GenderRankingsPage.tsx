@@ -9,6 +9,10 @@ import { getTransplantPoints } from '../lib/transplantPoints';
 import { timeToSeconds } from '../lib/utils';
 import Pagination from '../components/Pagination';
 import FilterBar from '../components/FilterBar';
+import PageHeading from '../components/PageHeading';
+import DatasetNotice from '../components/DatasetNotice';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -61,23 +65,19 @@ export default function GenderRankingsPage() {
 
   return (
     <div>
-      <section style={{ backgroundColor: 'var(--navy)' }}>
-        <div className="max-w-7xl mx-auto px-4 py-14">
-          <Link to="/rankings" className="mb-8 inline-flex font-mono text-xs uppercase tracking-widest text-white/60 hover:text-white">← All rankings</Link>
-          <Eyebrow color="accent" onDark>World Rankings</Eyebrow>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-white md:text-5xl">{gender} rankings</h1>
-          <p className="mt-3 max-w-2xl text-sm text-white/70">Explore {gender.toLowerCase()} transplant swimmer performances. Choose whether to rank by TA points or fastest time, then filter by age group, event, or course.</p>
-        </div>
-      </section>
+      <PageHeading eyebrow="World Rankings" title={`${gender} rankings`} description={`Explore ${gender.toLowerCase()} transplant swimmer performances. Choose whether to rank by TA points or fastest time, then filter by age group, event, or course.`}>
+        <Link to="/rankings" className="inline-flex font-mono text-xs uppercase tracking-widest text-white/65 transition-colors hover:text-[var(--accent)]">← All rankings</Link>
+      </PageHeading>
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
+          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Leaderboard</Eyebrow>
               <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">{gender} top swims by {rankMode.toLowerCase()}</h2>
             </div>
-            {hasActiveFilters && <button type="button" onClick={clearFilters} className="font-mono text-xs uppercase tracking-wider text-neutral-600 underline underline-offset-4 hover:text-black">Clear filters</button>}
+            {hasActiveFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
           </div>
 
           <FilterBar className="mb-6">
@@ -89,12 +89,11 @@ export default function GenderRankingsPage() {
             </div>
           </FilterBar>
 
-          <p className="mb-3 font-mono text-xs text-neutral-600">
-            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} ranking{filtered.length === 1 ? '' : 's'}
-          </p>
-          <RankingTable rankings={pageRankings} showVerified={false} rankByPoints rankOffset={(page - 1) * PAGE_SIZE} rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} title={gender} />
-
-          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label={`${gender} ranking pages`} />
+          {filtered.length > 0 ? <>
+            <p className="mb-3 font-mono text-xs text-neutral-600">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} ranking{filtered.length === 1 ? '' : 's'}</p>
+            <RankingTable rankings={pageRankings} showVerified={false} rankByPoints rankOffset={(page - 1) * PAGE_SIZE} rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title={gender} />
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label={`${gender} ranking pages`} />
+          </> : <EmptyState title="No swims match these filters" subtitle="Try another age group, event, or course, or clear your filters." action={hasActiveFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />}
         </div>
       </section>
     </div>

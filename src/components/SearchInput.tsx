@@ -6,13 +6,14 @@ interface SearchInputProps {
   placeholder?: string;
   large?: boolean;
   id?: string;
+  dark?: boolean;
 }
 
-export default function SearchInput({ value, onChange, placeholder = 'Search...', large = false, id }: SearchInputProps) {
+export default function SearchInput({ value, onChange, placeholder = 'Search...', large = false, id, dark = false }: SearchInputProps) {
   return (
     <div className="relative w-full">
       <Search
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+        className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-white/40' : 'text-neutral-400'}`}
         size={large ? 20 : 16}
       />
       <input
@@ -21,17 +22,16 @@ export default function SearchInput({ value, onChange, placeholder = 'Search...'
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full border border-neutral-200 bg-neutral-50 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-400 ${
+        aria-label={placeholder}
+        className={`ta-search-input w-full border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${dark ? 'border-[var(--navy-light)] bg-[var(--navy-mid)] text-[var(--ink-on-dark)] placeholder:text-white/40' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] placeholder:text-[var(--muted)]'} ${
           large ? 'pl-10 pr-4 py-4 text-lg' : 'pl-9 pr-4 py-2.5 text-sm'
         }`}
         style={{
           borderRadius: 0,
-          // Placeholder uses rgba for cross-browser support
+          minHeight: large ? 56 : 42,
+          colorScheme: dark ? 'dark' : 'light',
         }}
       />
-      <style>{`
-        input[type="text"]::placeholder { color: var(--muted); opacity: 0.8; }
-      `}</style>
     </div>
   );
 }

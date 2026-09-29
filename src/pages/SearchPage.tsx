@@ -11,6 +11,8 @@ import ArticleCard from '../components/ArticleCard';
 import Eyebrow from '../components/Eyebrow';
 import type { Country } from '../types';
 import Pagination from '../components/Pagination';
+import PageHeading from '../components/PageHeading';
+import EmptyState from '../components/EmptyState';
 
 const PAGE_SIZE = 10;
 
@@ -67,20 +69,9 @@ export default function SearchPage() {
   return (
     <div style={{ backgroundColor: 'var(--paper)' }} className="min-h-screen">
       {/* Search hero */}
-      <div style={{ backgroundColor: "var(--navy)" }} className="text-white py-16">
-        <div className="max-w-3xl mx-auto px-4">
-          <Eyebrow light className="mb-3">Search</Eyebrow>
-          <h1 className="text-4xl font-black tracking-tight mb-8">
-            Find athletes, records, countries and stories.
-          </h1>
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder="Search Transplant Aquatics..."
-            large
-          />
-        </div>
-      </div>
+      <PageHeading eyebrow="Search" title="Find athletes, records, countries and stories.">
+        <div className="max-w-2xl"><SearchInput value={query} onChange={setQuery} placeholder="Search Transplant Aquatics..." large /></div>
+      </PageHeading>
 
       <div className="max-w-7xl mx-auto px-4 py-12">
         {!q && (
@@ -102,11 +93,7 @@ export default function SearchPage() {
         )}
 
         {q && !hasResults && (
-          <div className="text-center py-16">
-            <div className="font-mono text-sm text-neutral-400">
-              No results found for <strong className="text-black">"{query}"</strong>
-            </div>
-          </div>
+          <EmptyState title={`No results for “${query}”`} subtitle="Try a different name, country, event, record or story title." />
         )}
 
         {q && hasResults && (

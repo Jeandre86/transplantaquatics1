@@ -26,8 +26,8 @@ export default function Footer() {
                 { to: '/athletes',  label: 'Athletes' },
                 { to: '/results',   label: 'Results' },
                 { to: '/records',   label: 'Records' },
-                { to: '/calendar',  label: 'Calendar' },
-                { to: '/games',     label: 'WTG Hub' },
+                /*{ to: '/calendar',  label: 'Calendar' },
+                { to: '/games',     label: 'WTG Hub' },*/
               ].map(l => (
                 <li key={l.to}>
                   <Link to={l.to} className="-ml-1.5 inline-flex rounded-sm px-1.5 py-1 text-sm text-white transition-colors hover:text-[#00c2d7]"
@@ -46,9 +46,9 @@ export default function Footer() {
               {[
                 { to: '/countries',          label: 'Countries' },
                 { to: '/clubs',              label: 'Clubs' },
-                { to: '/compare',            label: 'Compare Athletes' },
-                { to: '/from-the-pool-deck', label: 'From the Pool Deck' },
-                { to: '/search',             label: 'Search' },
+                /*{ to: '/compare',            label: 'Compare Athletes' },*/
+                { to: '/from-the-pool-deck', label: 'News' },
+                /*{ to: '/search',             label: 'Search' },*/
               ].map(l => (
                 <li key={l.to}>
                   <Link to={l.to} className="-ml-1.5 inline-flex rounded-sm px-1.5 py-1 text-sm text-white transition-colors hover:text-[#00c2d7]"

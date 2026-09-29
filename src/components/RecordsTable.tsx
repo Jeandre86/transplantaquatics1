@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { Record as WorldRecord } from '../types';
-import { formatDate, getFlagEmoji } from '../lib/utils';
+import { formatDate, getCountryAlpha3, getFlagEmoji } from '../lib/utils';
 import { getSavedAvatar } from '../lib/avatars';
 
 const COUNTRY_CODES: { [country: string]: string } = {
@@ -11,15 +11,9 @@ const COUNTRY_CODES: { [country: string]: string } = {
   Mexico: 'MX', Netherlands: 'NL', Portugal: 'PT', 'South Africa': 'ZA', Spain: 'ES',
   'United Kingdom': 'GB', 'Northern Ireland': 'GB', 'United States': 'US',
 };
-const COUNTRY_ALPHA3: { [code: string]: string } = {
-  AU: 'AUS', BR: 'BRA', CA: 'CAN', FI: 'FIN', FR: 'FRA', GB: 'GBR', DE: 'GER',
-  GR: 'GRE', HU: 'HUN', IE: 'IRL', IL: 'ISR', IT: 'ITA', JP: 'JPN', MX: 'MEX',
-  NL: 'NED', PT: 'POR', ZA: 'RSA', ES: 'ESP', US: 'USA',
-};
-
 function Country({ name }: { name: string }) {
   const code = COUNTRY_CODES[name];
-  return <span className="flex items-center gap-1.5" title={name}><span className="text-2xl leading-none" aria-hidden="true">{code ? getFlagEmoji(code) : '🏳️'}</span><span className="font-mono text-[10px] font-semibold tracking-wider text-neutral-600 sm:text-xs">{code ? COUNTRY_ALPHA3[code] : name.slice(0, 3).toUpperCase()}</span></span>;
+  return <span className="flex items-center gap-1.5" title={name}><span className="text-base leading-none" aria-hidden="true">{code ? getFlagEmoji(code) : '🏳️'}</span><span className="font-mono text-xs font-semibold tracking-wider text-[var(--muted)]">{code ? getCountryAlpha3(code) : name.slice(0, 3).toUpperCase()}</span></span>;
 }
 
 function AthleteAvatar({ name }: { name: string }) {
@@ -30,10 +24,18 @@ function AthleteAvatar({ name }: { name: string }) {
   const initials = `${firstName[0] ?? name[0] ?? '?'}${lastName[0] ?? ''}`.toUpperCase();
 
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#eef0f2] font-mono text-[10px] font-bold text-[#334155] sm:h-11 sm:w-11 sm:text-xs">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] font-mono text-[10px] font-bold text-[var(--navy)] sm:h-11 sm:w-11 sm:text-xs">
       {image ? <img src={image} alt={`${name} profile`} className="h-full w-full object-cover" /> : initials}
     </span>
   );
+}
+
+function getStandingDuration(record: WorldRecord) {
+  const year = Number(record.date?.slice(0, 4) ?? (record.games ?? record.meet).match(/\d{4}/)?.[0]);
+  if (!Number.isFinite(year) || year < 1) return '—';
+  const years = Math.max(0, new Date().getFullYear() - year);
+  if (years === 0) return '<1 year';
+  return `${years} ${years === 1 ? 'year' : 'years'}`;
 }
 
 export default function RecordsTable({ records }: { records: WorldRecord[] }) {
@@ -47,42 +49,43 @@ export default function RecordsTable({ records }: { records: WorldRecord[] }) {
   });
 
   return (
-    <div className="overflow-hidden border border-neutral-200 bg-white">
-      <div className="grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 border-b border-neutral-200 bg-[#f4f5f6] px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest text-neutral-600 sm:grid-cols-[minmax(170px,1.6fr)_minmax(100px,1.1fr)_65px_70px_minmax(115px,1fr)_85px_28px] sm:gap-4 sm:px-5 sm:text-xs md:grid-cols-[minmax(190px,1.6fr)_minmax(120px,1.1fr)_75px_80px_minmax(140px,1fr)_95px_28px]">
-        <span>Record holder</span><span className="hidden sm:block">Event</span><span className="hidden sm:block">Age</span><span className="hidden sm:block">Gender</span><span className="hidden sm:block">Games</span><span className="hidden sm:block text-right">Time</span><span aria-hidden="true" />
+    <div className="ta-table-shell">
+      <div className="ta-table-header grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:grid-cols-[minmax(170px,1.6fr)_minmax(100px,1.1fr)_65px_70px_minmax(115px,1fr)_85px_28px] sm:gap-4 sm:px-5 sm:text-xs md:grid-cols-[minmax(190px,1.6fr)_minmax(120px,1.1fr)_75px_80px_minmax(140px,1fr)_95px_95px_28px]">
+        <span>Record holder</span><span className="hidden sm:block">Event</span><span className="hidden sm:block">Age</span><span className="hidden sm:block">Gender</span><span className="hidden sm:block">Games</span><span className="hidden text-right md:block" title="Approximate duration based on the Games year; exact record dates are not provided by the source.">Standing</span><span className="hidden sm:block text-right">Time</span><span aria-hidden="true" />
       </div>
       <div>
-        {records.map((record, index) => {
+        {records.map(record => {
             const isExpanded = expanded.has(record.id);
             const hasHistory = Boolean(record.history?.length);
             return (
               <Fragment key={record.id}>
-                <div className={`group grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 border-b border-neutral-200 px-3 py-4 transition-colors hover:bg-neutral-50 sm:grid-cols-[minmax(170px,1.6fr)_minmax(100px,1.1fr)_65px_70px_minmax(115px,1fr)_85px_28px] sm:gap-4 sm:px-5 md:grid-cols-[minmax(190px,1.6fr)_minmax(120px,1.1fr)_75px_80px_minmax(140px,1fr)_95px_28px] ${index % 2 === 1 ? 'bg-[#f7f8fa]' : 'bg-white'}`}>
+                <div className="ta-table-row group grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 px-3 py-5 sm:grid-cols-[minmax(170px,1.6fr)_minmax(100px,1.1fr)_65px_70px_minmax(115px,1fr)_85px_28px] sm:gap-4 sm:px-5 md:grid-cols-[minmax(190px,1.6fr)_minmax(120px,1.1fr)_75px_80px_minmax(140px,1fr)_95px_95px_28px]">
                   <span className="flex min-w-0 items-center gap-2 sm:gap-3">
                     <AthleteAvatar name={record.athleteName} />
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-[#303846] sm:text-base">{record.athleteName}</span>
-                      <span className="mt-1 flex items-center gap-2 truncate text-xs text-neutral-500"><Country name={record.country} />{record.date && <span>{formatDate(record.date)}</span>}</span>
-                      <span className="mt-1 hidden truncate text-xs text-neutral-400 md:block">{record.date ? formatDate(record.date) : ''}</span>
-                      <span className="mt-1 block truncate font-mono text-[10px] text-neutral-600 sm:hidden">{record.event} · {record.ageGroup} {record.gender} · {record.games ?? record.meet} · {record.time}</span>
+                      <span className="block truncate text-base font-semibold text-[var(--ink)]">{record.athleteName}</span>
+                      <span className="mt-1 flex items-center gap-2 truncate text-xs text-[var(--muted)]"><Country name={record.country} />{record.date && <span>{formatDate(record.date)}</span>}</span>
+                      <span className="mt-1 hidden truncate text-xs text-[var(--muted)] md:block">{record.date ? formatDate(record.date) : ''}</span>
+                      <span className="mt-1 block truncate font-mono text-[10px] text-[var(--muted)] sm:hidden">{record.event} · {record.ageGroup} {record.gender} · {record.games ?? record.meet} · Standing {getStandingDuration(record)} · {record.time}</span>
                     </span>
                   </span>
-                  <span className="hidden truncate text-sm text-[#4b5563] sm:block">{record.event}</span>
-                  <span className="hidden min-w-0 text-sm text-[#4b5563] sm:block">{record.ageGroup}{record.category && record.category.toLowerCase() !== 'adult' && <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wide text-[#1769c2]">{record.category}</span>}</span>
-                  <span className="hidden text-sm text-[#4b5563] sm:block">{record.gender}</span>
-                  <span className="hidden truncate text-xs text-[#4b5563] sm:block">{record.games ?? record.meet}</span>
-                  <span className="hidden text-right font-mono text-base font-bold text-[#1769c2] sm:block">{record.time}</span>
+                  <span className="hidden truncate text-sm text-[var(--ink)] sm:block">{record.event}</span>
+                  <span className="hidden min-w-0 text-sm text-[var(--ink)] sm:block">{record.ageGroup}{record.category && record.category.toLowerCase() !== 'adult' && <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wide text-[var(--accent-dark)]">{record.category}</span>}</span>
+                  <span className="hidden text-sm text-[var(--ink)] sm:block">{record.gender}</span>
+                  <span className="hidden truncate text-xs text-[var(--muted)] sm:block">{record.games ?? record.meet}</span>
+                  <span className="hidden text-right text-sm text-[var(--muted)] md:block" title="Approximate duration since the Games edition listed as the record date">{getStandingDuration(record)}</span>
+                  <span className="hidden text-right font-mono text-base font-bold text-[var(--navy)] sm:block">{record.time}</span>
                   <span className="flex justify-end sm:justify-center">
                     {hasHistory && (
-                      <button type="button" onClick={() => toggle(record.id)} aria-expanded={isExpanded} aria-label={`${isExpanded ? 'Hide' : 'Show'} record history for ${record.event}`} className="inline-flex items-center justify-center p-1 text-neutral-400 hover:text-[#1769c2]">
+                      <button type="button" onClick={() => toggle(record.id)} aria-expanded={isExpanded} aria-label={`${isExpanded ? 'Hide' : 'Show'} record history for ${record.event}`} className="inline-flex items-center justify-center p-1 text-[var(--muted)] hover:text-[var(--accent-dark)]">
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
                     )}
                   </span>
                 </div>
                 {isExpanded && hasHistory && (
-                  <div className="border-b border-neutral-200 bg-[#f7f8fa] px-5 py-4 sm:pl-24">
-                    <div className="space-y-2 border-l-2 border-[#1769c2]/30 pl-4">
+                  <div className="bg-[var(--paper)] px-5 py-4 sm:pl-24">
+                    <div className="space-y-2 border-l-2 border-[var(--accent)] pl-4">
                       <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">Previous record holders</p>
                       {record.history!.map((item, index) => (
                         <div key={`${record.id}-history-${index}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">

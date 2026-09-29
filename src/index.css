@@ -90,6 +90,83 @@
   }
 }
 
+@layer components {
+  .ta-filter-bar {
+    color: var(--ink);
+  }
+
+  .ta-select,
+  .ta-search-input {
+    border-radius: 0;
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .ta-select:hover,
+  .ta-search-input:hover {
+    border-color: rgba(7, 26, 43, 0.28);
+  }
+
+  .ta-select:focus-visible,
+  .ta-search-input:focus-visible,
+  .ta-pagination-button:focus-visible {
+    outline: 2px solid var(--accent-dark);
+    outline-offset: 2px;
+  }
+
+  /* Shared data-table treatment for the site's warm paper and navy palette. */
+  .ta-table-shell {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .ta-table-header {
+    border-bottom: 0;
+    background: var(--navy);
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .ta-table-row {
+    border-bottom: 0;
+    background: var(--surface);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    transition: background-color 150ms ease;
+  }
+
+  .ta-table-row:nth-child(even) { background: var(--paper); }
+  .ta-table-row:nth-child(odd) { background: var(--surface); }
+  .ta-table-row:hover { background: var(--ice); }
+
+  .ta-table-row-dark {
+    border-bottom: 0;
+    background: var(--navy-mid);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    transition: background-color 150ms ease;
+  }
+  .ta-table-row-dark:nth-child(even) { background: var(--navy-light); }
+
+  .ta-table-shell-paper { background: transparent; }
+  .ta-table-row-paper {
+    border-bottom: 0;
+    background: var(--surface);
+    transition: background-color 150ms ease;
+  }
+  .ta-table-row-paper:nth-child(odd) { background: var(--surface); }
+  .ta-table-row-paper:nth-child(even) { background: var(--paper); }
+  .ta-table-row-paper:hover { background: var(--ice); }
+
+  .ta-table-row-dark:hover { background: rgba(255, 255, 255, 0.06); }
+
+  .ta-table-flag {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+}
+
 @layer utilities {
   /* ── Colour utilities backed by brand tokens ────────────────────────────── */
   .text-accent    { color: var(--accent); }
@@ -163,7 +240,16 @@
   100% { background-position:  200% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, var(--neutral-200) 25%, var(--neutral-300) 50%, var(--neutral-200) 75%);
+  background: linear-gradient(90deg, var(--paper-dark) 25%, var(--border) 50%, var(--paper-dark) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

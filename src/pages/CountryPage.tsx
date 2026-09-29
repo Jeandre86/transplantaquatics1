@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { athletes } from '../data/athletes';
 import { countries } from '../data/countries';
-import AthleteDirectoryRow from '../components/AthleteDirectoryRow';
+import AthleteDirectoryTable from '../components/AthleteDirectoryTable';
+import DatasetNotice from '../components/DatasetNotice';
+import EmptyState from '../components/EmptyState';
 import Eyebrow from '../components/Eyebrow';
 import Pagination from '../components/Pagination';
 
@@ -57,6 +59,7 @@ export default function CountryPage() {
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
+          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-6 flex items-end justify-between border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Athlete directory</Eyebrow>
@@ -66,22 +69,9 @@ export default function CountryPage() {
           </div>
 
           {countryAthletes.length ? (
-            <div className="overflow-hidden border border-neutral-200 bg-white">
-              <div className="grid grid-cols-[76px_minmax(0,1fr)_28px] items-center gap-3 border-b border-neutral-200 bg-[#f4f5f6] px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest text-neutral-600 sm:grid-cols-[92px_minmax(140px,1.5fr)_90px_minmax(130px,1fr)_28px] sm:gap-4 sm:px-5 sm:text-xs md:grid-cols-[98px_minmax(160px,1.5fr)_100px_145px_minmax(140px,1fr)_28px] lg:grid-cols-[110px_minmax(200px,1.7fr)_110px_155px_minmax(160px,1fr)_28px]">
-                <span>Country</span>
-                <span>Athlete</span>
-                <span className="hidden sm:block">Gender</span>
-                <span className="hidden md:block">DOB</span>
-                <span className="hidden sm:block">Transplant Type</span>
-                <span aria-hidden="true" />
-              </div>
-              {pageAthletes.map((athlete, index) => <AthleteDirectoryRow key={athlete.id} athlete={athlete} index={index} />)}
-            </div>
+            <AthleteDirectoryTable athletes={pageAthletes} />
           ) : (
-            <div className="border border-dashed border-[var(--border)] bg-white px-6 py-14 text-center">
-              <p className="font-mono text-xs uppercase tracking-widest text-neutral-600">No swimmers listed yet</p>
-              <p className="mt-2 text-sm text-neutral-600">There are no athlete profiles from {country.name} in the directory yet.</p>
-            </div>
+            <EmptyState title="No swimmers listed yet" subtitle={`There are no athlete profiles from ${country.name} in the directory yet.`} />
           )}
           <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Country swimmer pages" />
         </div>

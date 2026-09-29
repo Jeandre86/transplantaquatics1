@@ -6,9 +6,14 @@ import { AGE_GROUPS, GENDERS, EVENTS, COURSES } from '../types';
 import ResultsTable from '../components/ResultsTable';
 import SearchInput from '../components/SearchInput';
 import FilterSelect from '../components/FilterSelect';
-import Eyebrow from '../components/Eyebrow';
 import TopSwimsSection from '../components/TopSwimsSection';
+import PageHeading from '../components/PageHeading';
+import DatasetNotice from '../components/DatasetNotice';
 import FilterBar from '../components/FilterBar';
+import VerificationLegend from '../components/VerificationLegend';
+import Pagination from '../components/Pagination';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -53,27 +58,23 @@ export default function ResultsPage() {
   const genderOptions = [ALL, ...GENDERS];
   const courseOptions = [ALL, ...COURSES];
   const verifiedOptions = [ALL, 'Verified', 'Pending', 'Unverified'];
+  const hasFilters = [search, filterCountry, filterEvent, filterAgeGroup, filterGender, filterCourse, filterVerified].some(value => value !== ALL && value !== '');
+  const clearFilters = () => {
+    setSearch(''); setFilterCountry(ALL); setFilterEvent(ALL); setFilterAgeGroup(ALL);
+    setFilterGender(ALL); setFilterCourse(ALL); setFilterVerified(ALL);
+  };
 
   return (
     <div style={{ backgroundColor: 'var(--paper)' }}>
       {/* Page header */}
-      <div style={{ backgroundColor: "var(--navy)" }} className="text-white py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <Eyebrow light className="mb-3">Results Database</Eyebrow>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight leading-none">
-            Every swim counts.
-          </h1>
-          <p style={{ color: "var(--muted-on-dark)" }} className="mt-4 text-base max-w-xl">
-            The complete results database for transplant swimming worldwide.
-          </p>
-        </div>
-      </div>
+      <PageHeading eyebrow="Results Database" title="Every swim counts." description="Explore results from transplant swimming competitions around the world." />
 
       <div className="max-w-7xl mx-auto px-4 py-10">
         <TopSwimsSection />
         {/* Filters */}
           <div className="mb-8">
             <h2 className="mb-4 text-2xl font-black tracking-tight text-[var(--ink)]">Worldwide Results</h2>
+            <div className="mb-5"><DatasetNotice /></div>
             <FilterBar className="mb-6">
             <div className="max-w-xl">
               <SearchInput
@@ -89,35 +90,19 @@ export default function ResultsPage() {
               <FilterSelect label="Gender" value={filterGender} options={genderOptions} onChange={setFilterGender} />
               <FilterSelect label="Course" value={filterCourse} options={courseOptions} onChange={setFilterCourse} />
               <FilterSelect label="Status" value={filterVerified} options={verifiedOptions} onChange={setFilterVerified} />
+              {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters} className="self-end">Clear filters</Button>}
             </div>
             </FilterBar>
           <div className="font-mono text-xs text-neutral-600">
             {filtered.length === 0 ? '0 results found' : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} results`}
           </div>
+          <div className="mt-4"><VerificationLegend /></div>
         </div>
 
-        <ResultsTable results={pageResults} showAthlete />
-        {pageCount > 1 && (
-          <nav className="mt-8 flex items-center justify-center gap-4" aria-label="Results pages">
-            <button
-              type="button"
-              onClick={() => setPage(current => Math.max(1, current - 1))}
-              disabled={page === 1}
-              className="border border-neutral-300 px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-800 transition-colors hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="font-mono text-xs text-neutral-600">Page {page} of {pageCount}</span>
-            <button
-              type="button"
-              onClick={() => setPage(current => Math.min(pageCount, current + 1))}
-              disabled={page === pageCount}
-              className="border border-neutral-300 px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-800 transition-colors hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
-          </nav>
-        )}
+        {filtered.length > 0 ? <>
+          <ResultsTable results={pageResults} showAthlete />
+          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Results pages" />
+        </> : <EmptyState title="No results match those filters" subtitle="Try changing your search or filters, or reset them to see all available sample results." action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />}
       </div>
     </div>
   );

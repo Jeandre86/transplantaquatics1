@@ -52,10 +52,11 @@ function TopSwimsCard({ gender, swims }: { gender: Gender; swims: Ranking[] }) {
         showGap={false}
         genderCard
         showEventMeta={false}
+        paperSurface
         title={gender}
       />
       {swims.length > PREVIEW_SIZE && (
-        <Link to={`/results/${gender.toLowerCase()}`} className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[#1769c2] hover:underline">
+        <Link to={`/results/${gender.toLowerCase()}`} className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[var(--accent-dark)] hover:underline">
           More <span aria-hidden="true">›</span>
         </Link>
       )}

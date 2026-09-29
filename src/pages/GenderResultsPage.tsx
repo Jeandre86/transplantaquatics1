@@ -9,6 +9,12 @@ import SearchInput from '../components/SearchInput';
 import FilterSelect from '../components/FilterSelect';
 import Eyebrow from '../components/Eyebrow';
 import FilterBar from '../components/FilterBar';
+import PageHeading from '../components/PageHeading';
+import DatasetNotice from '../components/DatasetNotice';
+import Pagination from '../components/Pagination';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
+import VerificationLegend from '../components/VerificationLegend';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -66,23 +72,19 @@ export default function GenderResultsPage() {
 
   return (
     <div style={{ backgroundColor: 'var(--paper)' }}>
-      <section style={{ backgroundColor: 'var(--navy)' }}>
-        <div className="max-w-7xl mx-auto px-4 py-14">
-          <Link to="/results" className="mb-8 inline-flex font-mono text-xs uppercase tracking-widest text-white/60 hover:text-white">← Worldwide results</Link>
-          <Eyebrow color="accent" onDark>Worldwide Results</Eyebrow>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-white md:text-5xl">{gender} results</h1>
-          <p className="mt-3 max-w-2xl text-sm text-white/70">Search and filter {gender.toLowerCase()} swims across events and competitions.</p>
-        </div>
-      </section>
+      <PageHeading eyebrow="Worldwide Results" title={`${gender} results`} description={`Search and filter ${gender.toLowerCase()} swims across events and competitions.`}>
+        <Link to="/results" className="inline-flex font-mono text-xs uppercase tracking-widest text-white/65 transition-colors hover:text-[var(--accent)]">← Worldwide results</Link>
+      </PageHeading>
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
+          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Results</Eyebrow>
               <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">{gender} swims</h2>
             </div>
-            {hasFilters && <button type="button" onClick={clearFilters} className="font-mono text-xs uppercase tracking-wider text-neutral-600 underline underline-offset-4 hover:text-black">Clear filters</button>}
+            {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
           </div>
 
           <FilterBar className="mb-6">
@@ -99,18 +101,15 @@ export default function GenderResultsPage() {
             </div>
           </FilterBar>
 
+          <div className="mb-4"><VerificationLegend /></div>
+
           <p className="mb-3 font-mono text-xs text-neutral-600">
             {filtered.length === 0 ? '0 results found' : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} results`}
           </p>
-          <ResultsTable results={pageResults} showAthlete />
-
-          {pageCount > 1 && (
-            <nav className="mt-8 flex items-center justify-center gap-4" aria-label={`${gender} results pages`}>
-              <button type="button" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page === 1} className="border border-neutral-300 px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-800 transition-colors hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
-              <span className="font-mono text-xs text-neutral-600">Page {page} of {pageCount}</span>
-              <button type="button" onClick={() => setPage(current => Math.min(pageCount, current + 1))} disabled={page === pageCount} className="border border-neutral-300 px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-800 transition-colors hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
-            </nav>
-          )}
+          {filtered.length ? <>
+            <ResultsTable results={pageResults} showAthlete />
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label={`${gender} results pages`} />
+          </> : <EmptyState title="No results match those filters" subtitle="Try adjusting your search or filters." action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />}
         </div>
       </section>
     </div>
