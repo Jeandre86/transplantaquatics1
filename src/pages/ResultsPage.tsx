@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react';
-import { results } from '../data/results';
-import { athletes } from '../data/athletes';
-import { countries } from '../data/countries';
 import { AGE_GROUPS, GENDERS, EVENTS, COURSES } from '../types';
-import ResultsTable from '../components/ResultsTable';
 import SearchInput from '../components/SearchInput';
 import FilterSelect from '../components/FilterSelect';
-import TopSwimsSection from '../components/TopSwimsSection';
 import PageHeading from '../components/PageHeading';
-import DatasetNotice from '../components/DatasetNotice';
 import FilterBar from '../components/FilterBar';
 import VerificationLegend from '../components/VerificationLegend';
 import Pagination from '../components/Pagination';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
+import { loadPublicSubmittedResults, type SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
+import DatabaseResultsTable from '../components/DatabaseResultsTable';
+import { describeSupabaseError } from '../lib/supabase';
+import { SkeletonTable } from '../components/Skeleton';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -27,37 +25,50 @@ export default function ResultsPage() {
   const [filterCourse, setFilterCourse] = useState(ALL);
   const [filterVerified, setFilterVerified] = useState(ALL);
   const [page, setPage] = useState(1);
+  const [submittedResults, setSubmittedResults] = useState<SubmittedSwimmerResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    loadPublicSubmittedResults()
+      .then(rows => {
+        if (!active) return;
+        setSubmittedResults(rows);
+      })
+      .catch(error => {
+        if (active) setLoadError(`Worldwide results could not be loaded from Supabase. ${describeSupabaseError(error)}`);
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     setPage(1);
   }, [search, filterCountry, filterEvent, filterAgeGroup, filterGender, filterCourse, filterVerified]);
 
-  const athleteNameMap: Record<string, string> = {};
-  athletes.forEach(a => { athleteNameMap[a.id] = `${a.firstName} ${a.lastName}`; });
-
-  const filtered = results.filter(r => {
-    const name = athleteNameMap[r.athleteId] ?? '';
-    if (search && !name.toLowerCase().includes(search.toLowerCase()) && !r.meet.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterEvent !== ALL && r.event !== filterEvent) return false;
-    if (filterAgeGroup !== ALL && r.ageGroup !== filterAgeGroup) return false;
-    if (filterGender !== ALL && r.gender !== filterGender) return false;
-    if (filterCourse !== ALL && r.course !== filterCourse) return false;
-    if (filterVerified !== ALL && r.verified !== filterVerified) return false;
-    if (filterCountry !== ALL) {
-      const athlete = athletes.find(a => a.id === r.athleteId);
-      if (!athlete || athlete.country !== filterCountry) return false;
-    }
+  const filtered = submittedResults.filter(result => {
+    const query = search.trim().toLowerCase();
+    const meetName = result.submitted_meets?.name ?? '';
+    if (query && !result.swimmer_name.toLowerCase().includes(query) && !meetName.toLowerCase().includes(query)) return false;
+    if (filterEvent !== ALL && result.event !== filterEvent) return false;
+    if (filterAgeGroup !== ALL && result.age_group !== filterAgeGroup) return false;
+    if (filterGender !== ALL && result.gender !== filterGender) return false;
+    if (filterCourse !== ALL && result.submitted_meets?.course !== filterCourse) return false;
+    const verificationStatus = result.status === 'verified' ? 'Verified' : 'Pending';
+    if (filterVerified !== ALL && verificationStatus !== filterVerified) return false;
+    if (filterCountry !== ALL && result.country !== filterCountry) return false;
     return true;
   });
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const pageResults = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const countryOptions = [ALL, ...countries.map(c => c.name).sort()];
-  const eventOptions = [ALL, ...EVENTS];
-  const ageGroupOptions = [ALL, ...AGE_GROUPS];
-  const genderOptions = [ALL, ...GENDERS];
-  const courseOptions = [ALL, ...COURSES];
-  const verifiedOptions = [ALL, 'Verified', 'Pending', 'Unverified'];
+  const countryOptions = [ALL, ...new Set(submittedResults.map(result => result.country).filter(Boolean).sort())];
+  const eventOptions = [ALL, ...new Set([...EVENTS, ...submittedResults.map(result => result.event)])];
+  const ageGroupOptions = [ALL, ...new Set([...AGE_GROUPS, ...submittedResults.map(result => result.age_group)])];
+  const genderOptions = [ALL, ...new Set([...GENDERS, ...submittedResults.map(result => result.gender)])];
+  const courseOptions = [ALL, ...new Set([...COURSES, ...submittedResults.map(result => result.submitted_meets?.course).filter((course): course is string => Boolean(course))])];
+  const verifiedOptions = [ALL, 'Verified', 'Pending'];
   const hasFilters = [search, filterCountry, filterEvent, filterAgeGroup, filterGender, filterCourse, filterVerified].some(value => value !== ALL && value !== '');
   const clearFilters = () => {
     setSearch(''); setFilterCountry(ALL); setFilterEvent(ALL); setFilterAgeGroup(ALL);
@@ -70,11 +81,8 @@ export default function ResultsPage() {
       <PageHeading eyebrow="Results Database" title="Every swim counts." description="Explore results from transplant swimming competitions around the world." />
 
       <div className="max-w-7xl mx-auto px-4 py-10">
-        <TopSwimsSection />
         {/* Filters */}
           <div className="mb-8">
-            <h2 className="mb-4 text-2xl font-black tracking-tight text-[var(--ink)]">Worldwide Results</h2>
-            <div className="mb-5"><DatasetNotice /></div>
             <FilterBar className="mb-6">
             <div className="max-w-xl">
               <SearchInput
@@ -93,16 +101,19 @@ export default function ResultsPage() {
               {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters} className="self-end">Clear filters</Button>}
             </div>
             </FilterBar>
-          <div className="font-mono text-xs text-neutral-600">
+          {!loading && !loadError && <div className="font-mono text-xs text-neutral-600">
             {filtered.length === 0 ? '0 results found' : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} results`}
-          </div>
+          </div>}
           <div className="mt-4"><VerificationLegend /></div>
         </div>
 
-        {filtered.length > 0 ? <>
-          <ResultsTable results={pageResults} showAthlete />
-          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Results pages" />
-        </> : <EmptyState title="No results match those filters" subtitle="Try changing your search or filters, or reset them to see all available sample results." action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />}
+        {loading ? <SkeletonTable rows={8} columns={12} />
+          : loadError ? <EmptyState title="Worldwide results are unavailable" subtitle={loadError} />
+          : <>
+            <DatabaseResultsTable results={pageResults} />
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Results pages" />
+            {filtered.length === 0 && hasFilters && <div className="mt-4"><Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
+          </>}
       </div>
     </div>
   );

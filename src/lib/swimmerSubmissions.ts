@@ -1,0 +1,324 @@
+import type { Gender, TransplantType } from '../types';
+import { supabase } from './supabase';
+
+export interface SwimmerProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender: Gender;
+  transplantType: TransplantType;
+  country: string;
+  countryCode: string;
+  clubId?: string;
+  clubName?: string;
+  isAccountHolder: boolean;
+}
+
+export interface SwimmerProfileDraft extends Omit<SwimmerProfile, 'id'> {
+  id?: string;
+}
+
+export interface PublicSwimmerProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  country: string;
+  country_code: string | null;
+  gender: Gender;
+  transplant_type: TransplantType;
+  age_group: string;
+  club_id: string | null;
+  club_name: string | null;
+}
+
+export interface PublicSwimmerResult {
+  id: string;
+  event: string;
+  time: string;
+  age_group: string;
+  points: number | null;
+  status: 'swimmer_submitted' | 'verified' | 'rejected';
+  created_at: string;
+  meet_name: string | null;
+  meet_date: string | null;
+  location: string | null;
+  course: string | null;
+  is_world_transplant_games: boolean;
+  represented_club_name: string | null;
+}
+
+export interface SubmittedMeetDraft {
+  name: string;
+  meetDate: string;
+  openingCeremonyDate: string | null;
+  location: string;
+  course: 'LCM' | 'SCM';
+  isWorldTransplantGames: boolean;
+}
+
+export interface SwimmerResultDraft {
+  meetId: string;
+  swimmer: SwimmerProfile;
+  event: string;
+  time: string;
+  ageGroup: string;
+  points: number | null;
+  recordCandidate: boolean;
+}
+
+export interface SubmittedSwimmerResult {
+  id: string;
+  athlete_id: string | null;
+  swimmer_id: string | null;
+  event: string;
+  time: string;
+  age_group: string;
+  points: number | null;
+  record_candidate: boolean;
+  record_candidate_status: 'not_candidate' | 'pending_verification' | 'verified' | 'rejected';
+  status: 'swimmer_submitted' | 'verified' | 'rejected';
+  created_at: string;
+  meet_id: string | null;
+  swimmer_name: string;
+  country: string;
+  country_code: string | null;
+  gender: string;
+  transplant_type: string;
+  represented_club_id?: string | null;
+  represented_club_name?: string | null;
+  submitted_meets?: {
+    name: string;
+    meet_date: string;
+    location: string;
+    course: string;
+    is_world_transplant_games: boolean;
+  } | null;
+}
+
+function client() {
+  if (!supabase) throw new Error('Supabase is not configured. Add the project URL and publishable key to .env.local.');
+  return supabase;
+}
+
+function normalizeSubmittedResult(row: Record<string, unknown>): SubmittedSwimmerResult {
+  const swimmerId = typeof row.swimmer_id === 'string' ? row.swimmer_id : null;
+  return {
+    ...row,
+    swimmer_id: swimmerId,
+    // Athlete directory rows share the canonical swimmer profile UUID. This
+    // fallback also supports databases where the optional athlete_id migration
+    // has not been applied yet.
+    athlete_id: typeof row.athlete_id === 'string' ? row.athlete_id : swimmerId,
+  } as SubmittedSwimmerResult;
+}
+
+export async function loadPublicSwimmerDirectory(): Promise<PublicSwimmerProfile[]> {
+  const { data, error } = await client().rpc('get_public_swimmer_directory');
+  if (error) throw error;
+  return (data ?? []) as PublicSwimmerProfile[];
+}
+
+export async function loadPublicSwimmerResults(swimmerId: string): Promise<PublicSwimmerResult[]> {
+  const { data, error } = await client().rpc('get_public_swimmer_results', { p_swimmer_id: swimmerId });
+  if (!error) return (data ?? []) as PublicSwimmerResult[];
+
+  // Older Supabase deployments may not have the public results RPC yet. Read
+  // the same public rows directly until the repair migration is applied.
+  if (error.code !== 'PGRST202') throw error;
+
+  const { data: resultRows, error: resultsError } = await client()
+    .from('swimmer_results')
+    .select('id,event,time,age_group,points,status,created_at,meet_id')
+    .eq('swimmer_id', swimmerId)
+    .neq('status', 'rejected')
+    .order('created_at', { ascending: false });
+  if (resultsError) throw resultsError;
+
+  const meetIds = [...new Set((resultRows ?? []).map((row) => row.meet_id).filter((id): id is string => Boolean(id)))];
+  const meetsById = new Map<string, { name: string; meet_date: string; location: string; course: string; is_world_transplant_games: boolean }>();
+  if (meetIds.length) {
+    const { data: meetRows, error: meetsError } = await client()
+      .from('submitted_meets')
+      .select('id,name,meet_date,location,course,is_world_transplant_games')
+      .in('id', meetIds);
+    if (meetsError) throw meetsError;
+    for (const meet of meetRows ?? []) {
+      meetsById.set(meet.id, {
+        name: meet.name,
+        meet_date: meet.meet_date,
+        location: meet.location,
+        course: meet.course,
+        is_world_transplant_games: meet.is_world_transplant_games,
+      });
+    }
+  }
+
+  return (resultRows ?? []).map((row) => {
+    const meet = row.meet_id ? meetsById.get(row.meet_id) : undefined;
+    return {
+      id: row.id,
+      event: row.event,
+      time: row.time,
+      age_group: row.age_group,
+      points: row.points,
+      status: row.status,
+      created_at: row.created_at,
+      meet_name: meet?.name ?? null,
+      meet_date: meet?.meet_date ?? null,
+      location: meet?.location ?? null,
+      course: meet?.course ?? null,
+      is_world_transplant_games: meet?.is_world_transplant_games ?? false,
+      represented_club_name: null,
+    } satisfies PublicSwimmerResult;
+  });
+}
+
+function mapSwimmer(row: Record<string, unknown>): SwimmerProfile {
+  return {
+    id: String(row.id),
+    firstName: String(row.first_name),
+    lastName: String(row.last_name),
+    dateOfBirth: String(row.date_of_birth),
+    gender: row.gender as Gender,
+    transplantType: row.transplant_type as TransplantType,
+    country: String(row.country),
+    countryCode: String(row.country_code ?? ''),
+    clubId: row.club_id ? String(row.club_id) : undefined,
+    clubName: row.club_name ? String(row.club_name) : undefined,
+    isAccountHolder: Boolean(row.is_account_holder),
+  };
+}
+
+export async function loadManagedSwimmers(): Promise<SwimmerProfile[]> {
+  const { data, error } = await client().from('swimmer_profiles').select('*').order('is_account_holder', { ascending: false }).order('first_name');
+  if (error) throw error;
+  return (data ?? []).map(row => mapSwimmer(row as Record<string, unknown>));
+}
+
+export async function saveManagedSwimmer(profile: SwimmerProfileDraft): Promise<SwimmerProfile> {
+  const payload = {
+    first_name: profile.firstName.trim(),
+    last_name: profile.lastName.trim(),
+    date_of_birth: profile.dateOfBirth,
+    gender: profile.gender,
+    transplant_type: profile.transplantType,
+    country: profile.country,
+    country_code: profile.countryCode || null,
+    club_id: profile.clubId || null,
+    club_name: profile.clubName || null,
+    is_account_holder: profile.isAccountHolder,
+  };
+  const request = profile.id
+    ? client().from('swimmer_profiles').update(payload).eq('id', profile.id)
+    : client().from('swimmer_profiles').insert(payload);
+  const { data, error } = await request.select('*').single();
+  if (error) throw error;
+  return mapSwimmer(data as Record<string, unknown>);
+}
+
+export async function deleteManagedSwimmer(id: string): Promise<void> {
+  const { error } = await client().from('swimmer_profiles').delete().eq('id', id).eq('is_account_holder', false);
+  if (error) throw error;
+}
+
+export async function findSubmittedMeet(meet: SubmittedMeetDraft): Promise<string | null> {
+  const db = client();
+  const lookup = () => {
+    let query = db.from('submitted_meets').select('id')
+    .ilike('name', meet.name.trim())
+    .eq('meet_date', meet.meetDate)
+    .ilike('location', meet.location.trim())
+    .eq('course', meet.course)
+    .eq('is_world_transplant_games', meet.isWorldTransplantGames);
+    query = meet.openingCeremonyDate ? query.eq('opening_ceremony_date', meet.openingCeremonyDate) : query.is('opening_ceremony_date', null);
+    return query.maybeSingle();
+  };
+  const existing = await lookup();
+  if (existing.error) throw existing.error;
+  return existing.data?.id ? String(existing.data.id) : null;
+}
+
+export async function findOrCreateSubmittedMeet(meet: SubmittedMeetDraft): Promise<string> {
+  const db = client();
+  const existingId = await findSubmittedMeet(meet);
+  if (existingId) return existingId;
+
+  const { data, error } = await db.from('submitted_meets').insert({
+    name: meet.name.trim(),
+    meet_date: meet.meetDate,
+    opening_ceremony_date: meet.openingCeremonyDate,
+    location: meet.location.trim(),
+    course: meet.course,
+    is_world_transplant_games: meet.isWorldTransplantGames,
+  }).select('id').single();
+  if (!error) return String(data.id);
+  if (error.code === '23505') {
+    const concurrent = await findSubmittedMeet(meet);
+    if (concurrent) return concurrent;
+  }
+  throw error;
+}
+
+export async function loadMeetResults(meetId: string, swimmerId: string): Promise<SubmittedSwimmerResult[]> {
+  const { data, error } = await client().from('swimmer_results')
+    .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name')
+    .eq('meet_id', meetId).eq('swimmer_id', swimmerId).order('event');
+  if (error) throw error;
+  return (data ?? []).map(row => normalizeSubmittedResult(row));
+}
+
+export async function saveSwimmerResult(result: SwimmerResultDraft): Promise<SubmittedSwimmerResult> {
+  const { data, error } = await client().from('swimmer_results').upsert({
+    meet_id: result.meetId,
+    swimmer_id: result.swimmer.id,
+    swimmer_name: `${result.swimmer.firstName} ${result.swimmer.lastName}`.trim(),
+    country: result.swimmer.country,
+    country_code: result.swimmer.countryCode || null,
+    gender: result.swimmer.gender,
+    transplant_type: result.swimmer.transplantType,
+    represented_club_id: result.swimmer.clubId || null,
+    represented_club_name: result.swimmer.clubName || null,
+    event: result.event,
+    time: result.time.trim(),
+    age_group: result.ageGroup,
+    points: result.points,
+    record_candidate: result.recordCandidate,
+    record_candidate_status: result.recordCandidate ? 'pending_verification' : 'not_candidate',
+    status: 'swimmer_submitted',
+  }, { onConflict: 'meet_id,swimmer_id,event' })
+    .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name')
+    .single();
+  if (error) throw error;
+  return normalizeSubmittedResult(data);
+}
+
+export async function loadMySubmittedResults(): Promise<SubmittedSwimmerResult[]> {
+  const db = client();
+  const { data: { user }, error: userError } = await db.auth.getUser();
+  if (userError) throw userError;
+  if (!user) return [];
+  const { data, error } = await db.from('swimmer_results')
+    .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)')
+    .eq('submitted_by', user.id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(row => normalizeSubmittedResult(row));
+}
+
+export async function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> {
+  const rows: SubmittedSwimmerResult[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await client().from('swimmer_results')
+      .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)')
+      .neq('status', 'rejected')
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const pageRows = (data ?? []).map(row => normalizeSubmittedResult(row));
+    rows.push(...pageRows);
+    if (pageRows.length < pageSize) break;
+  }
+  return rows;
+}

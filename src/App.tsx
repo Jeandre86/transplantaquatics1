@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import PageLoading from './components/PageLoading';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
+import { useAuth } from './contexts/AuthContext';
 
 function ScrollToTop() {
   const { key } = useLocation();
@@ -39,8 +40,22 @@ const SubmitResultPage = lazy(() => import('./pages/SubmitResultPage'));
 const WTGPage = lazy(() => import('./pages/WTGPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
+const CoachClubPage = lazy(() => import('./pages/CoachClubPage'));
+
+function HomeRoute() {
+  const auth = useAuth();
+
+  if (auth.isLoading) return <PageLoading />;
+
+  return (
+    <Suspense fallback={<PageLoading />}>
+      {auth.isLoggedIn ? <DashboardPage /> : <HomePage />}
+    </Suspense>
+  );
+}
 
 export default function App() {
   return (
@@ -49,7 +64,7 @@ export default function App() {
       <RouteErrorBoundary>
         <Routes>
           <Route path="/" element={<MainLayout />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<HomeRoute />} />
           <Route path="rankings" element={<RankingsPage />} />
           <Route path="rankings/transplant-type" element={<TransplantTypeRankingsPage />} />
           <Route path="rankings/:gender" element={<GenderRankingsPage />} />
@@ -66,18 +81,20 @@ export default function App() {
           <Route path="about/:section" element={<AboutPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="join" element={<JoinPage />} />
+          <Route path="dashboard" element={<Suspense fallback={<PageLoading />}><DashboardPage /></Suspense>} />
+          <Route path="profile" element={<Suspense fallback={<PageLoading />}><ProfilePage /></Suspense>} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="meets/:id" element={<MeetPage />} />
           <Route path="clubs" element={<ClubsPage />} />
           <Route path="clubs/:id" element={<ClubPage />} />
+          <Route path="coach/club" element={<Suspense fallback={<PageLoading />}><CoachClubPage /></Suspense>} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="submit" element={<SubmitResultPage />} />
           <Route path="games" element={<WTGPage />} />
           <Route path="*" element={<NotFoundPage />} />
           </Route>
-          {/* Full-page routes — no main nav */}
+          {/* Standalone auth route — no main nav */}
           <Route path="/login" element={<Suspense fallback={<PageLoading />}><LoginPage /></Suspense>} />
-          <Route path="/profile" element={<Suspense fallback={<PageLoading />}><ProfilePage /></Suspense>} />
         </Routes>
       </RouteErrorBoundary>
     </BrowserRouter>

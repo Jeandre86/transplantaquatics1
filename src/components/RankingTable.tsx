@@ -101,7 +101,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
             {showGender && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Gender</th>}
             {genderCard && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Event</th>}
             <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5">Time</th>
-            {showPoints && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="Transplant Aquatics points, scored against the matching WTG age-group world record">PTS</th>}
+            {showPoints && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="World Aquatics base times are used; matching WTG records are used for junior 25m events">PTS</th>}
             {showGap && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden md:table-cell sm:px-5">Gap</th>}
             {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-center hidden lg:table-cell sm:px-5">WTG</th>}
             {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden lg:table-cell sm:px-5">Pct</th>}
@@ -150,28 +150,28 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                         className="block truncate font-medium text-base hover:underline"
                         style={{ color: light ? 'var(--ink-on-dark)' : 'var(--ink)' }}
                       >
-                        {r.athleteName}
+                        {r.athleteName || '—'}
                       </Link>
                       <span className={`mt-1 flex items-center gap-1.5 font-mono text-xs ${light ? 'text-white/70' : 'text-[var(--muted)]'}`} title={r.country}>
-                        <span className="ta-table-flag" aria-hidden="true">{flag}</span>
-                        <span className="font-semibold tracking-wider">{getCountryAlpha3(r.countryCode)}</span>
+                        <span className="ta-table-flag" aria-hidden="true">{r.countryCode ? flag : '—'}</span>
+                        <span className="font-semibold tracking-wider">{r.countryCode ? getCountryAlpha3(r.countryCode) : '—'}</span>
                       </span>
                     </span>
                   </div>
                   {showCategory && !genderCard && (
                   <div className={`mt-1 pl-4 font-mono text-[10px] leading-relaxed ${light ? 'text-white/55' : 'text-[var(--muted)]'}`}>
-                      {r.ageGroup}
+                      {r.ageGroup || '—'}
                     </div>
                   )}
                 </td>
 
-                {showAgeGroup && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.ageGroup}</td>}
-                {showGender && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.gender}</td>}
+                {showAgeGroup && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.ageGroup || '—'}</td>}
+                {showGender && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.gender || '—'}</td>}
 
                 {genderCard && (
                   <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">
-                    <div>{r.event.replace('m ', ' ')}</div>
-                    {showEventMeta && <div className="mt-1 font-mono text-[10px] text-[var(--muted)]">{showGenderInEvent && `${r.gender} · `}{r.ageGroup} · {r.course}</div>}
+                    <div>{r.event ? r.event.replace('m ', ' ') : '—'}</div>
+                    {showEventMeta && <div className="mt-1 font-mono text-[10px] text-[var(--muted)]">{showGenderInEvent && `${r.gender || '—'} · `}{r.ageGroup || '—'} · {r.course || '—'}</div>}
                   </td>
                 )}
 
@@ -182,7 +182,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                       className="font-mono font-bold text-base"
                     style={{ color: light ? (isLeader ? 'var(--accent)' : 'var(--ink-on-dark)') : isLeader ? 'var(--accent-dark)' : 'var(--navy)' }}
                     >
-                      {r.time}
+                      {r.time || '—'}
                     </span>
                     {showVerified && <VerifiedBadge status={verified} />}
                   </div>
@@ -193,8 +193,8 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                     className="font-mono text-sm font-bold"
                     style={{ color: transplantPoints === null ? 'var(--muted)' : 'var(--navy)' }}
                     title={transplantPoints === null
-                      ? 'No matching WTG world-record baseline is available for this course and category.'
-                      : 'Transplant Aquatics points: 1,000 points equals the matching WTG age-group world record.'}
+                      ? 'No World Aquatics or matching WTG baseline is available for this event and category.'
+                      : 'PTS use the World Aquatics event, gender, and course base time; junior 25m events use a matching WTG record.'}
                   >
                     {transplantPoints === null ? '—' : transplantPoints.toLocaleString()}
                   </span>

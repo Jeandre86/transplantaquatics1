@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { rankings } from '../data/rankings';
+import type { Ranking } from '../types';
 import { AGE_GROUPS, COURSES, EVENTS } from '../types';
 import RankingTable from '../components/RankingTable';
 import FilterSelect from '../components/FilterSelect';
@@ -10,9 +10,11 @@ import { timeToSeconds } from '../lib/utils';
 import Pagination from '../components/Pagination';
 import FilterBar from '../components/FilterBar';
 import PageHeading from '../components/PageHeading';
-import DatasetNotice from '../components/DatasetNotice';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
+import { loadDatabaseRankings } from '../lib/databaseRankings';
+import { describeSupabaseError } from '../lib/supabase';
+import { SkeletonTable } from '../components/Skeleton';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -25,6 +27,18 @@ export default function GenderRankingsPage() {
   const [course, setCourse] = useState(ALL);
   const [rankMode, setRankMode] = useState<'Points' | 'Time'>('Points');
   const [page, setPage] = useState(1);
+  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadDatabaseRankings()
+      .then(rows => { if (active) setRankings(rows); })
+      .catch(error => { if (active) setLoadError(describeSupabaseError(error)); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -65,13 +79,12 @@ export default function GenderRankingsPage() {
 
   return (
     <div>
-      <PageHeading eyebrow="World Rankings" title={`${gender} rankings`} description={`Explore ${gender.toLowerCase()} transplant swimmer performances. Choose whether to rank by TA points or fastest time, then filter by age group, event, or course.`}>
+      <PageHeading eyebrow="World Rankings" title={`${gender} rankings`} description={`Explore ${gender.toLowerCase()} transplant swimmer performances. Choose whether to rank by World Aquatics PTS or fastest time, then filter by age group, event, or course.`}>
         <Link to="/rankings" className="inline-flex font-mono text-xs uppercase tracking-widest text-white/65 transition-colors hover:text-[var(--accent)]">← All rankings</Link>
       </PageHeading>
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
-          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Leaderboard</Eyebrow>
@@ -89,7 +102,11 @@ export default function GenderRankingsPage() {
             </div>
           </FilterBar>
 
-          {filtered.length > 0 ? <>
+          {loading ? (
+            <SkeletonTable rows={8} columns={5} />
+          ) : loadError ? (
+            <p role="status" className="py-8 text-center text-sm text-red-700">Rankings could not be loaded: {loadError}</p>
+          ) : filtered.length > 0 ? <>
             <p className="mb-3 font-mono text-xs text-neutral-600">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} ranking{filtered.length === 1 ? '' : 's'}</p>
             <RankingTable rankings={pageRankings} showVerified={false} rankByPoints rankOffset={(page - 1) * PAGE_SIZE} rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title={gender} />
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label={`${gender} ranking pages`} />

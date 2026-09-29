@@ -4,7 +4,7 @@ import { ExternalLink, Globe, ArrowLeft, Heart } from 'lucide-react';
 import { athletes } from '../data/athletes';
 import { results } from '../data/results';
 import { rankings } from '../data/rankings';
-import { getFlagEmoji, getAgeFromDOB, formatDate } from '../lib/utils';
+import { getFlagEmoji, getAgeFromDOB, formatDate, timeToSeconds } from '../lib/utils';
 import TransplantBadge from '../components/TransplantBadge';
 import PersonalBestTable from '../components/PersonalBestTable';
 import ResultsTable from '../components/ResultsTable';
@@ -14,26 +14,69 @@ import EmptyState from '../components/EmptyState';
 import Eyebrow from '../components/Eyebrow';
 import Pagination from '../components/Pagination';
 import { getSavedAvatar } from '../lib/avatars';
-import DatasetNotice from '../components/DatasetNotice';
+import { loadPublicSwimmerDirectory, loadPublicSwimmerResults, type PublicSwimmerProfile, type PublicSwimmerResult } from '../lib/swimmerSubmissions';
+import { describeSupabaseError } from '../lib/supabase';
+import type { AgeGroup, PersonalBest, Result } from '../types';
+import DatabaseResultsTable from '../components/DatabaseResultsTable';
+import PageLoading from '../components/PageLoading';
+import { SkeletonTable } from '../components/Skeleton';
 
 const RESULT_PAGE_SIZE = 10;
 
-type Tab = 'Results' | 'Overview' | 'Medals';
+type Tab = 'Overview' | 'Medals';
 
 export default function AthleteProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab]                   = useState<Tab>('Overview');
   const [resultPage, setResultPage]     = useState(1);
+  const [registeredAthlete, setRegisteredAthlete] = useState<PublicSwimmerProfile | null>(null);
+  const [registeredResults, setRegisteredResults] = useState<PublicSwimmerResult[]>([]);
+  const [registeredLoading, setRegisteredLoading] = useState(false);
+  const [registeredError, setRegisteredError] = useState('');
   useEffect(() => setResultPage(1), [id, tab]);
 
   const athlete = athletes.find(a => a.id === id);
 
+  useEffect(() => {
+    if (!id) {
+      setRegisteredAthlete(null);
+      setRegisteredResults([]);
+      return;
+    }
+    let active = true;
+    setRegisteredLoading(true);
+    setRegisteredError('');
+    setRegisteredResults([]);
+    if (athlete) {
+      setRegisteredAthlete(null);
+      loadPublicSwimmerResults(id)
+        .then(swimmerResults => { if (active) setRegisteredResults(swimmerResults); })
+        .catch(error => { if (active) setRegisteredError(`Results could not be loaded from the database. ${describeSupabaseError(error)}`); })
+        .finally(() => { if (active) setRegisteredLoading(false); });
+      return () => { active = false; };
+    }
+    loadPublicSwimmerDirectory().then(async profiles => {
+      const profile = profiles.find(entry => entry.id === id) ?? null;
+      if (!active) return;
+      setRegisteredAthlete(profile);
+      if (profile) {
+        const swimmerResults = await loadPublicSwimmerResults(profile.id);
+        if (active) setRegisteredResults(swimmerResults);
+      }
+    }).catch(error => {
+      if (active) setRegisteredError(`This athlete profile or its results could not be loaded. ${describeSupabaseError(error)}`);
+    }).finally(() => { if (active) setRegisteredLoading(false); });
+    return () => { active = false; };
+  }, [id, athlete]);
+
   if (!athlete) {
+    if (registeredLoading) return <PageLoading />;
+    if (registeredAthlete) return <RegisteredAthleteProfile athlete={registeredAthlete} results={registeredResults} loading={registeredLoading} error={registeredError} />;
     return (
       <div className="max-w-7xl mx-auto px-4 py-20">
         <EmptyState
-          title="Athlete not found"
-          subtitle="This athlete profile does not exist or has been removed."
+          title={registeredError ? 'Athlete data is unavailable' : 'Athlete not found'}
+          subtitle={registeredError || 'This athlete profile does not exist or has been removed.'}
         />
         <div className="text-center mt-6">
           <Link to="/athletes" className="font-mono text-sm text-neutral-500 hover:text-black underline">
@@ -48,8 +91,37 @@ export default function AthleteProfilePage() {
   const avatarUrl      = getSavedAvatar(athlete.firstName, athlete.lastName);
   const age            = getAgeFromDOB(athlete.dateOfBirth);
   const athleteResults = results.filter(r => r.athleteId === athlete.id);
-  const resultPageCount = Math.ceil(athleteResults.length / RESULT_PAGE_SIZE);
-  const pageResults = athleteResults.slice((resultPage - 1) * RESULT_PAGE_SIZE, resultPage * RESULT_PAGE_SIZE);
+  const bestByEvent = new Map<string, PublicSwimmerResult>();
+  registeredResults.forEach(result => {
+    if (result.course !== 'LCM' && result.course !== 'SCM') return;
+    const key = `${result.event}|${result.course}`;
+    const current = bestByEvent.get(key);
+    if (!current || timeToSeconds(result.time) < timeToSeconds(current.time)) bestByEvent.set(key, result);
+  });
+  const databasePersonalBests: PersonalBest[] = [...bestByEvent.values()]
+    .sort((a, b) => a.event.localeCompare(b.event) || (a.course ?? '').localeCompare(b.course ?? ''))
+    .map(result => ({
+      event: result.event as PersonalBest['event'],
+      course: result.course as PersonalBest['course'],
+      time: result.time,
+      date: result.meet_date ?? result.created_at,
+      meet: result.meet_name ?? 'Meet details unavailable',
+      verified: result.status === 'verified' ? 'Verified' : 'Pending',
+    }));
+  const databaseResultsForTable: Result[] = registeredResults.map(result => ({
+    id: result.id,
+    event: result.event as Result['event'],
+    course: (result.course ?? '') as Result['course'],
+    time: result.time,
+    date: result.meet_date ?? result.created_at,
+    meet: result.meet_name ?? 'Meet details unavailable',
+    ageGroup: result.age_group as Result['ageGroup'],
+    gender: athlete.gender,
+    verified: result.status === 'verified' ? 'Verified' : 'Pending',
+    isPB: databasePersonalBests.some(best => best.event === result.event && best.course === result.course && best.time === result.time),
+    isSB: false,
+    athleteId: athlete.id,
+  }));
   const ranking        = rankings.find(r => r.athleteId === athlete.id);
   const medalCounts = athlete.medals.reduce((counts, medal) => {
     counts[medal.color] += 1;
@@ -65,7 +137,7 @@ export default function AthleteProfilePage() {
   const percentile   = Math.max(1, Math.ceil((myRank / totalInGroup) * 100));
   const percentileLabel = `Top ${percentile}% in ${athlete.ageGroup} ${athlete.gender} 100m Freestyle`;
 
-  const TABS: Tab[] = ['Overview', 'Results', 'Medals'];
+  const TABS: Tab[] = ['Overview', 'Medals'];
 
   return (
     <div style={{ backgroundColor: 'var(--surface)' }}>
@@ -179,7 +251,6 @@ export default function AthleteProfilePage() {
 
       <section className="border-b border-[var(--border)] bg-[var(--paper)]">
         <div className="mx-auto max-w-7xl px-4 py-6">
-          <div className="mb-5"><DatasetNotice /></div>
           <dl className="grid grid-cols-2 gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-4">
             {[
               { label: 'Personal bests', value: athlete.personalBests.length, detail: 'events recorded' },
@@ -225,6 +296,7 @@ export default function AthleteProfilePage() {
       <div id="athlete-profile-panel" role="tabpanel" aria-labelledby={`athlete-tab-${tab.toLowerCase()}`} tabIndex={0} className="mx-auto max-w-7xl px-4 py-10 focus-visible:outline-none">
 
         {tab === 'Overview' && (
+          <div className="space-y-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             {/* Main column */}
             <div className="lg:col-span-2 space-y-10">
@@ -335,38 +407,16 @@ export default function AthleteProfilePage() {
               )}
             </div>
           </div>
-        )}
-
-        {tab === 'Results' && (
-          <div className="space-y-12">
+          <div className="space-y-10">
             <section>
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
-                <div>
-                  <Eyebrow>Results</Eyebrow>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Best performances</h2>
-                </div>
-                <span className="font-mono text-xs text-[var(--muted)]">{athlete.personalBests.length} events</span>
-              </div>
-              <PersonalBestTable pbs={athlete.personalBests} gender={athlete.gender} ageGroup={athlete.ageGroup} />
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Best performances</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{databasePersonalBests.length} events</span></div>
+              <PersonalBestTable pbs={databasePersonalBests} gender={athlete.gender} ageGroup={athlete.ageGroup} />
             </section>
-
             <section>
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
-                <div>
-                  <Eyebrow>Competition history</Eyebrow>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Previous results</h2>
-                </div>
-                <span className="font-mono text-xs text-[var(--muted)]">{athleteResults.length} result{athleteResults.length === 1 ? '' : 's'}</span>
-              </div>
-              {athleteResults.length > 0 ? (
-                <>
-                  <ResultsTable results={pageResults} />
-                  <Pagination page={resultPage} pageCount={resultPageCount} onPageChange={setResultPage} label="Athlete result pages" />
-                </>
-              ) : (
-                <EmptyState title="No results yet" subtitle="Competition results for this athlete have not been added yet." />
-              )}
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Competition history</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Previous results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{registeredResults.length} result{registeredResults.length === 1 ? '' : 's'}</span></div>
+              {registeredLoading ? <SkeletonTable rows={6} columns={7} /> : registeredError ? <EmptyState title="Results unavailable" subtitle={registeredError} /> : registeredResults.length > 0 ? <><ResultsTable results={databaseResultsForTable.slice((resultPage - 1) * RESULT_PAGE_SIZE, resultPage * RESULT_PAGE_SIZE)} /><Pagination page={resultPage} pageCount={Math.ceil(registeredResults.length / RESULT_PAGE_SIZE)} onPageChange={setResultPage} label="Athlete result pages" /></> : <EmptyState title="No results yet" subtitle="Competition results for this athlete have not been added to the database yet." />}
             </section>
+          </div>
           </div>
         )}
 
@@ -380,4 +430,97 @@ export default function AthleteProfilePage() {
 
     </div>
   );
+}
+
+function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlete: PublicSwimmerProfile; results: PublicSwimmerResult[]; loading: boolean; error: string }) {
+  const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<'Overview' | 'Personal Bests' | 'Medals'>('Overview');
+  useEffect(() => { setPage(1); setTab('Overview'); }, [athlete.id]);
+  const pageCount = Math.ceil(results.length / RESULT_PAGE_SIZE);
+  const visibleResults = results.slice((page - 1) * RESULT_PAGE_SIZE, page * RESULT_PAGE_SIZE);
+  const bestByEvent = new Map<string, PublicSwimmerResult>();
+  results.forEach(result => {
+    const key = `${result.event || 'Event unavailable'}|${result.course || 'Course unavailable'}`;
+    const current = bestByEvent.get(key);
+    if (!current || timeToSeconds(result.time) < timeToSeconds(current.time)) bestByEvent.set(key, result);
+  });
+  const personalBests: PersonalBest[] = [...bestByEvent.values()]
+    .sort((a, b) => a.event.localeCompare(b.event) || (a.course ?? '').localeCompare(b.course ?? ''))
+    .map(result => ({
+      event: result.event as PersonalBest['event'],
+      course: result.course as PersonalBest['course'],
+      time: result.time,
+      date: result.meet_date ?? result.created_at,
+      meet: result.meet_name ?? 'Meet details unavailable',
+      verified: result.status === 'verified' ? 'Verified' : 'Pending',
+    }));
+  const tabs = ['Overview', 'Personal Bests', 'Medals'] as const;
+
+  return <div style={{ backgroundColor: 'var(--paper)' }}>
+    <section className="bg-[var(--navy)] text-white">
+      <div className="mx-auto max-w-7xl px-4 py-10">
+        <Link to="/athletes" className="mb-6 inline-flex items-center gap-1.5 font-mono text-xs text-white/65 hover:text-white"><ArrowLeft size={13} /> All athletes</Link>
+        <div className="flex flex-col gap-6 md:flex-row md:items-end">
+          <div className="flex size-20 shrink-0 items-center justify-center rounded-full bg-[var(--navy-light)] font-mono text-2xl font-bold">{athlete.first_name[0]}{athlete.last_name[0]}</div>
+          <div className="min-w-0 flex-1">
+            <Eyebrow onDark>Athlete profile</Eyebrow>
+            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{athlete.first_name} {athlete.last_name}</h1>
+            <p className="mt-2 text-sm text-white/70">{getFlagEmoji(athlete.country_code ?? '')} {athlete.country || 'Country unavailable'} <span className="px-1.5">·</span> {athlete.gender || 'Gender unavailable'} <span className="px-1.5">·</span> {athlete.transplant_type || 'Transplant type unavailable'} <span className="px-1.5">·</span> {athlete.age_group || 'Age group unavailable'}</p>
+            {athlete.club_name && <p className="mt-1 text-sm text-white/70">Club: {athlete.club_name}</p>}
+          </div>
+          <div className="shrink-0 md:w-72">
+            <Eyebrow onDark className="mb-3">Transplant Games Medals</Eyebrow>
+            <div className="grid grid-cols-3 gap-2" aria-label="World Transplant Games medal totals">
+              {[
+                { label: 'Gold', color: '#f5c542' },
+                { label: 'Silver', color: '#d1d5db' },
+                { label: 'Bronze', color: '#d4956a' },
+              ].map(medal => (
+                <div key={medal.label} className="border border-white/15 bg-white/5 px-3 py-2 text-center">
+                  <div className="font-mono text-2xl font-black" style={{ color: medal.color }}>—</div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-white/60">{medal.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <nav className="border-b border-neutral-200" style={{ backgroundColor: '#f4f2ed' }} aria-label="Athlete profile sections">
+      <div className="mx-auto flex max-w-7xl gap-0 overflow-x-auto px-4" role="tablist" aria-label="Athlete profile details">
+        {tabs.map(label => <button key={label} id={`registered-athlete-tab-${label.toLowerCase().replace(/\s+/g, '-')}`} type="button" role="tab" aria-controls="registered-athlete-panel" aria-selected={tab === label} onClick={() => setTab(label)} className="whitespace-nowrap border-b-2 px-5 py-4 font-mono text-xs font-semibold uppercase tracking-widest transition-colors" style={{ color: tab === label ? 'var(--accent-dark)' : 'var(--muted)', borderBottomColor: tab === label ? 'var(--accent)' : 'transparent' }}>{label}</button>)}
+      </div>
+    </nav>
+    <section id="registered-athlete-panel" role="tabpanel" aria-labelledby={`registered-athlete-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`} className="mx-auto max-w-7xl px-4 py-9">
+      {loading ? <SkeletonTable rows={6} columns={12} /> : <>
+      {error && <div role="alert" className="mb-6 border border-red-300 bg-red-50 px-5 py-4 text-sm text-red-800">{error}</div>}
+      {tab === 'Overview' ? <div className="space-y-8">
+            <div className="grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-3">
+              {[{ label: 'Personal bests', value: loading || error ? '—' : personalBests.length }, { label: 'Results', value: loading || error ? '—' : results.length }, { label: 'Medals', value: '—' }].map(stat => <div key={stat.label} className="bg-[var(--surface)] px-5 py-4"><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">{stat.label}</p><p className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">{stat.value}</p></div>)}
+            </div>
+            <div>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Competition history</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{results.length} result{results.length === 1 ? '' : 's'}</span></div>
+              <DatabaseResultsTable results={visibleResults} showAthlete={false} />
+              <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete results pages" />
+            </div>
+          </div>
+          : tab === 'Personal Bests' ? <div>
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Best performances</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Personal best results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{personalBests.length} events</span></div>
+            <PersonalBestTable pbs={personalBests} gender={athlete.gender} ageGroup={athlete.age_group as AgeGroup} />
+          </div>
+            : <div>
+                <div className="mb-5 border-b border-[var(--border)] pb-4"><Eyebrow>Achievements</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Transplant Games medals</h2></div>
+                <div>
+                  <div className="ta-table-shell overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead><tr className="ta-table-header">{['Games', 'Gold', 'Silver', 'Bronze', 'Total'].map(label => <th key={label} className={`whitespace-nowrap px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Games' ? 'text-left' : 'text-center'}`}>{label}</th>)}</tr></thead>
+                      <tbody><tr className="ta-table-row"><td className="px-3 py-4 text-sm font-semibold text-[var(--ink)] sm:px-5">World Transplant Games</td>{['Gold', 'Silver', 'Bronze', 'Total'].map(label => <td key={label} className="px-3 py-4 text-center font-mono text-sm text-[var(--muted)] sm:px-5">—</td>)}</tr></tbody>
+                    </table>
+                  </div>
+                  <p className="mt-3 text-xs text-[var(--muted)]">Medal totals are unavailable until medal data is connected. A dash means unknown; zero will be shown when a confirmed total is zero.</p>
+                </div>
+              </div>}
+      </>}
+    </section>
+  </div>;
 }

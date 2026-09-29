@@ -1,547 +1,217 @@
-import { useState, useRef } from 'react';
-import { EVENTS, COURSES } from '../types';
-import Eyebrow from '../components/Eyebrow';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Plus, Trash2, Trophy } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { COURSES, EVENTS, type Course } from '../types';
+import { getCompetitionAgeGroup, getSubmissionPoints, getWorldRecordBaseline } from '../lib/competitionAge';
+import { findOrCreateSubmittedMeet, findSubmittedMeet, loadManagedSwimmers, loadMeetResults, saveSwimmerResult, type SubmittedMeetDraft, type SubmittedSwimmerResult, type SwimmerProfile } from '../lib/swimmerSubmissions';
+import { Skeleton } from '../components/Skeleton';
 
-type Step = 1 | 2 | 3 | 4;
-
-interface MeetDetails {
-  meetName: string;
-  date: string;
+type Step = 1 | 2 | 3;
+interface MeetForm {
+  name: string;
+  meetDate: string;
   location: string;
-  course: string;
-  level: string;
+  course: Course;
+  isWorldTransplantGames: boolean;
+  openingCeremonyDate: string;
+}
+interface EventEntry { id: string; event: string; time: string }
+
+const JUNIOR_EVENTS = ['25m Freestyle', '25m Backstroke', '25m Breaststroke', '25m Butterfly'];
+const RESULT_EVENTS = [...JUNIOR_EVENTS, ...EVENTS];
+const newEntry = (): EventEntry => ({ id: crypto.randomUUID(), event: '', time: '' });
+const TIME_PATTERN = /^\d{1,2}:\d{2}\.\d{1,2}$|^\d{1,3}\.\d{1,2}$/;
+
+function seconds(time: string): number {
+  const parts = time.split(':').map(Number);
+  return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
 }
 
-interface SwimDetails {
-  athleteName: string;
-  athleteId: string;
-  event: string;
-  time: string;
-  heatType: string;
+function missingDatabaseMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  if (/swimmer_profiles|submitted_meets|swimmer_results|schema cache|relation .* does not exist/i.test(message)) {
+    return 'The result-submission tables are not set up in Supabase yet. Run the meet submission migration in supabase/migrations/20260930100000_create_meet_submissions.sql.';
+  }
+  return message || 'We could not save your submission. Please try again.';
 }
-
-// Simple time format validator: MM:SS.ss or SS.ss
-function isValidTime(t: string): boolean {
-  return /^\d{1,2}:\d{2}\.\d{2}$/.test(t) || /^\d{1,2}\.\d{2}$/.test(t);
-}
-
-// Generate a reference number
-function genRef(): string {
-  return 'SS-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
-const LEVEL_OPTIONS = ['Local', 'National', 'International', 'World Transplant Games', 'Other'];
-
-const inputClass = `w-full px-4 py-3 border font-mono text-sm outline-none transition-colors`;
-const inputStyle = {
-  backgroundColor: 'var(--navy)',
-  borderColor: 'var(--navy-light)',
-  color: 'var(--ink-on-dark)',
-};
-
-const labelClass = 'block font-mono text-xs uppercase tracking-widest mb-1.5';
-const labelStyle = { color: 'var(--muted-on-dark)' };
 
 export default function SubmitResultPage() {
+  const auth = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
-  const [meet, setMeet] = useState<MeetDetails>({
-    meetName: '', date: '', location: '', course: 'LCM', level: 'Local',
+  const [meet, setMeet] = useState<MeetForm>({ name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' });
+  const [swimmers, setSwimmers] = useState<SwimmerProfile[]>([]);
+  const [swimmerId, setSwimmerId] = useState('');
+  const [profilesLoading, setProfilesLoading] = useState(true);
+  const [entries, setEntries] = useState<EventEntry[]>([newEntry()]);
+  const [existingResults, setExistingResults] = useState<SubmittedSwimmerResult[]>([]);
+  const [savedResults, setSavedResults] = useState<SubmittedSwimmerResult[]>([]);
+  const [loadingExisting, setLoadingExisting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!auth.isLoading && !auth.isLoggedIn) navigate('/login', { replace: true });
+  }, [auth.isLoading, auth.isLoggedIn, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadManagedSwimmers().then(data => {
+      if (!cancelled) {
+        setSwimmers(data);
+        setSwimmerId(current => current || data.find(profile => profile.isAccountHolder)?.id || data[0]?.id || '');
+      }
+    }).catch(reason => { if (!cancelled) setError(missingDatabaseMessage(reason)); })
+      .finally(() => { if (!cancelled) setProfilesLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const selectedSwimmer = useMemo(() => swimmers.find(swimmer => swimmer.id === swimmerId), [swimmers, swimmerId]);
+  const currentMeetDraft = (): SubmittedMeetDraft => ({
+    name: meet.name,
+    meetDate: meet.meetDate,
+    location: meet.location,
+    course: meet.course,
+    isWorldTransplantGames: meet.isWorldTransplantGames,
+    openingCeremonyDate: meet.isWorldTransplantGames ? meet.openingCeremonyDate : null,
   });
-  const [swim, setSwim] = useState<SwimDetails>({
-    athleteName: '', athleteId: '', event: '100m Freestyle', time: '', heatType: 'Final',
-  });
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [declared, setDeclared] = useState(false);
-  const [timeError, setTimeError] = useState('');
-  const [refNumber] = useState(genRef);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const eventSelectionsAreUnique = new Set(entries.filter(entry => entry.event).map(entry => entry.event)).size === entries.filter(entry => entry.event).length;
+  const entriesAreValid = entries.length > 0 && eventSelectionsAreUnique && entries.every(entry => entry.event && TIME_PATTERN.test(entry.time.trim()));
+  const meetIsValid = Boolean(meet.name.trim() && meet.meetDate && meet.location.trim() && meet.course && (!meet.isWorldTransplantGames || meet.openingCeremonyDate));
+  const wtgClubValid = !meet.isWorldTransplantGames || Boolean(selectedSwimmer?.clubId);
+  const existingByEvent = useMemo(() => new Map(existingResults.map(result => [result.event, result])), [existingResults]);
 
-  // Field focus highlight
-  const [focusedField, setFocusedField] = useState<string | null>(null);
-
-  function fieldStyle(name: string) {
-    return {
-      ...inputStyle,
-      borderColor: focusedField === name ? 'var(--accent)' : 'var(--navy-light)',
-    };
-  }
-
-  function validateTime(value: string) {
-    setSwim(s => ({ ...s, time: value }));
-    if (value && !isValidTime(value)) {
-      setTimeError('Use format MM:SS.ss (e.g. 1:02.44) or SS.ss (e.g. 28.92)');
-    } else {
-      setTimeError('');
+  const continueToEvents = async () => {
+    setError('');
+    if (!meetIsValid || !selectedSwimmer) return;
+    if (!wtgClubValid) {
+      setError('A swimmer must belong to a club to compete at the World Transplant Games. Add their club under Profile → Account → My swimmers first.');
+      return;
     }
-  }
+    setLoadingExisting(true);
+    try {
+      const matchingMeetId = await findSubmittedMeet(currentMeetDraft());
+      const prior = matchingMeetId ? await loadMeetResults(matchingMeetId, selectedSwimmer.id) : [];
+      setExistingResults(prior);
+      setEntries([newEntry()]);
+      setStep(2);
+    } catch (reason) {
+      setError(missingDatabaseMessage(reason));
+    } finally { setLoadingExisting(false); }
+  };
 
-  function canProceedStep1() {
-    return meet.meetName.trim() && meet.date && meet.location.trim() && meet.course && meet.level;
-  }
+  const updateEntry = (id: string, change: Partial<EventEntry>) => setEntries(current => current.map(entry => {
+    if (entry.id !== id) return entry;
+    const next = { ...entry, ...change };
+    if (change.event) {
+      const prior = existingByEvent.get(change.event);
+      if (prior) next.time = prior.time;
+    }
+    return next;
+  }));
 
-  function canProceedStep2() {
-    return swim.athleteName.trim() && swim.event && swim.time && !timeError;
-  }
+  const submitResults = async () => {
+    if (!selectedSwimmer || !entriesAreValid) return;
+    setSaving(true);
+    setError('');
+    try {
+      const meetId = await findOrCreateSubmittedMeet(currentMeetDraft());
+      const ageReferenceDate = meet.isWorldTransplantGames ? meet.openingCeremonyDate : meet.meetDate;
+      const ageGroup = getCompetitionAgeGroup(selectedSwimmer.dateOfBirth, ageReferenceDate);
+      if (!ageGroup) throw new Error('We could not calculate the swimmer’s age group for this meet. Check their date of birth and the meet date.');
 
-  function canProceedStep3() {
-    return proofFile !== null && declared;
-  }
+      const saved = await Promise.all(entries.map(entry => {
+        const recordTime = getWorldRecordBaseline(ageGroup, selectedSwimmer.gender, entry.event, meet.course);
+        const recordCandidate = Boolean(meet.isWorldTransplantGames && recordTime && seconds(entry.time) < recordTime);
+        return saveSwimmerResult({
+          meetId,
+          swimmer: selectedSwimmer,
+          event: entry.event,
+          time: entry.time,
+          ageGroup,
+          points: getSubmissionPoints({ ageGroup, gender: selectedSwimmer.gender, event: entry.event, course: meet.course, time: entry.time }),
+          recordCandidate,
+        });
+      }));
+      setSavedResults(saved);
+      setStep(3);
+    } catch (reason) {
+      setError(missingDatabaseMessage(reason));
+    } finally { setSaving(false); }
+  };
 
-  const STEPS = [
-    { n: 1, label: 'Meet' },
-    { n: 2, label: 'Swim' },
-    { n: 3, label: 'Verify' },
-    { n: 4, label: 'Done' },
-  ];
+  if (auth.isLoading || !auth.isLoggedIn) return null;
 
-  return (
-    <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
-      {/* Header */}
-      <section
-        className="border-b"
-        style={{
-          backgroundColor: 'var(--navy-mid)',
-          borderColor: 'var(--navy-light)',
-          backgroundImage:
-            'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
-        }}
-      >
-        <div className="max-w-2xl mx-auto px-6 py-14">
-          <Eyebrow color="accent" className="mb-4">Submit</Eyebrow>
-          <h1
-            className="display text-4xl md:text-5xl font-black uppercase leading-tight tracking-tight"
-            style={{ color: 'var(--ink-on-dark)' }}
-          >
-            Submit a Result
-          </h1>
-          <p className="mt-3 font-mono text-sm" style={{ color: 'var(--muted-on-dark)' }}>
-            All results are reviewed before publishing. Verification takes 1–3 business days.
-          </p>
-        </div>
-      </section>
-
-      <div className="max-w-2xl mx-auto px-6 py-10 pb-20">
-
-        {/* Progress bar */}
-        {step < 4 && (
-          <div className="mb-10">
-            {/* Step labels */}
-            <div className="flex justify-between mb-3">
-              {STEPS.map(s => (
-                <div key={s.n} className="flex flex-col items-center gap-1">
-                  <div
-                    className="w-7 h-7 flex items-center justify-center font-mono font-bold text-xs border transition-colors"
-                    style={{
-                      backgroundColor: step >= s.n ? 'var(--accent)' : 'transparent',
-                      borderColor: step >= s.n ? 'var(--accent)' : 'var(--navy-light)',
-                      color: step >= s.n ? 'var(--navy)' : 'var(--muted-on-dark)',
-                    }}
-                  >
-                    {s.n}
-                  </div>
-                  <span className="font-mono text-xs uppercase tracking-widest" style={{ color: step === s.n ? 'var(--accent)' : 'var(--muted-on-dark)' }}>
-                    {s.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {/* Bar */}
-            <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--navy-light)' }}>
-              <div
-                className="h-full transition-all duration-500"
-                style={{
-                  backgroundColor: 'var(--accent)',
-                  width: `${((step - 1) / 3) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Step 1 — Meet details */}
-        {step === 1 && (
-          <div className="space-y-6">
-            <h2 className="font-bold text-xl" style={{ color: 'var(--ink-on-dark)' }}>Step 1 — Meet Details</h2>
-
-            <div>
-              <label className={labelClass} style={labelStyle}>Meet Name *</label>
-              <input
-                type="text"
-                className={inputClass}
-                style={fieldStyle('meetName')}
-                value={meet.meetName}
-                onChange={e => setMeet(m => ({ ...m, meetName: e.target.value }))}
-                onFocus={() => setFocusedField('meetName')}
-                onBlur={() => setFocusedField(null)}
-                placeholder="e.g. World Transplant Games 2027"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass} style={labelStyle}>Date *</label>
-                <input
-                  type="date"
-                  className={inputClass}
-                  style={fieldStyle('date')}
-                  value={meet.date}
-                  onChange={e => setMeet(m => ({ ...m, date: e.target.value }))}
-                  onFocus={() => setFocusedField('date')}
-                  onBlur={() => setFocusedField(null)}
-                />
-              </div>
-              <div>
-                <label className={labelClass} style={labelStyle}>Course *</label>
-                <select
-                  className={inputClass + ' cursor-pointer'}
-                  style={fieldStyle('course')}
-                  value={meet.course}
-                  onChange={e => setMeet(m => ({ ...m, course: e.target.value }))}
-                >
-                  {COURSES.map(c => <option key={c} value={c}>{c} — {c === 'LCM' ? 'Long Course (50m)' : 'Short Course (25m)'}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass} style={labelStyle}>Location *</label>
-              <input
-                type="text"
-                className={inputClass}
-                style={fieldStyle('location')}
-                value={meet.location}
-                onChange={e => setMeet(m => ({ ...m, location: e.target.value }))}
-                onFocus={() => setFocusedField('location')}
-                onBlur={() => setFocusedField(null)}
-                placeholder="City, Country"
-              />
-            </div>
-
-            <div>
-              <label className={labelClass} style={labelStyle}>Competition Level *</label>
-              <select
-                className={inputClass + ' cursor-pointer'}
-                style={fieldStyle('level')}
-                value={meet.level}
-                onChange={e => setMeet(m => ({ ...m, level: e.target.value }))}
-              >
-                {LEVEL_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </div>
-
-            <button
-              onClick={() => canProceedStep1() && setStep(2)}
-              disabled={!canProceedStep1()}
-              className="w-full py-3.5 font-mono text-sm uppercase tracking-widest font-bold transition-opacity"
-              style={{
-                backgroundColor: canProceedStep1() ? 'var(--accent)' : 'var(--navy-light)',
-                color: canProceedStep1() ? 'var(--navy)' : 'var(--muted-on-dark)',
-                cursor: canProceedStep1() ? 'pointer' : 'not-allowed',
-              }}
-            >
-              Continue to Swim Details →
-            </button>
-          </div>
-        )}
-
-        {/* Step 2 — Swim details */}
-        {step === 2 && (
-          <div className="space-y-6">
-            <h2 className="font-bold text-xl" style={{ color: 'var(--ink-on-dark)' }}>Step 2 — Swim Details</h2>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass} style={labelStyle}>Athlete Name *</label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  style={fieldStyle('athleteName')}
-                  value={swim.athleteName}
-                  onChange={e => setSwim(s => ({ ...s, athleteName: e.target.value }))}
-                  onFocus={() => setFocusedField('athleteName')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Full name"
-                />
-              </div>
-              <div>
-                <label className={labelClass} style={labelStyle}>Athlete ID (optional)</label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  style={fieldStyle('athleteId')}
-                  value={swim.athleteId}
-                  onChange={e => setSwim(s => ({ ...s, athleteId: e.target.value }))}
-                  onFocus={() => setFocusedField('athleteId')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="e.g. michael-van-der-berg"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass} style={labelStyle}>Event *</label>
-              <select
-                className={inputClass + ' cursor-pointer'}
-                style={fieldStyle('event')}
-                value={swim.event}
-                onChange={e => setSwim(s => ({ ...s, event: e.target.value }))}
-              >
-                {EVENTS.map(ev => <option key={ev} value={ev}>{ev}</option>)}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass} style={labelStyle}>Time (MM:SS.ss) *</label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  style={{ ...fieldStyle('time'), borderColor: timeError ? '#ef4444' : (focusedField === 'time' ? 'var(--accent)' : 'var(--navy-light)') }}
-                  value={swim.time}
-                  onChange={e => validateTime(e.target.value)}
-                  onFocus={() => setFocusedField('time')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="e.g. 1:02.44"
-                />
-                {timeError && (
-                  <p className="mt-1 font-mono text-xs" style={{ color: '#ef4444' }}>
-                    {timeError}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelClass} style={labelStyle}>Heat / Final</label>
-                <select
-                  className={inputClass + ' cursor-pointer'}
-                  style={fieldStyle('heatType')}
-                  value={swim.heatType}
-                  onChange={e => setSwim(s => ({ ...s, heatType: e.target.value }))}
-                >
-                  {['Heat', 'Semi-Final', 'Final'].map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(1)}
-                className="px-6 py-3.5 font-mono text-sm uppercase tracking-widest border"
-                style={{ borderColor: 'var(--navy-light)', color: 'var(--muted-on-dark)' }}
-              >
-                ← Back
-              </button>
-              <button
-                onClick={() => canProceedStep2() && setStep(3)}
-                disabled={!canProceedStep2()}
-                className="flex-1 py-3.5 font-mono text-sm uppercase tracking-widest font-bold transition-opacity"
-                style={{
-                  backgroundColor: canProceedStep2() ? 'var(--accent)' : 'var(--navy-light)',
-                  color: canProceedStep2() ? 'var(--navy)' : 'var(--muted-on-dark)',
-                  cursor: canProceedStep2() ? 'pointer' : 'not-allowed',
-                }}
-              >
-                Continue to Verification →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3 — Verification */}
-        {step === 3 && (
-          <div className="space-y-6">
-            <h2 className="font-bold text-xl" style={{ color: 'var(--ink-on-dark)' }}>Step 3 — Verification</h2>
-
-            {/* Review summary */}
-            <div
-              className="border p-5 space-y-3"
-              style={{ borderColor: 'var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}
-            >
-              <Eyebrow light className="mb-1">Summary</Eyebrow>
-              {[
-                { label: 'Meet', value: meet.meetName },
-                { label: 'Date', value: meet.date },
-                { label: 'Location', value: meet.location },
-                { label: 'Course', value: meet.course },
-                { label: 'Athlete', value: swim.athleteName },
-                { label: 'Event', value: swim.event },
-                { label: 'Time', value: swim.time },
-                { label: 'Round', value: swim.heatType },
-              ].map(row => (
-                <div key={row.label} className="flex items-baseline justify-between gap-4">
-                  <span className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                    {row.label}
-                  </span>
-                  <span className="font-mono text-sm font-bold text-right" style={{ color: 'var(--ink-on-dark)' }}>
-                    {row.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* File upload */}
-            <div>
-              <label className={labelClass} style={labelStyle}>Upload Proof *</label>
-              <p className="font-mono text-xs mb-3" style={{ color: 'var(--muted-on-dark)' }}>
-                Accepted: screenshot from meet management system, results sheet, or official PDF. Max 10 MB.
-              </p>
-              <div
-                className="border-2 border-dashed p-8 text-center cursor-pointer transition-colors"
-                style={{
-                  borderColor: proofFile ? 'var(--accent)' : 'var(--navy-light)',
-                  backgroundColor: proofFile ? 'rgba(199,243,104,0.04)' : 'transparent',
-                }}
-                onClick={() => fileRef.current?.click()}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files[0];
-                  if (file) setProofFile(file);
-                }}
-              >
-                {proofFile ? (
-                  <div>
-                    <div className="font-mono font-bold text-sm" style={{ color: 'var(--accent)' }}>
-                      {proofFile.name}
-                    </div>
-                    <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted-on-dark)' }}>
-                      {(proofFile.size / 1024).toFixed(1)} KB · Click to replace
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <svg className="mx-auto mb-3" width="32" height="32" viewBox="0 0 32 32" fill="none" style={{ color: 'var(--muted-on-dark)' }}>
-                      <path d="M16 22V10M10 16l6-6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      <rect x="4" y="4" width="24" height="24" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                    </svg>
-                    <p className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                      Click to upload or drag & drop
-                    </p>
-                  </div>
-                )}
-              </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.webp"
-                className="sr-only"
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) setProofFile(file);
-                }}
-              />
-            </div>
-
-            {/* Declaration */}
-            <label className="flex items-start gap-3 cursor-pointer">
-              <div className="relative mt-0.5">
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={declared}
-                  onChange={e => setDeclared(e.target.checked)}
-                />
-                <div
-                  className="w-5 h-5 border flex items-center justify-center transition-colors"
-                  style={{
-                    borderColor: declared ? 'var(--accent)' : 'var(--navy-light)',
-                    backgroundColor: declared ? 'var(--accent)' : 'transparent',
-                  }}
-                >
-                  {declared && (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6l3 3 5-5" stroke="var(--navy)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <span className="font-mono text-xs leading-relaxed" style={{ color: 'var(--muted-on-dark)' }}>
-                I confirm that this result is accurate and was achieved at a sanctioned meet. I understand that false submissions may result in removal from the platform.
-              </span>
-            </label>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(2)}
-                className="px-6 py-3.5 font-mono text-sm uppercase tracking-widest border"
-                style={{ borderColor: 'var(--navy-light)', color: 'var(--muted-on-dark)' }}
-              >
-                ← Back
-              </button>
-              <button
-                onClick={() => canProceedStep3() && setStep(4)}
-                disabled={!canProceedStep3()}
-                className="flex-1 py-3.5 font-mono text-sm uppercase tracking-widest font-bold"
-                style={{
-                  backgroundColor: canProceedStep3() ? 'var(--accent)' : 'var(--navy-light)',
-                  color: canProceedStep3() ? 'var(--navy)' : 'var(--muted-on-dark)',
-                  cursor: canProceedStep3() ? 'pointer' : 'not-allowed',
-                }}
-              >
-                Submit Result →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4 — Success */}
-        {step === 4 && (
-          <div className="flex flex-col items-center text-center py-8">
-            <div
-              className="w-20 h-20 border-2 flex items-center justify-center mb-8"
-              style={{ borderColor: 'var(--accent)' }}
-            >
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                <path d="M6 18l8 8L30 10" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-
-            <Eyebrow color="accent" className="mb-3">Submitted</Eyebrow>
-
-            <h2
-              className="display text-3xl md:text-4xl font-black uppercase leading-tight"
-              style={{ color: 'var(--ink-on-dark)' }}
-            >
-              Result submitted for verification
-            </h2>
-
-            <p className="mt-4 font-mono text-sm max-w-md" style={{ color: 'var(--muted-on-dark)' }}>
-              Your result has been received and is now under review. You'll be notified once it's verified and published.
-            </p>
-
-            <div
-              className="mt-8 border px-8 py-5 text-center"
-              style={{ borderColor: 'var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}
-            >
-              <div className="font-mono text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--muted-on-dark)' }}>
-                Reference Number
-              </div>
-              <div className="font-mono font-black text-2xl" style={{ color: 'var(--accent)' }}>
-                {refNumber}
-              </div>
-              <div className="mt-2 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-                Status: <span style={{ color: '#F5C542' }}>Pending</span>
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <button
-                onClick={() => { setStep(1); setMeet({ meetName: '', date: '', location: '', course: 'LCM', level: 'Local' }); setSwim({ athleteName: '', athleteId: '', event: '100m Freestyle', time: '', heatType: 'Final' }); setProofFile(null); setDeclared(false); }}
-                className="px-6 py-3 font-mono text-xs uppercase tracking-widest border"
-                style={{ borderColor: 'var(--navy-light)', color: 'var(--muted-on-dark)' }}
-              >
-                Submit Another
-              </button>
-              <a
-                href="/results"
-                className="px-6 py-3 font-mono text-xs uppercase tracking-widest"
-                style={{ backgroundColor: 'var(--accent)', color: 'var(--navy)', fontWeight: 700 }}
-              >
-                View Results
-              </a>
-            </div>
-          </div>
-        )}
+  return <main className="min-h-[70vh] bg-[var(--paper)]">
+    <section className="bg-[var(--navy)] text-white">
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">My results</p>
+        <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Submit results</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">Add a meet once, then record one time for each event your swimmer competed in. Results appear as swimmer-submitted as soon as you submit.</p>
       </div>
+    </section>
+
+    <div className="mx-auto max-w-4xl space-y-5 px-4 py-7 sm:px-6 sm:py-9">
+      {step < 3 && <div className="flex items-center gap-3 text-xs font-semibold text-[var(--muted)]"><span className={`flex size-7 items-center justify-center ${step === 1 ? 'bg-[var(--navy)] text-white' : 'bg-[var(--accent)] text-[var(--navy)]'}`}>1</span><span>Meet & swimmer</span><span className="h-px flex-1 bg-[var(--border)]" /><span className={`flex size-7 items-center justify-center ${step === 2 ? 'bg-[var(--navy)] text-white' : 'bg-white text-[var(--muted)]'}`}>2</span><span>Events & times</span></div>}
+
+      {error && <p role="alert" className="flex items-start gap-2 border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-800"><CircleAlert size={17} className="mt-0.5 shrink-0" />{error}</p>}
+
+      {step === 1 && <section className="space-y-6 bg-white p-5 sm:p-7">
+        <div><h2 className="text-xl font-bold text-[var(--ink)]">Meet details</h2><p className="mt-1 text-sm text-[var(--muted)]">These details are saved once and shared by all event times from this meet.</p></div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Meet name<input required value={meet.name} onChange={event => setMeet(current => ({ ...current, name: event.target.value }))} placeholder="e.g. National Swimming Championships" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>
+          <label className="text-xs font-semibold text-[var(--muted)]">Meet date<input required type="date" value={meet.meetDate} onChange={event => setMeet(current => ({ ...current, meetDate: event.target.value, openingCeremonyDate: current.isWorldTransplantGames && !current.openingCeremonyDate ? event.target.value : current.openingCeremonyDate }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>
+          <label className="text-xs font-semibold text-[var(--muted)]">Course<select value={meet.course} onChange={event => setMeet(current => ({ ...current, course: event.target.value as Course }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{COURSES.map(course => <option key={course} value={course}>{course}</option>)}</select></label>
+          <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Location<input required value={meet.location} onChange={event => setMeet(current => ({ ...current, location: event.target.value }))} placeholder="City, country" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>
+          <label className="flex cursor-pointer items-start gap-3 border border-[var(--border)] p-3 sm:col-span-2">
+            <input type="checkbox" checked={meet.isWorldTransplantGames} onChange={event => setMeet(current => ({ ...current, isWorldTransplantGames: event.target.checked, openingCeremonyDate: event.target.checked ? current.openingCeremonyDate || current.meetDate : '' }))} className="mt-0.5 size-4 accent-[var(--blue)]" />
+            <span><span className="block text-sm font-semibold text-[var(--ink)]">This is a World Transplant Games meet</span><span className="mt-0.5 block text-xs leading-relaxed text-[var(--muted)]">Only WTG results can be marked as world-record candidates.</span></span>
+          </label>
+          {meet.isWorldTransplantGames && <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Opening Ceremony date <span className="font-normal">(used to calculate age group)</span><input required type="date" value={meet.openingCeremonyDate} onChange={event => setMeet(current => ({ ...current, openingCeremonyDate: event.target.value }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>}
+        </div>
+
+        <div className="border-t border-[var(--border)] pt-5">
+          <div className="mb-3 flex items-center justify-between gap-3"><div><h3 className="font-bold text-[var(--ink)]">Swimmer</h3><p className="mt-1 text-xs text-[var(--muted)]">Choose yourself or a child/dependent managed by your account.</p></div><Link to="/profile" className="text-xs font-semibold text-[var(--blue)] hover:underline">Manage swimmers</Link></div>
+          {profilesLoading ? <div role="status" aria-label="Loading swimmer profiles" className="max-w-xl space-y-2 py-3"><Skeleton className="h-3 w-1/3" /><Skeleton className="h-11 w-full" /></div> : swimmers.length ? <>
+            <select value={swimmerId} onChange={event => setSwimmerId(event.target.value)} className="w-full max-w-xl border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{swimmers.map(swimmer => <option key={swimmer.id} value={swimmer.id}>{swimmer.firstName} {swimmer.lastName}{swimmer.isAccountHolder ? ' (me)' : ''}</option>)}</select>
+            {meet.isWorldTransplantGames && selectedSwimmer && !selectedSwimmer.clubId && <p role="alert" className="mt-3 max-w-xl border-l-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900">WTG participation requires a club. Add a club to {selectedSwimmer.firstName}’s swimmer profile before continuing. <Link to="/profile" className="font-semibold underline">Manage swimmer profiles</Link></p>}
+            {meet.isWorldTransplantGames && selectedSwimmer?.clubId && <p className="mt-2 text-xs text-[var(--muted)]">Representing {selectedSwimmer.clubName || 'their current club'} at this World Transplant Games meet.</p>}
+            {!meet.isWorldTransplantGames && selectedSwimmer?.clubName && <p className="mt-2 text-xs text-[var(--muted)]">Current club: {selectedSwimmer.clubName}. Country representation remains {selectedSwimmer.country}.</p>}
+          </> : <div className="border-l-2 border-[var(--accent)] bg-[var(--paper)] p-4"><p className="text-sm font-semibold text-[var(--ink)]">Add a swimmer profile first</p><p className="mt-1 text-sm text-[var(--muted)]">Add your own or a child’s profile in Profile → Account → My swimmers. Date of birth is kept private.</p><Link to="/profile" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)]">Open Profile <ArrowRight size={14} /></Link></div>}
+        </div>
+
+        <button type="button" onClick={() => void continueToEvents()} disabled={!meetIsValid || !selectedSwimmer || !wtgClubValid || loadingExisting || profilesLoading} className="inline-flex w-full items-center justify-center gap-2 bg-[var(--navy)] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-50">{loadingExisting ? 'Checking existing results…' : 'Continue to events'} <ArrowRight size={16} /></button>
+      </section>}
+
+      {step === 2 && selectedSwimmer && <section className="space-y-6 bg-white p-5 sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold text-[var(--ink)]">Events and times</h2><p className="mt-1 text-sm text-[var(--muted)]">{selectedSwimmer.firstName} {selectedSwimmer.lastName} · {meet.name} · {meet.course}</p></div><button type="button" onClick={() => setStep(1)} className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)]"><ArrowLeft size={14} /> Edit meet</button></div>
+
+        {existingResults.length > 0 && <div className="border-l-2 border-[var(--blue)] bg-[var(--ice)] px-4 py-3 text-sm text-[var(--ink)]"><strong>Existing meet results found.</strong> Choose an event below to review and edit its saved time. Saving updates that result instead of creating a duplicate.</div>}
+
+        <div className="space-y-4">
+          {entries.map(entry => {
+            const prior = existingByEvent.get(entry.event);
+            const duplicateInForm = entries.some(other => other.id !== entry.id && other.event === entry.event);
+            return <div key={entry.id} className="grid gap-3 border-b border-[var(--border)] pb-4 sm:grid-cols-[minmax(0,1fr)_200px_auto] sm:items-end">
+              <label className="text-xs font-semibold text-[var(--muted)]">Event<select required value={entry.event} onChange={event => updateEntry(entry.id, { event: event.target.value })} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]"><option value="">Select an event</option>{RESULT_EVENTS.map(option => <option key={option} value={option} disabled={entries.some(other => other.id !== entry.id && other.event === option)}>{option}</option>)}</select>{duplicateInForm && <span className="mt-1 block text-xs text-red-700">This event is already in the list.</span>}{prior && <span className="mt-1 block text-xs font-medium text-[var(--blue)]">A time is already saved: {prior.time}. Edit it below if this is the correct event.</span>}</label>
+              <label className="text-xs font-semibold text-[var(--muted)]">Time<input required value={entry.time} onChange={event => updateEntry(entry.id, { time: event.target.value })} placeholder="e.g. 58.42 or 1:02.44" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-mono text-sm text-[var(--ink)]" />{entry.time && !TIME_PATTERN.test(entry.time.trim()) && <span className="mt-1 block text-xs text-red-700">Use seconds (58.42) or minutes:seconds (1:02.44).</span>}</label>
+              <button type="button" disabled={entries.length === 1} onClick={() => setEntries(current => current.filter(item => item.id !== entry.id))} aria-label="Remove event" className="inline-flex h-10 items-center justify-center border border-[var(--border)] px-3 text-[var(--muted)] hover:border-red-300 hover:text-red-700 disabled:opacity-30"><Trash2 size={15} /></button>
+            </div>;
+          })}
+        </div>
+
+        <button type="button" onClick={() => setEntries(current => [...current, newEntry()])} disabled={entries.length >= RESULT_EVENTS.length} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:underline disabled:opacity-40"><Plus size={16} /> Add another event</button>
+
+        <div className="border-t border-[var(--border)] pt-5"><p className="text-xs leading-relaxed text-[var(--muted)]">PTS use the 2026 World Aquatics base time for each event, gender, and course. Junior 25m events use the matching World Transplant Games age-group record when available. Dates of birth remain private. Results display as swimmer-submitted, and WTG record candidates remain pending verification.</p></div>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between"><button type="button" onClick={() => setStep(1)} className="inline-flex items-center justify-center gap-2 border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]"><ArrowLeft size={15} /> Back</button><button type="button" onClick={() => void submitResults()} disabled={!entriesAreValid || saving} className="inline-flex items-center justify-center gap-2 bg-[var(--navy)] px-5 py-3 text-sm font-bold text-white hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving results…' : `Submit ${entries.length} ${entries.length === 1 ? 'result' : 'results'}`} <ArrowRight size={16} /></button></div>
+      </section>}
+
+      {step === 3 && <section className="bg-white p-5 sm:p-7">
+        <div className="mx-auto max-w-2xl text-center"><span className="mx-auto flex size-14 items-center justify-center rounded-full bg-[var(--ice)] text-[var(--blue)]"><Check size={25} /></span><p className="mt-4 font-mono text-xs uppercase tracking-[0.16em] text-[var(--blue)]">Saved</p><h2 className="mt-2 text-2xl font-extrabold text-[var(--ink)]">Results submitted</h2><p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">Your results now appear as swimmer-submitted. A result faster than a WTG record is marked as a record candidate until verified.</p></div>
+        <div className="mx-auto mt-6 max-w-3xl divide-y divide-[var(--border)] border-y border-[var(--border)]">{savedResults.map(result => <div key={result.id} className="grid gap-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"><div><p className="font-semibold text-[var(--ink)]">{result.event}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{result.age_group} · {meet.course} · {result.status === 'verified' ? 'Verified' : 'Swimmer-submitted'}</p></div><span className="font-mono text-lg font-bold text-[var(--blue)]">{result.time}</span><div className="flex flex-wrap items-center gap-2">{result.points !== null && <span className="bg-[var(--ice)] px-2 py-1 font-mono text-xs font-bold text-[var(--navy)]">{result.points.toLocaleString()} PTS</span>}{result.record_candidate && <span className="inline-flex items-center gap-1 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-800"><Trophy size={13} /> Record candidate · pending verification</span>}{result.points === null && <span className="text-xs text-[var(--muted)]">PTS unavailable for this category</span>}</div></div>)}</div>
+        <div className="mt-6 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => navigate('/')} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]">Back to dashboard</button><button type="button" onClick={() => { setStep(1); setMeet({ name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' }); setEntries([newEntry()]); setExistingResults([]); setSavedResults([]); setError(''); }} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)]">Submit another meet</button></div>
+      </section>}
     </div>
-  );
+  </main>;
 }

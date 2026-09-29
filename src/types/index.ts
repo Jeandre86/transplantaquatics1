@@ -93,6 +93,8 @@ export interface Athlete {
 
 export interface Record {
   id: string;
+  athleteId?: string;
+  countryCode?: string;
   event: string;
   course: Course;
   ageGroup: string;
@@ -112,11 +114,6 @@ export interface Country {
   code: string;
   name: string;
   flag: string;
-  athletes: number;
-  results: number;
-  records: number;
-  topEvent?: string;
-  topAthlete?: string;
 }
 
 export interface Meet {
@@ -145,6 +142,7 @@ export interface Article {
 
 export interface Ranking {
   rank: number;
+  points?: number | null;
   athleteId: string;
   athleteName: string;
   country: string;

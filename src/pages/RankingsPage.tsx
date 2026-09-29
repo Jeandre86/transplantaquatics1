@@ -1,18 +1,37 @@
-import { rankings } from '../data/rankings';
+import { useEffect, useState } from 'react';
 import { TRANSPLANT_TYPES } from '../types';
+import type { Ranking } from '../types';
 import RankingTable from '../components/RankingTable';
 import Eyebrow from '../components/Eyebrow';
 import { Link } from 'react-router-dom';
-import { getFlagEmoji, getTransplantColor } from '../lib/utils';
+import { getTransplantColor, timeToSeconds } from '../lib/utils';
 import { getTransplantPoints } from '../lib/transplantPoints';
 import TransplantCohortExplorer from '../components/TransplantCohortExplorer';
 import PageHeading from '../components/PageHeading';
-import DatasetNotice from '../components/DatasetNotice';
+import EmptyState from '../components/EmptyState';
+import { useFastestByTransplantType } from '../hooks/useFastestByTransplantType';
+import { loadDatabaseRankings } from '../lib/databaseRankings';
+import { describeSupabaseError } from '../lib/supabase';
+import { Skeleton, SkeletonTable } from '../components/Skeleton';
 
 const GENDER_PREVIEW_SIZE = 5;
 
 export default function RankingsPage() {
-  const categoryRankings = rankings
+  const { swims: fastestSwims, loading: fastestLoading, error: fastestError } = useFastestByTransplantType();
+  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
+  const [rankingsError, setRankingsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadDatabaseRankings()
+      .then(rows => { if (active) setRankings(rows); })
+      .catch(error => { if (active) setRankingsError(describeSupabaseError(error)); })
+      .finally(() => { if (active) setRankingsLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const categoryRankings = [...rankings]
     .sort((a, b) => {
       const pointsA = getTransplantPoints(a);
       const pointsB = getTransplantPoints(b);
@@ -33,27 +52,26 @@ export default function RankingsPage() {
   return (
     <div>
       {/* Header */}
-      <PageHeading eyebrow="Leaderboard" title="World Rankings" description="Explore transplant swimming performances by points, time, age group, gender, event and course.">
-          <div className="mt-4 flex items-center gap-2">
-            <span className="font-mono text-xs px-2 py-1 uppercase tracking-wider" style={{ backgroundColor: 'var(--navy-mid)', color: 'var(--muted-on-dark)' }}>
-              Age Group → Gender → Event → Course
-            </span>
-          </div>
-      </PageHeading>
+      <PageHeading eyebrow="Leaderboard" title="World Rankings" description="Explore transplant swimming performances by points, time, age group, gender, event and course." />
 
       {/* Gender leaderboard previews */}
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Leaderboard</Eyebrow>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Top swims by points</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Top swims</h2>
             </div>
           </div>
           <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8 xl:gap-12">
             <section>
-              <RankingTable rankings={menRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Men" />
+              {rankingsLoading ? (
+                <SkeletonTable rows={5} columns={5} />
+              ) : rankingsError ? (
+                <p role="status" className="py-8 text-center text-sm text-red-700">Rankings could not be loaded: {rankingsError}</p>
+              ) : (
+                <RankingTable rankings={menRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Men" />
+              )}
               {menRankings.length > GENDER_PREVIEW_SIZE && (
                 <Link to="/rankings/men" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[var(--accent-dark)] hover:underline">
                   More <span aria-hidden="true">›</span>
@@ -61,7 +79,20 @@ export default function RankingsPage() {
               )}
             </section>
             <section>
-              <RankingTable rankings={womenRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Women" />
+              {rankingsLoading ? (
+                <SkeletonTable rows={5} columns={5} />
+              ) : rankingsError ? (
+                <p role="status" className="py-8 text-center text-sm text-red-700">Rankings could not be loaded: {rankingsError}</p>
+              ) : womenRankings.length === 0 ? (
+                <div className="ta-table-shell ta-table-shell-paper">
+                  <h3 className="px-4 pt-4 text-xl font-semibold text-[var(--ink)]">Women</h3>
+                  <div className="px-4 pt-3">
+                    <EmptyState title="No women’s swims yet" subtitle="Women’s rankings will appear here when results are added." />
+                  </div>
+                </div>
+              ) : (
+                <RankingTable rankings={womenRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Women" />
+              )}
               {womenRankings.length > GENDER_PREVIEW_SIZE && (
                 <Link to="/rankings/women" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[var(--accent-dark)] hover:underline">
                   More <span aria-hidden="true">›</span>
@@ -83,29 +114,31 @@ export default function RankingsPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {TRANSPLANT_TYPES.map(type => {
-              const fastest = rankings.find(r => r.transplantType === type);
+              const fastest = fastestSwims
+                .filter(swim => swim.transplantType === type)
+                .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time))[0];
               return (
                 <div key={type} className="p-4" style={{ backgroundColor: 'var(--navy)', border: '1px solid var(--navy-light)' }}>
                   <div className="flex items-center gap-1.5 mb-2">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getTransplantColor(type) }} />
                     <span className="font-mono text-xs uppercase tracking-widest truncate" style={{ color: 'var(--muted-on-dark)' }}>{type}</span>
                   </div>
-                  {fastest ? (
-                    <>
-                      <Link to={`/athletes/${fastest.athleteId}`} className="font-bold text-sm leading-tight hover:underline block" style={{ color: 'var(--ink-on-dark)' }}>
-                        {fastest.athleteName}
-                      </Link>
-                      <div className="text-xs mt-0.5" style={{ color: 'var(--muted-on-dark)' }}>{getFlagEmoji(fastest.countryCode)}</div>
-                      <div className="font-mono font-bold mt-2 text-base" style={{ color: 'var(--accent)' }}>{fastest.time}</div>
-                      <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--muted-on-dark)' }}>{fastest.event}</div>
-                    </>
+                  {fastestLoading ? <div className="space-y-2 py-1"><Skeleton dark className="h-3 w-3/4" /><Skeleton dark className="h-5 w-2/3" /></div> : fastestError ? <div className="text-xs" style={{ color: 'var(--muted-on-dark)' }}>Unable to load</div> : fastest ? (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: 'var(--accent)' }}>{fastest.event} · {fastest.gender}{fastest.course ? ` · ${fastest.course}` : ''}</div>
+                        <div className="mt-1 flex items-baseline justify-between gap-2"><Link to={`/athletes/${fastest.athleteId}`} className="truncate text-sm font-bold hover:underline" style={{ color: 'var(--ink-on-dark)' }}>{fastest.athleteName}</Link><span className="shrink-0 font-mono text-sm font-bold" style={{ color: 'var(--ink-on-dark)' }}>{fastest.time}</span></div>
+                        {fastest.status === 'swimmer_submitted' && <div className="mt-1 font-mono text-[9px] uppercase tracking-wider" style={{ color: 'var(--muted-on-dark)' }}>Pending verification</div>}
+                      </div>
+                    </div>
                   ) : (
-                    <div className="text-xs" style={{ color: 'var(--muted-on-dark)' }}>No data</div>
+                    <div className="text-xs" style={{ color: 'var(--muted-on-dark)' }}>No submitted swims</div>
                   )}
                 </div>
               );
             })}
           </div>
+          {fastestError && <p role="status" className="mt-4 text-sm text-red-200">Fastest swims could not be loaded: {fastestError}</p>}
           <Link
             to="/rankings/transplant-type"
             className="mt-8 inline-flex items-center gap-2 border border-[var(--accent)] px-5 py-3 font-mono text-xs font-bold uppercase tracking-widest text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--navy)]"

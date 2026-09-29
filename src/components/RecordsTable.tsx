@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { Record as WorldRecord } from '../types';
 import { formatDate, getCountryAlpha3, getFlagEmoji } from '../lib/utils';
@@ -12,8 +13,9 @@ const COUNTRY_CODES: { [country: string]: string } = {
   'United Kingdom': 'GB', 'Northern Ireland': 'GB', 'United States': 'US',
 };
 function Country({ name }: { name: string }) {
-  const code = COUNTRY_CODES[name];
-  return <span className="flex items-center gap-1.5" title={name}><span className="text-base leading-none" aria-hidden="true">{code ? getFlagEmoji(code) : '🏳️'}</span><span className="font-mono text-xs font-semibold tracking-wider text-[var(--muted)]">{code ? getCountryAlpha3(code) : name.slice(0, 3).toUpperCase()}</span></span>;
+  const country = name?.trim() ?? '';
+  const code = COUNTRY_CODES[country];
+  return <span className="flex items-center gap-1.5" title={country || 'Country not provided'}><span className="text-base leading-none" aria-hidden="true">{code ? getFlagEmoji(code) : country ? '🏳️' : '—'}</span><span className="font-mono text-xs font-semibold tracking-wider text-[var(--muted)]">{code ? getCountryAlpha3(code) : country ? country.slice(0, 3).toUpperCase() : '—'}</span></span>;
 }
 
 function AthleteAvatar({ name }: { name: string }) {
@@ -63,18 +65,20 @@ export default function RecordsTable({ records }: { records: WorldRecord[] }) {
                   <span className="flex min-w-0 items-center gap-2 sm:gap-3">
                     <AthleteAvatar name={record.athleteName} />
                     <span className="min-w-0">
-                      <span className="block truncate text-base font-semibold text-[var(--ink)]">{record.athleteName}</span>
-                      <span className="mt-1 flex items-center gap-2 truncate text-xs text-[var(--muted)]"><Country name={record.country} />{record.date && <span>{formatDate(record.date)}</span>}</span>
-                      <span className="mt-1 hidden truncate text-xs text-[var(--muted)] md:block">{record.date ? formatDate(record.date) : ''}</span>
-                      <span className="mt-1 block truncate font-mono text-[10px] text-[var(--muted)] sm:hidden">{record.event} · {record.ageGroup} {record.gender} · {record.games ?? record.meet} · Standing {getStandingDuration(record)} · {record.time}</span>
+                      {record.athleteId
+                        ? <Link to={`/athletes/${record.athleteId}`} className="block truncate text-base font-semibold text-[var(--ink)] hover:text-[var(--accent-dark)]">{record.athleteName || '—'}</Link>
+                        : <span className="block truncate text-base font-semibold text-[var(--ink)]">{record.athleteName || '—'}</span>}
+                      <span className="mt-1 flex items-center gap-2 truncate text-xs text-[var(--muted)]"><Country name={record.country} /><span>{formatDate(record.date)}</span></span>
+                      <span className="mt-1 hidden truncate text-xs text-[var(--muted)] md:block">{formatDate(record.date)}</span>
+                      <span className="mt-1 block truncate font-mono text-[10px] text-[var(--muted)] sm:hidden">{record.event || '—'} · {record.ageGroup || '—'} {record.gender || '—'} · {record.games || record.meet || '—'} · Standing {getStandingDuration(record)} · {record.time || '—'}</span>
                     </span>
                   </span>
-                  <span className="hidden truncate text-sm text-[var(--ink)] sm:block">{record.event}</span>
-                  <span className="hidden min-w-0 text-sm text-[var(--ink)] sm:block">{record.ageGroup}{record.category && record.category.toLowerCase() !== 'adult' && <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wide text-[var(--accent-dark)]">{record.category}</span>}</span>
-                  <span className="hidden text-sm text-[var(--ink)] sm:block">{record.gender}</span>
-                  <span className="hidden truncate text-xs text-[var(--muted)] sm:block">{record.games ?? record.meet}</span>
+                  <span className="hidden truncate text-sm text-[var(--ink)] sm:block">{record.event || '—'}</span>
+                  <span className="hidden min-w-0 text-sm text-[var(--ink)] sm:block">{record.ageGroup || '—'}{record.category && record.category.toLowerCase() !== 'adult' && <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wide text-[var(--accent-dark)]">{record.category}</span>}</span>
+                  <span className="hidden text-sm text-[var(--ink)] sm:block">{record.gender || '—'}</span>
+                  <span className="hidden truncate text-xs text-[var(--muted)] sm:block">{record.games || record.meet || '—'}</span>
                   <span className="hidden text-right text-sm text-[var(--muted)] md:block" title="Approximate duration since the Games edition listed as the record date">{getStandingDuration(record)}</span>
-                  <span className="hidden text-right font-mono text-base font-bold text-[var(--navy)] sm:block">{record.time}</span>
+                  <span className="hidden text-right font-mono text-base font-bold text-[var(--navy)] sm:block">{record.time || '—'}</span>
                   <span className="flex justify-end sm:justify-center">
                     {hasHistory && (
                       <button type="button" onClick={() => toggle(record.id)} aria-expanded={isExpanded} aria-label={`${isExpanded ? 'Hide' : 'Show'} record history for ${record.event}`} className="inline-flex items-center justify-center p-1 text-[var(--muted)] hover:text-[var(--accent-dark)]">

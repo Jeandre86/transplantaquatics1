@@ -1,19 +1,25 @@
 import { useEffect, useState } from 'react';
-import { records } from '../data/records';
+import type { Record as WorldRecord } from '../types';
+import { loadWorldRecords } from '../lib/worldRecords';
 import RecordsTable from '../components/RecordsTable';
 import FilterSelect from '../components/FilterSelect';
 import EmptyState from '../components/EmptyState';
 import SearchInput from '../components/SearchInput';
 import Pagination from '../components/Pagination';
 import PageHeading from '../components/PageHeading';
-import DatasetNotice from '../components/DatasetNotice';
 import FilterBar from '../components/FilterBar';
 import Button from '../components/Button';
+import { describeSupabaseError } from '../lib/supabase';
+import { SkeletonTable } from '../components/Skeleton';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
 
 export default function RecordsPage() {
+  const [records, setRecords] = useState<WorldRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [reload, setReload] = useState(0);
   const [filterAgeGroup, setFilterAgeGroup] = useState(ALL);
   const [filterGender, setFilterGender] = useState(ALL);
   const [filterEvent, setFilterEvent] = useState(ALL);
@@ -21,6 +27,21 @@ export default function RecordsPage() {
   const [filterCategory, setFilterCategory] = useState(ALL);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError('');
+    loadWorldRecords().then(rows => {
+      if (active) setRecords(rows);
+    }).catch((error: unknown) => {
+      if (!active) return;
+      setLoadError(`World records could not be loaded from Supabase. ${describeSupabaseError(error)}`);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [reload]);
 
   useEffect(() => {
     setPage(1);
@@ -62,7 +83,6 @@ export default function RecordsPage() {
       <PageHeading eyebrow="World Records" title="Make history." description="Explore swimming records by age group, category, event and course." />
 
       <div className="max-w-7xl mx-auto px-4 py-10">
-        <div className="mb-6"><DatasetNotice /></div>
         <FilterBar className="mb-6">
           <div className="max-w-xl">
             <SearchInput
@@ -83,18 +103,22 @@ export default function RecordsPage() {
           </div>
         </FilterBar>
 
+        {loading ? <SkeletonTable rows={8} columns={7} />
+          : loadError ? <EmptyState title="World record data is unavailable" subtitle={loadError} action={<Button variant="secondary" size="sm" onClick={() => setReload(value => value + 1)}>Try again</Button>} />
+          : <>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 font-mono text-xs text-neutral-600">
           <span>{filtered.length === 0 ? '0 records' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} records`}</span>
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState title="No records found" subtitle="Adjust your search or filters, or reset them to see all available sample records." action={hasActiveFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />
+          <EmptyState title="No records found" subtitle="No verified records match these filters." action={hasActiveFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />
         ) : (
           <>
             <RecordsTable records={pageRecords} />
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Record pages" />
           </>
         )}
+          </>}
       </div>
     </div>
   );

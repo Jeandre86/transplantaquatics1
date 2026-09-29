@@ -10,7 +10,6 @@ import FilterSelect from '../components/FilterSelect';
 import Eyebrow from '../components/Eyebrow';
 import FilterBar from '../components/FilterBar';
 import PageHeading from '../components/PageHeading';
-import DatasetNotice from '../components/DatasetNotice';
 import Pagination from '../components/Pagination';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
@@ -78,7 +77,6 @@ export default function GenderResultsPage() {
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
-          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Results</Eyebrow>

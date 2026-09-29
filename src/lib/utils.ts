@@ -49,6 +49,8 @@ export function timeToSeconds(time: string): number {
 }
 
 export function formatDate(dateStr: string): string {
+  if (!dateStr?.trim()) return '—';
   const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }

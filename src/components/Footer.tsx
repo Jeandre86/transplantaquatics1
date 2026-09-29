@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer style={{ backgroundColor: 'var(--navy)', borderTop: '1px solid var(--navy-light)' }}>
       <div className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
           <div className="md:col-span-1">
             <Logo size="md" light />
@@ -99,7 +99,7 @@ export default function Footer() {
             Copyright © 2026 Transplant Aquatics All rights reserved.
           </p>
           <p className="font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-            Demo platform — data is illustrative only.
+            Project By Ontwrp.
           </p>
         </div>
       </div>

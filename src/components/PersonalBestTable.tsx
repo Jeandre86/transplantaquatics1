@@ -2,7 +2,6 @@ import type { PersonalBest, Gender, AgeGroup } from '../types';
 import VerificationBadge from './VerificationBadge';
 import TimeStandard from './TimeStandard';
 import { formatDate } from '../lib/utils';
-import EmptyState from './EmptyState';
 
 interface PersonalBestTableProps {
   pbs: PersonalBest[];
@@ -11,10 +10,6 @@ interface PersonalBestTableProps {
 }
 
 export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBestTableProps) {
-  if (pbs.length === 0) {
-    return <EmptyState title="No personal bests recorded" subtitle="Personal best times will appear here when they are added to this profile." />;
-  }
-
   const headers = ['Event', 'Course', 'Time', 'WTG', 'Date', 'Meet', 'Status'];
 
   return (
@@ -35,13 +30,15 @@ export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBes
           </tr>
         </thead>
         <tbody>
-          {pbs.map((pb, i) => (
+          {pbs.length === 0 ? (
+            <tr><td colSpan={headers.length} className="px-4 py-8 text-center font-mono text-sm text-[var(--muted)]">No personal bests recorded yet.</td></tr>
+          ) : pbs.map((pb, i) => (
             <tr key={i} className="ta-table-row">
-              <td className="px-3 py-4 font-medium text-base text-[var(--ink)] sm:px-5">{pb.event}</td>
-              <td className="px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{pb.course}</td>
-              <td className="px-3 py-4 text-right font-mono font-bold text-base text-[var(--navy)] sm:px-5">{pb.time}</td>
+              <td className="px-3 py-4 font-medium text-base text-[var(--ink)] sm:px-5">{pb.event || '—'}</td>
+              <td className="px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{pb.course || '—'}</td>
+              <td className="px-3 py-4 text-right font-mono font-bold text-base text-[var(--navy)] sm:px-5">{pb.time || '—'}</td>
               <td className="px-3 py-4 sm:px-5">
-                {gender && (
+                {gender && pb.time ? (
                   <TimeStandard
                     time={pb.time}
                     event={pb.event}
@@ -49,10 +46,10 @@ export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBes
                     gender={gender}
                     ageGroup={ageGroup}
                   />
-                )}
+                ) : <span className="font-mono text-xs text-[var(--muted)]">—</span>}
               </td>
               <td className="px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{formatDate(pb.date)}</td>
-              <td className="px-3 py-4 text-xs text-[var(--muted)] max-w-[180px] truncate sm:px-5">{pb.meet}</td>
+              <td className="px-3 py-4 text-xs text-[var(--muted)] max-w-[180px] truncate sm:px-5">{pb.meet || '—'}</td>
               <td className="px-3 py-4 sm:px-5"><VerificationBadge status={pb.verified} /></td>
             </tr>
           ))}

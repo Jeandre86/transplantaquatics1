@@ -98,14 +98,14 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
                     </div>
                     </td>
                   )}
-                  <td className={`px-3 py-4 text-sm sm:px-5 ${primaryText}`}>{r.event}</td>
-                  <td className={`px-3 py-4 font-mono text-xs sm:px-5 ${secondaryText}`}><span className={`inline-flex min-w-12 justify-center border px-2 py-1 ${dark ? 'border-white/15 bg-white/5' : 'border-[var(--accent)]/25 bg-[var(--ice)] text-[var(--navy)]'}`}>{r.course}</span></td>
-                  <td className={`px-3 py-4 text-right font-mono font-bold text-base sm:px-5 ${dark ? primaryText : 'text-[var(--navy)]'}`}>{r.time}</td>
+                  <td className={`px-3 py-4 text-sm sm:px-5 ${primaryText}`}>{r.event || '—'}</td>
+                  <td className={`px-3 py-4 font-mono text-xs sm:px-5 ${secondaryText}`}><span className={`inline-flex min-w-12 justify-center border px-2 py-1 ${dark ? 'border-white/15 bg-white/5' : 'border-[var(--accent)]/25 bg-[var(--ice)] text-[var(--navy)]'}`}>{r.course || '—'}</span></td>
+                  <td className={`px-3 py-4 text-right font-mono font-bold text-base sm:px-5 ${dark ? primaryText : 'text-[var(--navy)]'}`}>{r.time || '—'}</td>
                   <td className={`px-3 py-4 font-mono text-xs whitespace-nowrap sm:px-5 ${secondaryText}`}>{formatDate(r.date)}</td>
-                  <td className={`px-3 py-4 text-xs max-w-[180px] truncate sm:px-5 ${secondaryText}`}>{r.meet}</td>
+                  <td className={`px-3 py-4 text-xs max-w-[180px] truncate sm:px-5 ${secondaryText}`}>{r.meet || '—'}</td>
                   <td className="px-3 py-4 sm:px-5"><VerificationBadge status={r.verified} dark={dark} /></td>
                   <td className="px-3 py-4 sm:px-5">
-                    <div className="flex gap-1.5">
+                    <div className="flex min-h-5 items-center gap-1.5">
                       {r.isPB && (
                         <span
                           className="font-mono text-xs px-1.5 py-0.5 font-bold"
@@ -117,6 +117,7 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
                       {r.isSB && !r.isPB && (
                         <span className="font-mono text-xs px-1.5 py-0.5 border border-neutral-400 text-neutral-400">SB</span>
                       )}
+                      {!r.isPB && !r.isSB && <span className={`font-mono text-xs ${secondaryText}`}>—</span>}
                     </div>
                   </td>
                 </tr>

@@ -69,11 +69,7 @@ export default function TopSwimsSection() {
   const womenSwims = bestVerifiedSwims('Women');
 
   return (
-    <section className="mb-12" aria-labelledby="top-swims-heading">
-      <div className="mb-5">
-        <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">TA points · verified long-course results</p>
-        <h2 id="top-swims-heading" className="mt-2 text-2xl font-black tracking-tight text-neutral-900">Top swims</h2>
-      </div>
+    <section className="mb-12">
       <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8 xl:gap-12">
         <TopSwimsCard gender="Men" swims={menSwims} />
         <TopSwimsCard gender="Women" swims={womenSwims} />

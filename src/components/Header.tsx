@@ -172,7 +172,7 @@ export default function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(o => !o)}
-                  className="w-8 h-8 flex items-center justify-center text-xs font-bold text-white transition-opacity hover:opacity-80 flex-shrink-0"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold text-white transition-opacity hover:opacity-80"
                   style={{ backgroundColor: 'var(--navy-light)' }}
                   aria-label="Open user menu"
                   aria-haspopup="menu"
@@ -207,6 +207,17 @@ export default function Header() {
 
                     {/* Menu items */}
                     <Link
+                      to="/dashboard"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
+                      style={{ color: 'var(--ice)' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--navy-light)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <User size={14} style={{ color: 'var(--muted-on-dark)' }} />
+                      Dashboard
+                    </Link>
+                    <Link
                       to="/profile"
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
@@ -217,22 +228,6 @@ export default function Header() {
                       <User size={14} style={{ color: 'var(--muted-on-dark)' }} />
                       My Profile
                     </Link>
-                    <Link
-                      to="/results"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
-                      style={{ color: 'var(--ice)' }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--navy-light)')}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: 'var(--muted-on-dark)', flexShrink: 0 }}>
-                        <rect x="1" y="3" width="12" height="1.2" rx="0.6" fill="currentColor"/>
-                        <rect x="1" y="6.4" width="12" height="1.2" rx="0.6" fill="currentColor"/>
-                        <rect x="1" y="9.8" width="8" height="1.2" rx="0.6" fill="currentColor"/>
-                      </svg>
-                      My Results
-                    </Link>
-
                     {/* Divider */}
                     <div style={{ borderTop: '1px solid var(--navy-light)', margin: '4px 0' }} />
 
@@ -257,22 +252,21 @@ export default function Header() {
             ) : (
               <Link
                 to="/login"
-                className="w-8 h-8 flex items-center justify-center transition-colors"
-                style={{ color: 'rgba(255,255,255,0.5)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
+                className="hidden sm:inline-flex items-center px-2 py-2 text-sm font-semibold text-white/70 transition-colors hover:text-white"
               >
-                <User size={18} />
+                Sign in
               </Link>
             )}
 
-            <Link
-              to="/join"
-              className="hidden sm:flex items-center px-4 py-2 text-sm font-bold uppercase tracking-wider text-black transition-opacity hover:opacity-80"
-              style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
-            >
-              Join
-            </Link>
+            {!(auth.isLoggedIn && auth.user) && (
+              <Link
+                to="/join"
+                className="hidden sm:flex items-center px-4 py-2 text-sm font-bold uppercase tracking-wider text-black transition-opacity hover:opacity-80"
+                style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
+              >
+                Join
+              </Link>
+            )}
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(true)}
@@ -353,16 +347,25 @@ export default function Header() {
                 <>
                   <div className="mb-2 flex flex-col items-center gap-2 text-center">
                     <div
-                      className="flex size-10 items-center justify-center text-xs font-bold text-white"
+                      className="flex size-10 items-center justify-center overflow-hidden rounded-full text-xs font-bold text-white"
                       style={{ backgroundColor: 'var(--navy-light)' }}
                     >
-                      {auth.user.avatarInitials}
+                      {auth.user.avatarUrl
+                        ? <img src={auth.user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                        : auth.user.avatarInitials}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white leading-snug">{auth.user.firstName} {auth.user.lastName}</p>
                       <p className="text-xs truncate" style={{ color: 'var(--muted-on-dark)' }}>{auth.user.email}</p>
                     </div>
                   </div>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"
+                  >
+                    Dashboard
+                  </Link>
                   <Link
                     to="/profile"
                     onClick={() => setMobileOpen(false)}
@@ -393,7 +396,7 @@ export default function Header() {
                     className="flex w-full items-center justify-center px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-[var(--navy)] transition-colors hover:bg-[var(--lime)]"
                     style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
                   >
-                    Sign up
+                    Join
                   </Link>
                 </>
               )}

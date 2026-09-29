@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, CheckCircle2, User, Mail, Lock, Calendar, Globe, Heart } from 'lucide-react';
 import Logo from '../components/Logo';
 import { TRANSPLANT_TYPES } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
-type Mode = 'signin' | 'register' | 'profile';
+type Mode = 'signin' | 'profile';
 
 interface ProfileData {
   firstName: string;
@@ -133,13 +133,14 @@ function SelectField({
 }
 
 /* ── Sign In form ─────────────────────────────────────────────────────────── */
-function SignInForm({ onSwitch }: { onSwitch: (m: Mode) => void }) {
+function SignInForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +148,8 @@ function SignInForm({ onSwitch }: { onSwitch: (m: Mode) => void }) {
     setLoading(true);
     try {
       await auth.login(email, password);
-      navigate('/profile');
+      const destination = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+      navigate(destination?.pathname ? `${destination.pathname}${destination.search ?? ''}` : '/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.');
     } finally {
@@ -185,77 +187,7 @@ function SignInForm({ onSwitch }: { onSwitch: (m: Mode) => void }) {
 
       <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>
         New to Transplant Aquatics?{' '}
-        <button type="button" onClick={() => onSwitch('register')} className="font-semibold" style={{ color: 'var(--accent)' }}>
-          Create an account
-        </button>
-      </p>
-    </form>
-  );
-}
-
-/* ── Register form ────────────────────────────────────────────────────────── */
-function RegisterForm({ onSwitch }: { onSwitch: (m: Mode) => void }) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const auth = useAuth();
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await auth.register({ firstName, lastName, email, password });
-      navigate('/profile');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        <InputField label="First name" icon={User} value={firstName} onChange={setFirstName} placeholder="Emma" required />
-        <InputField label="Last name" value={lastName} onChange={setLastName} placeholder="Wilson" required />
-      </div>
-      <InputField label="Email address" icon={Mail} type="email" value={email} onChange={setEmail} placeholder="you@example.com" required />
-      <InputField label="Password" icon={Lock} type="password" value={password} onChange={setPassword} placeholder="At least 8 characters" required />
-
-      {error && (
-        <p className="text-sm font-mono" style={{ color: '#ef4444' }}>{error}</p>
-      )}
-
-      <label className="flex items-start gap-3 text-sm cursor-pointer" style={{ color: 'var(--muted-on-dark)' }}>
-        <input type="checkbox" className="mt-0.5 w-3.5 h-3.5 flex-shrink-0 accent-[var(--accent)]" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-        <span>
-          I agree to the{' '}
-          <span className="underline cursor-pointer" style={{ color: 'var(--aqua)' }}>Terms of Use</span>
-          {' '}and{' '}
-          <span className="underline cursor-pointer" style={{ color: 'var(--aqua)' }}>Privacy Policy</span>
-        </span>
-      </label>
-
-      <button
-        type="submit"
-        disabled={!agreed || loading}
-        className="w-full py-3.5 text-sm font-bold uppercase tracking-wider text-black flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
-        style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
-      >
-        {loading ? 'Creating account…' : <><span>Create Account</span> <ArrowRight size={16} /></>}
-      </button>
-
-      <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>
-        Already have an account?{' '}
-        <button type="button" onClick={() => onSwitch('signin')} className="font-semibold" style={{ color: 'var(--accent)' }}>
-          Sign in
-        </button>
+        <Link to="/join" className="font-semibold" style={{ color: 'var(--accent)' }}>Create an account</Link>
       </p>
     </form>
   );
@@ -390,20 +322,19 @@ function ProfileBuilder() {
 
 /* ── Main page ─────────────────────────────────────────────────────────────── */
 export default function LoginPage() {
-  const [mode, setMode] = useState<Mode>('signin');
+  const [mode] = useState<Mode>('signin');
   const auth = useAuth();
   const navigate = useNavigate();
 
-  // Redirect already-authenticated users straight to their profile
+  // Redirect already-authenticated users to their dashboard
   useEffect(() => {
     if (auth.isLoggedIn) {
-      navigate('/profile', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [auth.isLoggedIn, navigate]);
 
   const titles: Record<Mode, { heading: string; sub: string }> = {
     signin:   { heading: 'Sign In',          sub: 'Access your Transplant Aquatics profile.' },
-    register: { heading: 'Create Account',   sub: 'Join the global transplant swimming community.' },
     profile:  { heading: 'Your Profile',     sub: 'Complete your athlete profile.' },
   };
 
@@ -444,36 +375,13 @@ export default function LoginPage() {
               <p className="mt-1 text-sm" style={{ color: 'var(--muted-on-dark)' }}>{titles[mode].sub}</p>
             </div>
 
-            {/* Tab switcher (sign in / register only) */}
-            {mode !== 'profile' && (
-              <div className="flex mb-8" style={{ borderBottom: '1px solid var(--navy-light)' }}>
-                {(['signin', 'register'] as const).map(m => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMode(m)}
-                    className="flex-1 pb-3 text-sm font-medium transition-colors"
-                    style={{
-                      color: mode === m ? 'var(--accent)' : 'var(--muted-on-dark)',
-                      borderBottom: mode === m ? '2px solid var(--accent)' : '2px solid transparent',
-                      marginBottom: '-1px',
-                    }}
-                  >
-                    {m === 'signin' ? 'Sign In' : 'Register'}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Forms */}
-            {mode === 'signin'   && <SignInForm onSwitch={setMode} />}
-            {mode === 'register' && <RegisterForm onSwitch={setMode} />}
+            {mode === 'signin'   && <SignInForm />}
             {mode === 'profile'  && <ProfileBuilder />}
           </div>
 
-          {/* Brand note */}
           <p className="mt-6 text-center font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-            Captured to 0.001s resolution. · © 2026 Transplant Aquatics
+            © 2026 Transplant Aquatics
           </p>
         </div>
       </div>

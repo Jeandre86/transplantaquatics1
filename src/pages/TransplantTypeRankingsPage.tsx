@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { rankings } from '../data/rankings';
 import { AGE_GROUPS, COURSES, EVENTS, GENDERS, TRANSPLANT_TYPES } from '../types';
 import type { Course, Event, Gender, TransplantType } from '../types';
 import { timeToSeconds } from '../lib/utils';
+import { loadDatabaseRankings } from '../lib/databaseRankings';
+import { describeSupabaseError } from '../lib/supabase';
 import RankingTable from '../components/RankingTable';
 import FilterSelect from '../components/FilterSelect';
 import Eyebrow from '../components/Eyebrow';
 import Pagination from '../components/Pagination';
 import FilterBar from '../components/FilterBar';
 import PageHeading from '../components/PageHeading';
-import DatasetNotice from '../components/DatasetNotice';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
+import { SkeletonTable } from '../components/Skeleton';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -24,27 +25,57 @@ export default function TransplantTypeRankingsPage() {
   const [event, setEvent] = useState(ALL);
   const [course, setCourse] = useState(ALL);
   const [page, setPage] = useState(1);
+  const [rankings, setRankings] = useState<Awaited<ReturnType<typeof loadDatabaseRankings>>>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadDatabaseRankings()
+      .then(rows => { if (active) setRankings(rows); })
+      .catch(error => { if (active) setLoadError(describeSupabaseError(error)); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     setPage(1);
   }, [transplantType, ageGroup, gender, event, course]);
 
   const hasFilters = [transplantType, ageGroup, gender, event, course].some(value => value !== ALL);
-  const filteredRankings = rankings
+  const matchingSwims = rankings
     .filter(r => (transplantType === ALL || r.transplantType === transplantType)
       && (ageGroup === ALL || r.ageGroup === ageGroup)
       && (gender === ALL || r.gender === gender)
       && (event === ALL || r.event === event)
-      && (course === ALL || r.course === course))
-    .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time)
-      || a.athleteName.localeCompare(b.athleteName));
+      && (course === ALL || r.course === course));
+  const personalBests = new Map<string, typeof matchingSwims[number]>();
+  matchingSwims.forEach(swim => {
+    const key = [swim.athleteId, swim.event, swim.gender, swim.course].join('|');
+    const current = personalBests.get(key);
+    if (!current || timeToSeconds(swim.time) < timeToSeconds(current.time)) personalBests.set(key, swim);
+  });
+  const filteredRankings = [...personalBests.values()].sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time)
+    || a.athleteName.localeCompare(b.athleteName));
 
-  const rankPositions = new Map(filteredRankings.map((ranking, index) => [
-    [ranking.athleteId, ranking.ageGroup, ranking.gender, ranking.event, ranking.course].join('|'),
-    index + 1,
-  ]));
-  const pageCount = Math.ceil(filteredRankings.length / PAGE_SIZE);
-  const pageRankings = filteredRankings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const ageGroupOptions = [...new Set([...AGE_GROUPS, ...rankings.map(row => row.ageGroup)])];
+  const eventOptions = [...new Set([...EVENTS, ...rankings.map(row => row.event)])];
+  const rankedResults: typeof filteredRankings = [];
+  const categoryRanks = new Map<string, number>();
+  [...filteredRankings]
+    .sort((a, b) => a.event.localeCompare(b.event)
+      || a.gender.localeCompare(b.gender)
+      || a.course.localeCompare(b.course)
+      || timeToSeconds(a.time) - timeToSeconds(b.time)
+      || a.athleteName.localeCompare(b.athleteName))
+    .forEach(swim => {
+      const category = [swim.event, swim.gender, swim.course].join('|');
+      const rank = (categoryRanks.get(category) ?? 0) + 1;
+      categoryRanks.set(category, rank);
+      rankedResults.push({ ...swim, rank });
+    });
+  const pageCount = Math.ceil(rankedResults.length / PAGE_SIZE);
+  const pageRankings = rankedResults.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const clearFilters = () => {
     setTransplantType(ALL);
@@ -62,7 +93,6 @@ export default function TransplantTypeRankingsPage() {
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
-          <div className="mb-6"><DatasetNotice /></div>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Swim time leaderboard</Eyebrow>
@@ -74,24 +104,28 @@ export default function TransplantTypeRankingsPage() {
           <FilterBar className="mb-6">
             <div className="flex flex-wrap gap-3">
               <FilterSelect label="Transplant Type" value={transplantType} options={[ALL, ...TRANSPLANT_TYPES]} onChange={value => setTransplantType(value as TransplantType | typeof ALL)} />
-              <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...AGE_GROUPS]} onChange={setAgeGroup} />
+              <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...ageGroupOptions]} onChange={setAgeGroup} />
               <FilterSelect label="Gender" value={gender} options={[ALL, ...GENDERS]} onChange={value => setGender(value as Gender | typeof ALL)} />
-              <FilterSelect label="Event" value={event} options={[ALL, ...EVENTS]} onChange={value => setEvent(value as Event | typeof ALL)} />
+              <FilterSelect label="Event" value={event} options={[ALL, ...eventOptions]} onChange={value => setEvent(value as Event | typeof ALL)} />
               <FilterSelect label="Course" value={course} options={[ALL, ...COURSES]} onChange={value => setCourse(value as Course | typeof ALL)} />
             </div>
           </FilterBar>
 
-          {filteredRankings.length === 0 ? (
-            <EmptyState title="No swims match these filters" subtitle="Try changing a filter or reset them to see all available sample swims." action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />
+          {loading ? (
+            <SkeletonTable rows={8} columns={5} />
+          ) : loadError ? (
+            <div role="alert" className="border border-red-300 bg-red-50 px-5 py-6 text-sm text-red-800">
+              Athlete rankings could not be loaded from the database. {loadError}
+            </div>
+          ) : filteredRankings.length === 0 ? (
+            <EmptyState title="No swims match these filters" subtitle="There are no published swims for these filters yet." action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />
           ) : (
             <>
-              <p className="mb-3 font-mono text-xs text-neutral-600">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredRankings.length)} of {filteredRankings.length} swims · sorted by fastest time</p>
+              <p className="mb-3 font-mono text-xs text-neutral-600">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, rankedResults.length)} of {rankedResults.length} personal bests · rank is calculated within each event, gender, and course</p>
               <RankingTable
                 rankings={pageRankings}
                 showVerified={false}
-                rankByPoints
-                rankOffset={(page - 1) * PAGE_SIZE}
-                rankPositions={rankPositions}
+                rankByPoints={false}
                 showGap={false}
                 showPoints={false}
                 genderCard

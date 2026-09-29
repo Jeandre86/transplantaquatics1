@@ -1,10 +1,11 @@
 // ─── Base Skeleton ────────────────────────────────────────────────────────────
 interface SkeletonProps {
   className?: string;
+  dark?: boolean;
 }
 
-export function Skeleton({ className }: SkeletonProps) {
-  return <div className={['skeleton rounded', className].filter(Boolean).join(' ')} />;
+export function Skeleton({ className, dark = false }: SkeletonProps) {
+  return <div className={['skeleton rounded', dark ? 'skeleton-dark' : '', className].filter(Boolean).join(' ')} />;
 }
 
 // ─── SkeletonCard — matches AthleteCard dimensions ────────────────────────────
@@ -15,7 +16,7 @@ export function SkeletonCard() {
       style={{ border: '1px solid var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}
     >
       {/* Avatar placeholder */}
-      <Skeleton className="h-40 w-full rounded-none" />
+      <Skeleton dark className="h-40 w-full rounded-none" />
       {/* Name */}
       <Skeleton className="h-4 w-3/4" />
       {/* Country / event line */}
@@ -29,38 +30,25 @@ export function SkeletonCard() {
 // ─── SkeletonTable — N rows of skeleton data rows ─────────────────────────────
 interface SkeletonTableProps {
   rows?: number;
+  columns?: number;
+  dark?: boolean;
 }
 
-export function SkeletonTable({ rows = 5 }: SkeletonTableProps) {
+export function SkeletonTable({ rows = 5, columns = 6, dark = false }: SkeletonTableProps) {
+  const columnCount = Math.max(1, columns);
+  const gridTemplateColumns = columnCount === 1 ? 'minmax(0, 1fr)' : `minmax(7rem, 1.6fr) repeat(${columnCount - 1}, minmax(4rem, 1fr))`;
+
   return (
-    <div className="flex flex-col" style={{ border: '1px solid var(--navy-light)' }}>
-      {/* Header row */}
-      <div
-        className="flex items-center gap-4 px-4 py-2"
-        style={{ borderBottom: '1px solid var(--navy-light)', backgroundColor: 'var(--navy)' }}
-      >
-        <Skeleton className="h-3 w-8" />
-        <Skeleton className="h-3 w-32" />
-        <Skeleton className="h-3 w-20 ml-auto" />
-        <Skeleton className="h-3 w-16" />
+    <div className="ta-table-shell w-full overflow-hidden" role="status" aria-busy="true" aria-label="Loading table data">
+      <div className="grid items-center gap-4 px-4 py-3 sm:px-5" style={{ gridTemplateColumns, backgroundColor: 'var(--navy)' }}>
+        {Array.from({ length: columnCount }, (_, index) => <Skeleton key={`header-${index}`} dark className={`h-3 ${index === 0 ? 'w-3/4' : 'w-1/2'}`} />)}
       </div>
-      {/* Data rows */}
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-4 px-4 py-3"
-          style={{
-            borderBottom: i < rows - 1 ? '1px solid var(--navy-light)' : 'none',
-            backgroundColor: i % 2 === 0 ? 'var(--navy-mid)' : 'var(--navy)',
-          }}
-        >
-          <Skeleton className="h-3 w-6 shrink-0" />
-          <Skeleton className="h-3 w-36" />
-          <Skeleton className="h-3 w-10 ml-auto shrink-0" />
-          <Skeleton className="h-3 w-16 shrink-0" />
-          <Skeleton className="h-3 w-12 shrink-0" />
+      {Array.from({ length: rows }, (_, rowIndex) => (
+        <div key={rowIndex} className="grid items-center gap-4 px-4 py-4 sm:px-5" style={{ gridTemplateColumns, backgroundColor: dark ? (rowIndex % 2 ? 'var(--navy)' : 'var(--navy-mid)') : (rowIndex % 2 ? 'var(--paper)' : 'var(--surface)') }}>
+          {Array.from({ length: columnCount }, (_, columnIndex) => <Skeleton key={`${rowIndex}-${columnIndex}`} dark={dark} className={`h-3 ${columnIndex === 0 ? 'w-4/5' : columnIndex === columnCount - 1 ? 'w-2/3' : 'w-1/2'}`} />)}
         </div>
       ))}
+      <span className="sr-only">Loading table data…</span>
     </div>
   );
 }

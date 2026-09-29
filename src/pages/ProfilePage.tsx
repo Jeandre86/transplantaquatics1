@@ -1,466 +1,658 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Edit2, LogOut, CheckCircle2, ArrowRight, User, Mail, Globe, Heart, Trophy } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, CalendarDays, Camera, ChartNoAxesCombined, MapPin, Medal, Music2, Settings2, Target, Timer, Waves, Mail, LockKeyhole, Trash2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import ResultsTable from '../components/ResultsTable';
+import { getFlagEmoji } from '../lib/utils';
+import { athletes } from '../data/athletes';
+import { clubs } from '../data/clubs';
 import { results } from '../data/results';
-import { getFlagEmoji, getTransplantColor } from '../lib/utils';
-import type { Result } from '../types';
+import { COURSES, EVENTS, type Course, type Event } from '../types';
+import type { SocialLinks } from '../lib/avatars';
+import { athleteGoalsErrorMessage, createAthleteGoal, loadAthleteGoals, removeAthleteGoal, type AthleteGoal } from '../lib/athleteGoals';
+import { supabase } from '../lib/supabase';
+import ManagedSwimmers from '../components/ManagedSwimmers';
+import { Skeleton, SkeletonTable } from '../components/Skeleton';
 
-/* ── Mock results for the logged-in user ───────────────────────────────────── */
-const MOCK_RESULTS: Result[] = [
-  ...results.filter(r => r.athleteId === 'emma-wilson'),
-  {
-    id: 'em001', athleteId: 'emma-wilson', event: '200m Backstroke', course: 'LCM',
-    time: '2:34.88', date: '2025-04-17', meet: 'World Transplant Games 2025',
-    ageGroup: '30-39', gender: 'Women', verified: 'Verified', isPB: true, isSB: true,
-  },
-  {
-    id: 'em002', athleteId: 'emma-wilson', event: '50m Backstroke', course: 'LCM',
-    time: '34.22', date: '2025-04-15', meet: 'World Transplant Games 2025',
-    ageGroup: '30-39', gender: 'Women', verified: 'Verified', isPB: true, isSB: true,
-  },
-  {
-    id: 'em003', athleteId: 'emma-wilson', event: '100m Freestyle', course: 'LCM',
-    time: '1:05.11', date: '2024-10-12', meet: 'Australian Transplant Games',
-    ageGroup: '30-39', gender: 'Women', verified: 'Verified', isPB: false, isSB: false,
-  },
-  {
-    id: 'em004', athleteId: 'emma-wilson', event: '100m Backstroke', course: 'SCM',
-    time: '1:09.44', date: '2024-11-20', meet: 'National Transplant Championships',
-    ageGroup: '30-39', gender: 'Women', verified: 'Pending', isPB: false, isSB: false,
-  },
-  {
-    id: 'em005', athleteId: 'emma-wilson', event: '200m Individual Medley', course: 'LCM',
-    time: '2:41.09', date: '2024-04-08', meet: 'Oceania Transplant Open',
-    ageGroup: '30-39', gender: 'Women', verified: 'Verified', isPB: false, isSB: false,
-  },
-  {
-    id: 'em006', athleteId: 'emma-wilson', event: '50m Freestyle', course: 'SCM',
-    time: '31.08', date: '2025-01-11', meet: 'Sydney Masters Invitational',
-    ageGroup: '30-39', gender: 'Women', verified: 'Verified', isPB: false, isSB: true,
-  },
+type ProfileTab = 'overview' | 'times' | 'goals' | 'rankings' | 'account';
+
+function parseTime(time: string): number {
+  const parts = time.trim().split(':').map(Number);
+  if (!parts.length || parts.length > 2 || parts.some(part => !Number.isFinite(part))) return 0;
+  return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
+}
+
+const AVAILABLE_SEASONS = [...new Set(results.map(result => result.date.slice(0, 4)))].sort((a, b) => b.localeCompare(a));
+
+const STROKES = ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', 'Individual Medley', 'Open Water'];
+const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string; baseUrl: string }[] = [
+  { key: 'facebook', label: 'Facebook', baseUrl: 'https://facebook.com/' },
+  { key: 'instagram', label: 'Instagram', baseUrl: 'https://instagram.com/' },
+  { key: 'tiktok', label: 'TikTok', baseUrl: 'https://tiktok.com/@' },
 ];
 
-const MOCK_PBS = [
-  { event: '100m Backstroke', course: 'LCM', time: '1:11.22', meet: 'World Transplant Games 2025' },
-  { event: '200m Backstroke', course: 'LCM', time: '2:34.88', meet: 'World Transplant Games 2025' },
-  { event: '50m Backstroke',  course: 'LCM', time: '34.22',   meet: 'World Transplant Games 2025' },
-  { event: '100m Backstroke', course: 'SCM', time: '1:09.44', meet: 'National Transplant Championships' },
-];
+function socialHref(platform: keyof SocialLinks, value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const base = SOCIAL_FIELDS.find(field => field.key === platform)?.baseUrl ?? '';
+  return `${base}${trimmed.replace(/^@/, '')}`;
+}
 
-/* ── Stat tile ─────────────────────────────────────────────────────────────── */
-function StatTile({ value, label }: { value: string; label: string }) {
+function strokeForEvent(event: string): string | null {
+  return STROKES.find(stroke => event.toLowerCase().includes(stroke.toLowerCase())) ?? null;
+}
+
+function ProfilePanel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <div
-      className="flex-1 py-5 px-4 text-center"
-      style={{ backgroundColor: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}
-    >
-      <div className="font-black font-mono text-3xl leading-none" style={{ color: 'var(--accent)' }}>
-        {value}
+    <section className="bg-white">
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4 sm:px-6">
+        <h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">{title}</h2>
+        {action}
       </div>
-      <div className="mt-1.5 font-mono text-xs tracking-widest uppercase" style={{ color: 'var(--muted-on-dark)' }}>
-        {label}
-      </div>
-    </div>
+      <div className="p-5 sm:p-6">{children}</div>
+    </section>
   );
 }
 
-/* ── Editable field (dark theme) ───────────────────────────────────────────── */
-function EditField({
-  label, icon: Icon, value, onChange, type = 'text', placeholder
-}: {
-  label: string;
-  icon?: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  placeholder?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: 'var(--muted-on-dark)' }}>
-        {label}
-      </label>
-      <div className="relative">
-        {Icon && (
-          <Icon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--muted-on-dark)' }} />
-        )}
-        <input
-          type={type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full py-2.5 text-sm text-white placeholder-white/30 outline-none transition-colors"
-          style={{
-            backgroundColor: 'var(--navy)',
-            border: '1px solid var(--navy-light)',
-            paddingLeft: Icon ? '2.25rem' : '0.75rem',
-            paddingRight: '0.75rem',
-          }}
-          onFocus={e => (e.target.style.borderColor = 'var(--aqua)')}
-          onBlur={e => (e.target.style.borderColor = 'var(--navy-light)')}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ── Countries lookup ──────────────────────────────────────────────────────── */
-const COUNTRY_NAMES: Record<string, string> = {
-  AU: 'Australia', BR: 'Brazil', CA: 'Canada', CN: 'China', DE: 'Germany',
-  ES: 'Spain', FR: 'France', GB: 'United Kingdom', IN: 'India', IT: 'Italy',
-  JP: 'Japan', MX: 'Mexico', NL: 'Netherlands', NZ: 'New Zealand', PL: 'Poland',
-  PT: 'Portugal', US: 'United States', ZA: 'South Africa', SE: 'Sweden', NO: 'Norway',
-};
-
-/* ── Profile Page ──────────────────────────────────────────────────────────── */
 export default function ProfilePage() {
   const auth = useAuth();
   const navigate = useNavigate();
-  const [editing, setEditing] = useState(false);
-  const [saved, setSaved] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
+  const bannerInput = useRef<HTMLInputElement>(null);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [savedMessage, setSavedMessage] = useState('');
+  const [socialDraft, setSocialDraft] = useState<SocialLinks>({});
+  const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
+  const [goals, setGoals] = useState<AthleteGoal[]>([]);
+  const [goalsLoading, setGoalsLoading] = useState(true);
+  const [goalError, setGoalError] = useState('');
+  const [goalSaving, setGoalSaving] = useState(false);
+  const [removingGoalId, setRemovingGoalId] = useState<string | null>(null);
+  const [goalEvent, setGoalEvent] = useState<Event>(EVENTS[0]);
+  const [goalCourse, setGoalCourse] = useState<Course>('LCM');
+  const [goalTime, setGoalTime] = useState('');
+  const [selectedSeason, setSelectedSeason] = useState(AVAILABLE_SEASONS[0] ?? '');
+  const [accountEmail, setAccountEmail] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [closePassword, setClosePassword] = useState('');
+  const [closeConfirmation, setCloseConfirmation] = useState('');
+  const [closeSaving, setCloseSaving] = useState(false);
+  const [closeError, setCloseError] = useState('');
 
-  // Redirect unauthenticated visitors
   useEffect(() => {
+    if (!auth.isLoading && !auth.isLoggedIn) navigate('/login', { replace: true });
+  }, [auth.isLoading, auth.isLoggedIn, navigate]);
+
+  useEffect(() => {
+    setSocialDraft(auth.user?.socials ?? {});
+  }, [auth.user?.email, auth.user?.socials]);
+
+  useEffect(() => {
+    setAccountEmail(auth.user?.email ?? '');
+  }, [auth.user?.email]);
+
+  useEffect(() => {
+    let cancelled = false;
     if (!auth.isLoggedIn) {
-      navigate('/login', { replace: true });
+      setGoals([]);
+      setGoalsLoading(false);
+      return () => { cancelled = true; };
     }
-  }, [auth.isLoggedIn, navigate]);
+
+    setGoalsLoading(true);
+    setGoalError('');
+    loadAthleteGoals().then(savedGoals => {
+      if (!cancelled) setGoals(savedGoals);
+    }).catch(error => {
+      if (!cancelled) setGoalError(athleteGoalsErrorMessage(error));
+    }).finally(() => {
+      if (!cancelled) setGoalsLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [auth.isLoggedIn]);
 
   const user = auth.user;
-  if (!user) return null;
+  const athlete = useMemo(() => {
+    if (!user) return undefined;
+    const fullName = `${user.firstName} ${user.lastName}`.trim().toLocaleLowerCase();
+    return athletes.find(entry => `${entry.firstName} ${entry.lastName}`.trim().toLocaleLowerCase() === fullName);
+  }, [user]);
 
-  // Local edit state seeded from auth user
-  const [editFirst, setEditFirst] = useState(user.firstName);
-  const [editLast,  setEditLast]  = useState(user.lastName);
-  const [editEmail, setEditEmail] = useState(user.email);
-  const [editCountry, setEditCountry] = useState(user.countryCode || '');
-  const [editTransplant, setEditTransplant] = useState(user.transplantType || '');
-  const [editClub, setEditClub] = useState('Sydney Aquatic Club');
+  if (auth.isLoading || !user) return null;
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setEditing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+  const flag = user.countryCode ? getFlagEmoji(user.countryCode) : '';
+  const country = user.country || user.countryCode || 'Country not added';
+  const profileClub = user.club
+    ? clubs.find(club => club.name.trim().toLocaleLowerCase() === user.club?.trim().toLocaleLowerCase())
+    : undefined;
+  const clubSlug = user.club?.trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') ?? '';
+  const allAthleteResults = athlete ? results
+    .filter(result => result.athleteId === athlete.id)
+    .sort((a, b) => b.date.localeCompare(a.date)) : [];
+  const athleteResults = allAthleteResults.slice(0, 6);
+  const clubMembers = user.club ? athletes.filter(entry => entry.club?.toLocaleLowerCase() === user.club?.toLocaleLowerCase()) : [];
+  const clubMemberIds = new Set(clubMembers.map(entry => entry.id));
+  const clubSeasonGroups = new Map<string, Map<string, { athleteId: string; event: string; gender: string; ageGroup: string; course: string; time: string }>>();
+  results.filter(result => result.date.startsWith(selectedSeason) && clubMemberIds.has(result.athleteId)).forEach(result => {
+    const categoryKey = [result.event, result.gender, result.ageGroup, result.course].join('|');
+    const category = clubSeasonGroups.get(categoryKey) ?? new Map();
+    const current = category.get(result.athleteId);
+    if (!current || parseTime(result.time) < parseTime(current.time)) {
+      category.set(result.athleteId, { athleteId: result.athleteId, event: result.event, gender: result.gender, ageGroup: result.ageGroup, course: result.course, time: result.time });
+    }
+    clubSeasonGroups.set(categoryKey, category);
+  });
+  const clubSeasonRows = [...clubSeasonGroups.values()]
+    .filter(category => category.size > 1 && athlete && category.has(athlete.id))
+    .flatMap(category => [...category.values()].sort((a, b) => parseTime(a.time) - parseTime(b.time)).map((row, index) => ({ ...row, rank: index + 1 })))
+    .filter(row => row.athleteId === athlete?.id)
+    .sort((a, b) => a.event.localeCompare(b.event));
+  const recordedEvents = athlete ? results.filter(result => result.athleteId === athlete.id).map(result => result.event) : [];
+  const swimEvents = athlete
+    ? recordedEvents.length ? recordedEvents : athlete.personalBests.map(best => best.event)
+    : user.primaryEvent ? [user.primaryEvent] : [];
+  const specialtyCounts = new Map<string, number>();
+  swimEvents.forEach(event => {
+    const stroke = strokeForEvent(event);
+    if (stroke) specialtyCounts.set(stroke, (specialtyCounts.get(stroke) ?? 0) + 1);
+  });
+  const specialties = [...specialtyCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxSpecialtyCount = Math.max(...specialtyCounts.values(), 1);
+  const chartAxes = [
+    { key: 'Freestyle', label: 'Free' },
+    { key: 'Backstroke', label: 'Back' },
+    { key: 'Breaststroke', label: 'Breast' },
+    { key: 'Butterfly', label: 'Fly' },
+    { key: 'Individual Medley', label: 'IM' },
+  ];
+  const chartCenter = { x: 120, y: 91 };
+  const chartRadius = 56;
+  const chartAngle = (index: number) => (-90 + index * 72) * Math.PI / 180;
+  const chartPoint = (index: number, scale: number) => {
+    const angle = chartAngle(index);
+    return `${(chartCenter.x + Math.cos(angle) * chartRadius * scale).toFixed(1)},${(chartCenter.y + Math.sin(angle) * chartRadius * scale).toFixed(1)}`;
+  };
+  const specialtyPolygon = chartAxes.map((axis, index) => chartPoint(index, (specialtyCounts.get(axis.key) ?? 0) / maxSpecialtyCount)).join(' ');
+  const sprintCount = swimEvents.filter(event => Number(event.match(/^(\d+)m/i)?.[1] ?? 0) <= 100).length;
+  const distanceCount = swimEvents.filter(event => Number(event.match(/^(\d+)m/i)?.[1] ?? 0) >= 200).length;
+  const distanceRatio = sprintCount + distanceCount ? distanceCount / (sprintCount + distanceCount) : 0.5;
+
+  const saveSocialProfiles = () => {
+    const socials = Object.fromEntries(SOCIAL_FIELDS.map(({ key }) => [key, socialDraft[key]?.trim() ?? '']).filter(([, value]) => value)) as SocialLinks;
+    auth.updateSocials(socials);
+    setSavedMessage('Social links saved');
+    window.setTimeout(() => setSavedMessage(''), 2500);
   };
 
-  const handleSignOut = () => {
-    auth.logout();
-    navigate('/');
+  const addGoal = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (parseTime(goalTime) <= 0) {
+      setGoalError('Enter a valid target time, such as 58.50 or 1:02.50.');
+      return;
+    }
+    setGoalSaving(true);
+    setGoalError('');
+    try {
+      const goal = await createAthleteGoal({ event: goalEvent, course: goalCourse, targetTime: goalTime.trim() });
+      setGoals(current => [goal, ...current]);
+      setGoalTime('');
+    } catch (error) {
+      setGoalError(athleteGoalsErrorMessage(error));
+    } finally {
+      setGoalSaving(false);
+    }
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const deleteGoal = async (id: string) => {
+    setRemovingGoalId(id);
+    setGoalError('');
+    try {
+      await removeAthleteGoal(id);
+      setGoals(current => current.filter(goal => goal.id !== id));
+    } catch (error) {
+      setGoalError(athleteGoalsErrorMessage(error));
+    } finally {
+      setRemovingGoalId(null);
+    }
+  };
+
+  const updateEmail = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setEmailError('');
+    setEmailMessage('');
+    if (!supabase) {
+      setEmailError('Account services are not configured.');
+      return;
+    }
+    const nextEmail = accountEmail.trim();
+    if (!nextEmail || nextEmail.toLowerCase() === user.email.toLowerCase()) {
+      setEmailError('Enter a different email address.');
+      return;
+    }
+    setEmailSaving(true);
+    const { error } = await supabase.auth.updateUser({ email: nextEmail });
+    setEmailSaving(false);
+    if (error) setEmailError(error.message);
+    else setEmailMessage('Check your new inbox to confirm the email change. Your email will update after confirmation.');
+  };
+
+  const updatePassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordError('');
+    setPasswordMessage('');
+    if (!supabase) {
+      setPasswordError('Account services are not configured.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError('Your new password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('The new password and confirmation do not match.');
+      return;
+    }
+    setPasswordSaving(true);
+    const { error: verificationError } = await supabase.auth.signInWithPassword({ email: user.email, password: oldPassword });
+    if (verificationError) {
+      setPasswordSaving(false);
+      setPasswordError('The old password is incorrect.');
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPasswordSaving(false);
+    if (error) setPasswordError(error.message);
+    else {
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordMessage('Your password has been updated.');
+    }
+  };
+
+  const closeAccount = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCloseError('');
+    if (closeConfirmation !== 'CLOSE') {
+      setCloseError('Type CLOSE to confirm account deletion.');
+      return;
+    }
+    if (!supabase) {
+      setCloseError('Account services are not configured.');
+      return;
+    }
+    setCloseSaving(true);
+    const { error: verificationError } = await supabase.auth.signInWithPassword({ email: user.email, password: closePassword });
+    if (verificationError) {
+      setCloseSaving(false);
+      setCloseError('The password is incorrect.');
+      return;
+    }
+    const { error } = await supabase.functions.invoke('close-account', { method: 'POST' });
+    setCloseSaving(false);
+    if (error) {
+      setCloseError(error.message.includes('Failed to send a request') || error.message.includes('404')
+        ? 'Account closure is not enabled yet. Deploy the close-account Supabase Edge Function described in supabase/SETUP.md.'
+        : error.message);
+      return;
+    }
+    await supabase.auth.signOut();
+    navigate('/', { replace: true });
+  };
+
+  const readImage = (event: React.ChangeEvent<HTMLInputElement>, onSave: (image: string) => void, label: string) => {
     const file = event.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === 'string') auth.updateAvatar(reader.result);
+      if (typeof reader.result === 'string') {
+        onSave(reader.result);
+        setSavedMessage(`${label} updated`);
+        window.setTimeout(() => setSavedMessage(''), 2500);
+      }
     };
     reader.readAsDataURL(file);
     event.target.value = '';
   };
 
-  // Profile completeness based on filled fields
-  const filledFields = [
-    editFirst, editLast, editEmail, editCountry, editTransplant, editClub,
-  ].filter(v => v.trim() !== '').length;
-  const completeness = Math.round((filledFields / 6) * 100);
-
-  const flag = user.countryCode ? getFlagEmoji(user.countryCode) : '';
-  const transplantColor = user.transplantType ? getTransplantColor(user.transplantType) : 'var(--muted-on-dark)';
-  const countryName = COUNTRY_NAMES[user.countryCode || ''] || user.countryCode || '';
-
   return (
-    <div className="min-h-screen pt-14" style={{ backgroundColor: 'var(--navy)' }}>
+    <main className="min-h-[70vh] bg-[var(--paper)]">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-9">
+        <section className="overflow-hidden bg-white shadow-sm">
+          {user.bannerUrl ? (
+            <div className="relative h-44 bg-cover bg-center sm:h-56" style={{ backgroundImage: `url("${user.bannerUrl}")` }}>
+              {manageOpen && <button type="button" onClick={() => bannerInput.current?.click()} className="absolute right-4 top-4 inline-flex items-center gap-2 border border-white/40 bg-[var(--navy)]/80 px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--navy)]"><Camera size={14} /> Change banner</button>}
+            </div>
+          ) : manageOpen ? (
+            <button type="button" onClick={() => bannerInput.current?.click()} className="flex h-24 w-full items-center justify-center gap-2 border-b border-dashed border-[var(--border)] bg-[var(--paper)] text-sm font-semibold text-[var(--blue)] transition-colors hover:bg-[var(--ice)]"><Camera size={16} /> Upload a profile banner</button>
+          ) : null}
+          <input ref={bannerInput} type="file" accept="image/*" className="hidden" onChange={event => readImage(event, auth.updateBanner, 'Banner image')} />
 
-      {/* ── Hero banner ─────────────────────────────────────────────────────── */}
-      <div
-        className="relative overflow-hidden"
-        style={{ backgroundColor: 'var(--navy-mid)', borderBottom: '1px solid var(--navy-light)' }}
-      >
-        {/* Accent stripe */}
-        <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: 'var(--accent)' }} />
-
-        <div className="max-w-7xl mx-auto px-4 py-10">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-6 justify-between">
-            <div className="flex items-center gap-5">
-              {/* Avatar */}
-              <button
-                type="button"
-                onClick={() => avatarInput.current?.click()}
-                className="w-16 h-16 flex-shrink-0 overflow-hidden flex items-center justify-center text-xl font-bold text-white"
-                style={{ backgroundColor: 'var(--navy-light)', border: '2px solid var(--accent)' }}
-                aria-label="Upload profile photo"
-              >
-                {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.firstName} ${user.lastName}`} className="h-full w-full object-cover" /> : user.avatarInitials}
-              </button>
-              <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-
-              <div>
-                {/* Label */}
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-1 h-4" style={{ backgroundColor: 'var(--accent)' }} />
-                  <span className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                    Athlete Profile
-                  </span>
+          <div className="relative px-5 pb-0 sm:px-7">
+            <div className="flex flex-col gap-3 sm:min-h-24 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-end gap-4 sm:gap-5">
+                <div className={`relative ${user.bannerUrl ? '-mt-12 sm:-mt-14' : 'mt-4'} size-24 shrink-0 sm:size-28`}>
+                  <button
+                    type="button"
+                    onClick={() => manageOpen && avatarInput.current?.click()}
+                    className={`flex size-full items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[var(--ice)] text-2xl font-bold text-[var(--navy)] ${manageOpen ? 'cursor-pointer' : 'cursor-default'}`}
+                    aria-label={manageOpen ? 'Change profile photo' : undefined}
+                  >
+                    {user.avatarUrl ? <img src={user.avatarUrl} alt={`${name} profile`} className="h-full w-full object-cover" /> : user.avatarInitials}
+                  </button>
+                  {manageOpen && <button type="button" onClick={() => avatarInput.current?.click()} aria-label="Change profile photo" className="absolute bottom-0 right-0 z-10 flex size-8 items-center justify-center rounded-full border-2 border-white bg-[var(--accent)] text-[var(--navy)] shadow-md hover:bg-[var(--accent-dark)]"><Camera size={15} /></button>}
                 </div>
-
-                {/* Name */}
-                <h1 className="display text-3xl md:text-4xl text-white leading-none">
-                  {user.firstName} {user.lastName}
-                </h1>
-
-                {/* Meta row */}
-                <div className="flex flex-wrap items-center gap-3 mt-2">
-                  {user.transplantType && (
-                    <span className="flex items-center gap-1.5 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-                      <span
-                        className="inline-block rounded-full flex-shrink-0"
-                        style={{ width: 8, height: 8, backgroundColor: transplantColor }}
-                      />
-                      {user.transplantType} Transplant
-                    </span>
-                  )}
-                  {flag && (
-                    <span className="flex items-center gap-1.5 font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-                      <span className="text-base leading-none">{flag}</span>
-                      {countryName}
-                    </span>
-                  )}
-                  <span className="font-mono text-xs px-2 py-0.5" style={{ color: 'var(--aqua)', border: '1px solid var(--aqua)', opacity: 0.7 }}>
-                    Verified Athlete
-                  </span>
+                <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={event => readImage(event, auth.updateAvatar, 'Profile photo')} />
+                <div className="min-w-0 pb-1 pt-2 sm:pt-4">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)] sm:text-3xl">{name}</h1>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--muted)]">
+                    <span className="inline-flex items-center gap-1.5"><MapPin size={13} />{country}</span>
+                    {user.club && <><span aria-hidden="true">·</span><Link to={`/clubs/${profileClub?.id ?? clubSlug}`} state={{ fromProfile: true, clubName: user.club }} className="font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)] hover:underline">{user.club}</Link></>}
+                    {user.transplantType && <><span aria-hidden="true">·</span><span>{user.transplantType} transplant</span></>}
+                    {flag && <span className="text-base" aria-label={country}>{flag}</span>}
+                    {SOCIAL_FIELDS.some(({ key }) => socialHref(key, user.socials?.[key])) && <div className="flex items-center gap-1" aria-label="Social media profiles">
+                      {SOCIAL_FIELDS.map(({ key, label }) => {
+                        const href = socialHref(key, user.socials?.[key]);
+                        if (!href) return null;
+                        return <a key={key} href={href} target="_blank" rel="noreferrer" aria-label={`${name} on ${label}`} title={label} className="flex size-7 items-center justify-center text-[var(--muted)] transition-colors hover:bg-[var(--ice)] hover:text-[var(--blue)]">{key === 'facebook' ? <span className="font-bold text-lg leading-none">f</span> : key === 'instagram' ? <span className="text-xl leading-none">◎</span> : <Music2 size={17} />}</a>;
+                      })}
+                    </div>}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3 sm:flex-shrink-0">
-              {saved && (
-                <span className="flex items-center gap-1.5 font-mono text-xs" style={{ color: 'var(--accent)' }}>
-                  <CheckCircle2 size={13} /> Saved
-                </span>
-              )}
-              <button
-                onClick={() => setEditing(e => !e)}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors"
-                style={{
-                  color: editing ? 'var(--navy)' : 'var(--ice)',
-                  backgroundColor: editing ? 'var(--accent)' : 'transparent',
-                  border: '1px solid var(--navy-light)',
-                }}
-                onMouseEnter={e => { if (!editing) e.currentTarget.style.borderColor = 'var(--muted-on-dark)'; }}
-                onMouseLeave={e => { if (!editing) e.currentTarget.style.borderColor = 'var(--navy-light)'; }}
-              >
-                <Edit2 size={14} />
-                {editing ? 'Editing' : 'Edit Profile'}
-              </button>
-              <button
-                onClick={handleSignOut}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors"
-                style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#ef4444')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)')}
-              >
-                <LogOut size={14} />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Stats row ───────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex gap-px mt-0" style={{ borderBottom: '1px solid var(--navy-light)' }}>
-          <StatTile value="#12"  label="World Ranking" />
-          <StatTile value="4"    label="Personal Bests" />
-          <StatTile value="18"   label="Results" />
-          <StatTile value="3"    label="Meets" />
-        </div>
-      </div>
-
-      {/* ── Body ────────────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-
-        {/* Completeness bar */}
-        <div className="mb-8 p-4" style={{ backgroundColor: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>Profile completeness</span>
-            <span className="font-mono text-xs font-bold" style={{ color: completeness >= 80 ? 'var(--accent)' : 'var(--aqua)' }}>
-              {completeness}%
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--navy-light)' }}>
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${completeness}%`, backgroundColor: completeness >= 80 ? 'var(--accent)' : 'var(--aqua)' }}
-            />
-          </div>
-          {completeness < 100 && (
-            <p className="mt-2 text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-              Add your country, transplant type, and club to complete your athlete profile.
-            </p>
-          )}
-        </div>
-
-        {/* Two-column grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-          {/* Left column — Personal details */}
-          <div className="lg:col-span-2 space-y-6">
-            <div
-              className="p-6"
-              style={{ backgroundColor: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}
-            >
-              <div className="flex items-center justify-between mb-5" style={{ borderBottom: '1px solid var(--navy-light)', paddingBottom: '1rem' }}>
-                <h2 className="display text-sm text-white">Personal Details</h2>
-                {editing && (
-                  <span className="font-mono text-xs px-2 py-0.5" style={{ color: 'var(--aqua)', border: '1px solid var(--aqua)', opacity: 0.8 }}>
-                    Editing
-                  </span>
+              <div className="flex shrink-0 flex-wrap items-center gap-2 pb-3 sm:pb-0">
+                {savedMessage && <span role="status" className="text-xs font-semibold text-[var(--accent-dark)]">{savedMessage}</span>}
+                <button type="button" onClick={() => setManageOpen(open => !open)} className="inline-flex items-center gap-2 border border-[var(--blue)] px-4 py-2 text-sm font-semibold text-[var(--blue)] transition-colors hover:bg-[var(--ice)]">
+                  <Settings2 size={15} /> {manageOpen ? 'Done' : 'Manage'}
+                </button>
+                {manageOpen && (
+                  <button type="button" onClick={() => avatarInput.current?.click()} className="inline-flex items-center gap-2 border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)] sm:hidden">
+                    <Camera size={15} /> Change photo
+                  </button>
                 )}
               </div>
-
-              {editing ? (
-                <form onSubmit={handleSave} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <EditField label="First name" icon={User} value={editFirst} onChange={setEditFirst} placeholder="Emma" />
-                    <EditField label="Last name" value={editLast} onChange={setEditLast} placeholder="Wilson" />
-                  </div>
-                  <EditField label="Email" icon={Mail} type="email" value={editEmail} onChange={setEditEmail} placeholder="emma@example.com" />
-                  <EditField label="Club / team" value={editClub} onChange={setEditClub} placeholder="City Aquatics Club" />
-                  <div>
-                    <label className="block text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: 'var(--muted-on-dark)' }}>
-                      Country
-                    </label>
-                    <div className="relative">
-                      <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" style={{ color: 'var(--muted-on-dark)' }} />
-                      <select
-                        value={editCountry}
-                        onChange={e => setEditCountry(e.target.value)}
-                        className="w-full py-2.5 text-sm text-white outline-none appearance-none transition-colors"
-                        style={{
-                          backgroundColor: 'var(--navy)',
-                          border: '1px solid var(--navy-light)',
-                          paddingLeft: '2.25rem',
-                          paddingRight: '2rem',
-                        }}
-                        onFocus={e => (e.target.style.borderColor = 'var(--aqua)')}
-                        onBlur={e => (e.target.style.borderColor = 'var(--navy-light)')}
-                      >
-                        <option value="" disabled style={{ backgroundColor: '#010410' }}>Select country…</option>
-                        {Object.entries(COUNTRY_NAMES).map(([code, name]) => (
-                          <option key={code} value={code} style={{ backgroundColor: '#010410', color: 'white' }}>{name}</option>
-                        ))}
-                      </select>
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs" style={{ color: 'var(--muted-on-dark)' }}>▾</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: 'var(--muted-on-dark)' }}>
-                      <Heart size={12} className="inline mr-1" style={{ color: 'var(--accent)' }} />
-                      Transplant type
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={editTransplant}
-                        onChange={e => setEditTransplant(e.target.value)}
-                        className="w-full py-2.5 text-sm text-white outline-none appearance-none transition-colors"
-                        style={{
-                          backgroundColor: 'var(--navy)',
-                          border: '1px solid var(--navy-light)',
-                          paddingLeft: '0.75rem',
-                          paddingRight: '2rem',
-                        }}
-                        onFocus={e => (e.target.style.borderColor = 'var(--aqua)')}
-                        onBlur={e => (e.target.style.borderColor = 'var(--navy-light)')}
-                      >
-                        <option value="" disabled style={{ backgroundColor: '#010410' }}>Select type…</option>
-                        {['Kidney', 'Liver', 'Heart', 'Lung', 'Pancreas', 'Bone Marrow'].map(t => (
-                          <option key={t} value={t} style={{ backgroundColor: '#010410', color: 'white' }}>{t}</option>
-                        ))}
-                      </select>
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs" style={{ color: 'var(--muted-on-dark)' }}>▾</span>
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full py-3 text-sm font-bold uppercase tracking-wider text-black flex items-center justify-center gap-2 transition-opacity hover:opacity-85"
-                    style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
-                  >
-                    Save Changes <ArrowRight size={14} />
-                  </button>
-                </form>
-              ) : (
-                <dl className="space-y-4">
-                  {[
-                    { icon: User,    label: 'Full name',       value: `${user.firstName} ${user.lastName}` },
-                    { icon: Mail,    label: 'Email',           value: user.email },
-                    { icon: Globe,   label: 'Country',         value: countryName ? `${flag} ${countryName}` : '—' },
-                    { icon: Heart,   label: 'Transplant type', value: user.transplantType || '—' },
-                    { icon: Trophy,  label: 'Club / team',     value: editClub || '—' },
-                  ].map(row => (
-                    <div key={row.label}>
-                      <dt className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest mb-0.5" style={{ color: 'var(--muted-on-dark)' }}>
-                        <row.icon size={11} style={{ color: 'var(--muted-on-dark)' }} />
-                        {row.label}
-                      </dt>
-                      <dd className="text-sm pl-4" style={{ color: 'var(--ice)' }}>{row.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
             </div>
 
-            {/* My PBs */}
-            <div
-              className="p-6"
-              style={{ backgroundColor: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}
-            >
-              <h2 className="display text-sm text-white mb-5" style={{ borderBottom: '1px solid var(--navy-light)', paddingBottom: '1rem' }}>
-                My PBs
-              </h2>
-              <div className="space-y-3">
-                {MOCK_PBS.map((pb, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-2.5 px-3"
-                    style={{ backgroundColor: 'var(--navy)', border: '1px solid var(--navy-light)' }}
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-white">{pb.event}</p>
-                      <p className="font-mono text-xs mt-0.5" style={{ color: 'var(--muted-on-dark)' }}>
-                        {pb.course} · {pb.meet}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-sm" style={{ color: 'var(--accent)' }}>{pb.time}</span>
-                      <span className="font-mono text-xs px-1.5 py-0.5" style={{ backgroundColor: 'var(--navy-light)', color: 'var(--accent)' }}>PB</span>
-                    </div>
-                  </div>
+            <nav aria-label="Profile sections" className="mt-3 flex gap-1 overflow-x-auto border-t border-[var(--border)]">
+              {([
+                ['overview', 'Overview'], ['times', 'Times'], ['goals', 'Goals'], ['rankings', 'Rankings'], ['account', 'Account'],
+              ] as [ProfileTab, string][]).map(([tab, label]) => (
+                <button key={tab} type="button" onClick={() => setActiveTab(tab)} aria-current={activeTab === tab ? 'page' : undefined} className={`shrink-0 border-b-2 px-4 py-3 text-sm transition-colors ${activeTab === tab ? 'border-[var(--blue)] font-semibold text-[var(--blue)]' : 'border-transparent text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--ink)]'}`}>
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </section>
+
+        {manageOpen && (
+          <div className="mt-4 space-y-4 border-l-2 border-[var(--accent)] bg-white px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+              <Camera size={16} className="text-[var(--blue)]" /> Customize your profile images:
+              <button type="button" onClick={() => bannerInput.current?.click()} className="font-semibold text-[var(--blue)] hover:underline">Upload banner</button>
+              <button type="button" onClick={() => avatarInput.current?.click()} className="font-semibold text-[var(--blue)] hover:underline">Upload profile photo</button>
+            </div>
+            <div className="border-t border-[var(--border)] pt-4">
+              <p className="mb-3 text-sm font-semibold text-[var(--ink)]">Social media</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {SOCIAL_FIELDS.map(({ key, label }) => (
+                  <label key={key} className="block">
+                    <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{label}</span>
+                    <input
+                      type="text"
+                      value={socialDraft[key] ?? ''}
+                      onChange={event => setSocialDraft(current => ({ ...current, [key]: event.target.value }))}
+                      placeholder="Profile URL or @username"
+                      className="w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--blue)]"
+                    />
+                  </label>
                 ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button type="button" onClick={saveSocialProfiles} className="bg-[var(--navy)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--blue)]">Save social links</button>
+                {savedMessage && <span role="status" className="text-xs font-semibold text-[var(--accent-dark)]">{savedMessage}</span>}
               </div>
             </div>
           </div>
+        )}
 
-          {/* Right column — Results */}
-          <div className="lg:col-span-3">
-            <div
-              className="p-6"
-              style={{ backgroundColor: 'var(--navy-mid)', border: '1px solid var(--navy-light)' }}
-            >
-              <h2 className="display text-sm text-white mb-5" style={{ borderBottom: '1px solid var(--navy-light)', paddingBottom: '1rem' }}>
-                My Results
-              </h2>
-              <ResultsTable results={MOCK_RESULTS} dark />
-            </div>
+        {activeTab === 'overview' && <div id="overview" className="mt-6 grid gap-5 lg:grid-cols-[minmax(250px,0.85fr)_minmax(0,2fr)]">
+          <div className="space-y-5">
+            <ProfilePanel title="Specialty" action={<Waves size={17} className="text-[var(--blue)]" />}>
+              <div className="mx-auto max-w-xs">
+                <svg viewBox="0 0 240 190" role="img" aria-label={specialties.length ? `Swim specialties: ${specialties.map(([stroke]) => stroke).join(', ')}` : 'No swim specialties recorded yet'} className="mx-auto w-full max-w-[270px]">
+                  {[1, 0.8, 0.6, 0.4, 0.2].map(scale => (
+                    <polygon key={scale} points={chartAxes.map((_, index) => chartPoint(index, scale)).join(' ')} fill="none" stroke="#e5e7eb" strokeWidth="1" />
+                  ))}
+                  {chartAxes.map((axis, index) => {
+                    const labels: { x: number; y: number; anchor: 'middle' | 'start' | 'end' }[] = [
+                      { x: 120, y: 15, anchor: 'middle' },
+                      { x: 195, y: 67, anchor: 'start' },
+                      { x: 172, y: 170, anchor: 'start' },
+                      { x: 68, y: 170, anchor: 'end' },
+                      { x: 45, y: 67, anchor: 'end' },
+                    ];
+                    const label = labels[index];
+                    return <g key={axis.key}><line x1={chartCenter.x} y1={chartCenter.y} x2={chartPoint(index, 1).split(',')[0]} y2={chartPoint(index, 1).split(',')[1]} stroke="#e5e7eb" strokeWidth="1" /><text x={label.x} y={label.y} textAnchor={label.anchor} className="fill-[var(--ink)] text-[13px]">{axis.label}</text></g>;
+                  })}
+                  {specialties.length > 0 && <polygon points={specialtyPolygon} fill="#cf003d" fillOpacity="0.85" stroke="#cf003d" strokeWidth="1.5" />}
+                </svg>
+                <div className="mt-1">
+                  <div className="relative h-[2px] bg-gradient-to-r from-[#d0003f] to-[#2347e8]">
+                    <span className="absolute -top-1.5 size-3 rounded-full border-2 border-white bg-[var(--navy)] shadow" style={{ left: `calc(${distanceRatio * 100}% - 6px)` }} />
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-xs text-[var(--muted)]"><span>Sprint</span><span>Distance</span></div>
+                </div>
+                <p className="mt-4 text-center text-xs leading-relaxed text-[var(--muted)]">
+                  {specialties.length ? `Automatically based on ${athlete ? 'recorded swims' : 'your selected primary event'}.` : 'Your swim profile will appear here when events are added.'}
+                </p>
+              </div>
+            </ProfilePanel>
+
+            <ProfilePanel title="Athlete details">
+              <dl className="space-y-3">
+                {[
+                  ['Gender', user.gender], ['Age group', user.ageGroup], ['Transplant type', user.transplantType], ['Club', user.club], ['Primary event', user.primaryEvent],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-3 border-b border-[var(--border)] pb-2 last:border-0 last:pb-0">
+                    <dt className="text-xs text-[var(--muted)]">{label}</dt><dd className="text-right text-xs font-semibold text-[var(--ink)]">{value || 'Not added'}</dd>
+                  </div>
+                ))}
+              </dl>
+            </ProfilePanel>
+
+            <ProfilePanel title="Goals" action={<button type="button" onClick={() => setActiveTab('goals')} className="text-xs font-semibold text-[var(--blue)] hover:underline">Manage</button>}>
+              {goalsLoading ? <div className="space-y-3"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-2 w-full" /><Skeleton className="h-4 w-1/2" /></div> : goals.length ? <div className="space-y-3">
+                {goals.slice(0, 2).map(goal => {
+                  const currentBest = athlete?.personalBests.filter(best => best.event === goal.event && best.course === goal.course).sort((a, b) => parseTime(a.time) - parseTime(b.time))[0];
+                  const targetSeconds = parseTime(goal.targetTime);
+                  const currentSeconds = currentBest ? parseTime(currentBest.time) : 0;
+                  const progress = currentSeconds && targetSeconds ? Math.min(100, Math.round((targetSeconds / currentSeconds) * 100)) : 0;
+                  const achieved = currentSeconds > 0 && currentSeconds <= targetSeconds;
+                  return <div key={goal.id}>
+                    <div className="flex items-baseline justify-between gap-2"><p className="truncate text-xs font-semibold text-[var(--ink)]">{goal.event} · {goal.course}</p><p className="shrink-0 font-mono text-xs font-bold text-[var(--blue)]">{goal.targetTime}</p></div>
+                    <div className="mt-1.5 h-1.5 bg-[var(--paper)]"><div className="h-full bg-[var(--accent)]" style={{ width: `${progress}%` }} /></div>
+                    <p className="mt-1 text-[10px] text-[var(--muted)]">{achieved ? 'Goal reached' : currentBest ? `${progress}% · PB ${currentBest.time}` : 'Add a result to track progress'}</p>
+                  </div>;
+                })}
+                {goals.length > 2 && <button type="button" onClick={() => setActiveTab('goals')} className="text-xs font-semibold text-[var(--blue)] hover:underline">View all {goals.length} goals</button>}
+              </div> : <div id="goals" className="flex items-center gap-3 text-sm text-[var(--muted)]"><CalendarDays size={18} className="shrink-0 text-[var(--blue)]" />You haven’t set a swim goal yet.</div>}
+              {goalError && <p className="mt-3 text-xs text-[var(--muted)]">Goal data is temporarily unavailable.</p>}
+            </ProfilePanel>
           </div>
-        </div>
+
+          <div className="space-y-5">
+            <ProfilePanel title="Latest Results" action={<Link to="/results" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">See all <ArrowRight size={14} /></Link>}>
+              <div id="latest-results" className="mb-4 flex items-center gap-3 border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5">
+                <span className="text-xl">{flag || '🏊'}</span>
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--ink)]">{athleteResults[0]?.meet || 'Your meet results'}</p><p className="text-xs text-[var(--muted)]">{athleteResults[0]?.date || 'Personal results'}</p></div>
+                <Medal size={16} className="ml-auto shrink-0 text-[var(--accent-dark)]" />
+              </div>
+              {athleteResults.length ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left">
+                    <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Course</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet</th></tr></thead>
+                    <tbody>{athleteResults.map(result => (
+                      <tr key={result.id} className="ta-table-row">
+                        <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{result.event || '—'}</td>
+                        <td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--blue)]">{result.time || '—'}</td>
+                        <td className="px-3 py-3 font-mono text-xs text-[var(--muted)]">{result.course || '—'}</td>
+                        <td className="max-w-40 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.meet || '—'}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="font-semibold text-[var(--ink)]">Your results will appear here</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">When your swims are linked to this account, you’ll see times grouped by meet and event.</p>
+                </div>
+              )}
+            </ProfilePanel>
+
+            <ProfilePanel title="Rankings" action={<Link to="/rankings" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">Explore <ArrowRight size={14} /></Link>}>
+              <p className="text-sm leading-relaxed text-[var(--muted)]">Your personal ranking will appear here when your verified results are linked to your athlete profile.</p>
+            </ProfilePanel>
+          </div>
+        </div>}
+
+        {activeTab === 'times' && (
+          <div className="mt-6 space-y-5">
+            <ProfilePanel title="Times" action={<span className="font-mono text-xs text-[var(--muted)]">{allAthleteResults.length} swims</span>}>
+              {allAthleteResults.length ? <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Course</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Date</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet</th></tr></thead>
+                  <tbody>{allAthleteResults.map(result => <tr key={result.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{result.event || '—'}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--blue)]">{result.time || '—'}</td><td className="px-3 py-3 font-mono text-xs text-[var(--muted)]">{result.course || '—'}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{result.date || '—'}</td><td className="max-w-56 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.meet || '—'}</td></tr>)}</tbody>
+                </table>
+              </div> : <div className="py-12 text-center"><Timer size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No swims linked yet</p><p className="mt-1 text-sm text-[var(--muted)]">Once your results are connected to your account, your times will appear here.</p></div>}
+            </ProfilePanel>
+          </div>
+        )}
+
+        {activeTab === 'goals' && (
+          <div className="mt-6 space-y-5">
+            <ProfilePanel title="Personal swim goals" action={<Target size={17} className="text-[var(--blue)]" />}>
+              <p className="mb-5 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Set a target time for an event and track it against your personal best. Your goals are saved to your Transplant Aquatics account.</p>
+              <form onSubmit={addGoal} className="grid gap-3 border-b border-[var(--border)] pb-5 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_130px_150px_auto]">
+                <label className="text-xs font-semibold text-[var(--muted)]">Event<select value={goalEvent} onChange={event => setGoalEvent(event.target.value as Event)} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{EVENTS.map(event => <option key={event}>{event}</option>)}</select></label>
+                <label className="text-xs font-semibold text-[var(--muted)]">Course<select value={goalCourse} onChange={event => setGoalCourse(event.target.value as Course)} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{COURSES.map(course => <option key={course}>{course}</option>)}</select></label>
+                <label className="text-xs font-semibold text-[var(--muted)]">Target time<input required value={goalTime} onChange={event => setGoalTime(event.target.value)} placeholder="e.g. 1:02.50" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--blue)]" /></label>
+                <button type="submit" disabled={goalSaving} className="self-end bg-[var(--navy)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-wait disabled:opacity-60">{goalSaving ? 'Saving…' : 'Add goal'}</button>
+              </form>
+              {goalError && <p role="alert" className="mt-4 border-l-2 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-800">{goalError}</p>}
+              {goalsLoading ? <SkeletonTable rows={4} columns={5} /> : goals.length ? <div className="divide-y divide-[var(--border)]">{goals.map(goal => {
+                const currentBest = athlete?.personalBests.filter(best => best.event === goal.event && best.course === goal.course).sort((a, b) => parseTime(a.time) - parseTime(b.time))[0];
+                const targetSeconds = parseTime(goal.targetTime);
+                const currentSeconds = currentBest ? parseTime(currentBest.time) : 0;
+                const progress = currentSeconds && targetSeconds ? Math.min(100, Math.round((targetSeconds / currentSeconds) * 100)) : 0;
+                const achieved = currentSeconds > 0 && currentSeconds <= targetSeconds;
+                return <div key={goal.id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-semibold text-[var(--ink)]">{goal.event} <span className="font-mono text-xs font-normal text-[var(--muted)]">· {goal.course}</span></p><p className="font-mono text-sm font-bold text-[var(--blue)]">Target {goal.targetTime}{currentBest && <span className="ml-3 text-[var(--muted)]">PB {currentBest.time}</span>}</p></div><div className="mt-3 h-2 bg-[var(--paper)]"><div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${progress}%` }} /></div><p className="mt-1.5 text-xs text-[var(--muted)]">{achieved ? 'Goal reached' : currentBest ? `${progress}% of target reached` : 'Add a result to track progress'}</p></div>
+                  <button type="button" disabled={removingGoalId === goal.id} onClick={() => void deleteGoal(goal.id)} className="justify-self-start text-xs font-semibold text-[var(--muted)] hover:text-red-600 disabled:opacity-50 sm:justify-self-end">{removingGoalId === goal.id ? 'Removing…' : 'Remove'}</button>
+                </div>;
+              })}</div> : <div className="py-9 text-center"><p className="font-semibold text-[var(--ink)]">Your goals will show here</p><p className="mt-1 text-sm text-[var(--muted)]">Add a target time above to start tracking your progress.</p></div>}
+            </ProfilePanel>
+          </div>
+        )}
+
+        {activeTab === 'rankings' && (
+          <div className="mt-6 space-y-5">
+            <ProfilePanel title="Club rankings" action={<ChartNoAxesCombined size={17} className="text-[var(--blue)]" />}>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+                <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Your place within {user.club || 'your club'} for each event, season by season.</p>
+                <label className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">Season<select value={selectedSeason} onChange={event => setSelectedSeason(event.target.value)} className="mt-1 block border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-sm font-semibold normal-case tracking-normal text-[var(--ink)]">{AVAILABLE_SEASONS.map(season => <option key={season} value={season}>{season} season</option>)}</select></label>
+              </div>
+              {clubSeasonRows.length ? <div className="overflow-x-auto"><table className="w-full border-collapse text-left">
+                <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Club rank</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Category</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Best time</th></tr></thead>
+                <tbody>{clubSeasonRows.map((row, index) => <tr key={`${row.event}-${row.ageGroup}-${row.gender}-${row.course}-${index}`} className="ta-table-row"><td className="px-3 py-3 font-mono text-sm font-bold text-[var(--blue)]">#{row.rank}</td><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.event}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{row.gender} · {row.ageGroup} · {row.course}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--navy)]">{row.time}</td></tr>)}</tbody>
+              </table></div> : <div className="py-12 text-center"><ChartNoAxesCombined size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No club rankings for {selectedSeason || 'this season'} yet</p><p className="mx-auto mt-1 max-w-xl text-sm text-[var(--muted)]">Club standings will appear once your results and results from other swimmers in your club are available for this season.</p></div>}
+            </ProfilePanel>
+          </div>
+        )}
+
+        {activeTab === 'account' && (
+          <div className="mt-6 space-y-5">
+            <ManagedSwimmers />
+            <ProfilePanel title="Email notifications" action={<Mail size={17} className="text-[var(--blue)]" />}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-semibold text-[var(--ink)]">Teams interested in you</h3>
+                  <p className="mt-1 text-sm text-[var(--muted)]">Get an email when a team wants to connect with you.</p>
+                </div>
+                <label className="inline-flex cursor-not-allowed items-center gap-3 text-sm text-[var(--muted)]" title="This feature requires a varsity account">
+                  <input type="checkbox" disabled className="size-4 accent-[var(--blue)]" />
+                  Requires a varsity account
+                </label>
+              </div>
+            </ProfilePanel>
+
+            <ProfilePanel title="Email" action={<Mail size={17} className="text-[var(--blue)]" />}>
+              <form onSubmit={event => void updateEmail(event)} className="max-w-2xl">
+                <label className="block text-sm font-semibold text-[var(--ink)]">Update Email
+                  <input type="email" autoComplete="email" required value={accountEmail} onChange={event => setAccountEmail(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal text-[var(--ink)] outline-none focus:border-[var(--blue)]" />
+                </label>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">We’ll send a confirmation link to your new email address.</p>
+                {emailError && <p role="alert" className="mt-3 text-sm text-red-700">{emailError}</p>}
+                {emailMessage && <p role="status" className="mt-3 text-sm text-emerald-700">{emailMessage}</p>}
+                <button type="submit" disabled={emailSaving} className="mt-4 bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)] disabled:opacity-60">{emailSaving ? 'Sending confirmation…' : 'Update email'}</button>
+              </form>
+            </ProfilePanel>
+
+            <ProfilePanel title="Change password" action={<LockKeyhole size={17} className="text-[var(--blue)]" />}>
+              <form onSubmit={event => void updatePassword(event)} className="max-w-2xl space-y-4">
+                <label className="block text-sm font-semibold text-[var(--ink)]">Old password<input type="password" autoComplete="current-password" required value={oldPassword} onChange={event => setOldPassword(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal text-[var(--ink)] outline-none focus:border-[var(--blue)]" /></label>
+                <label className="block text-sm font-semibold text-[var(--ink)]">New password<input type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={event => setNewPassword(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal text-[var(--ink)] outline-none focus:border-[var(--blue)]" /></label>
+                <p className="-mt-2 text-xs leading-relaxed text-[var(--muted)]">Your password needs to be at least 8 characters. Include multiple words and phrases to make it more secure.</p>
+                <label className="block text-sm font-semibold text-[var(--ink)]">New password confirmation<input type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal text-[var(--ink)] outline-none focus:border-[var(--blue)]" /></label>
+                <p className="-mt-2 text-xs leading-relaxed text-[var(--muted)]">Enter the same password as before, for verification.</p>
+                {passwordError && <p role="alert" className="text-sm text-red-700">{passwordError}</p>}
+                {passwordMessage && <p role="status" className="text-sm text-emerald-700">{passwordMessage}</p>}
+                <button type="submit" disabled={passwordSaving} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)] disabled:opacity-60">{passwordSaving ? 'Updating password…' : 'Change password'}</button>
+              </form>
+            </ProfilePanel>
+
+            <ProfilePanel title="Close account" action={<Trash2 size={17} className="text-red-600" />}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="max-w-2xl">
+                  <h3 className="font-semibold text-[var(--ink)]">Are you sure you want to close your account?</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">All public data like Meet Results will remain visible. Closing your account permanently removes your sign-in account.</p>
+                </div>
+                <button type="button" onClick={() => { setCloseDialogOpen(true); setCloseError(''); }} className="shrink-0 border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50">Close account</button>
+              </div>
+            </ProfilePanel>
+          </div>
+        )}
       </div>
-    </div>
+
+      {closeDialogOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--navy)]/70 p-4" role="presentation">
+        <section role="dialog" aria-modal="true" aria-labelledby="close-account-title" className="w-full max-w-lg bg-white p-6 shadow-2xl sm:p-8">
+          <div className="mb-4 flex size-11 items-center justify-center rounded-full bg-red-50 text-red-700"><ShieldCheck size={21} /></div>
+          <h2 id="close-account-title" className="text-xl font-bold text-[var(--ink)]">Confirm account closure</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">This permanently closes your sign-in account. Public meet results will remain visible. Enter your password and type <strong className="text-[var(--ink)]">CLOSE</strong> to continue.</p>
+          <form onSubmit={event => void closeAccount(event)} className="mt-5 space-y-4">
+            <label className="block text-sm font-semibold text-[var(--ink)]">Password<input type="password" autoComplete="current-password" required value={closePassword} onChange={event => setClosePassword(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal outline-none focus:border-[var(--blue)]" /></label>
+            <label className="block text-sm font-semibold text-[var(--ink)]">Type CLOSE to confirm<input required value={closeConfirmation} onChange={event => setCloseConfirmation(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal outline-none focus:border-red-500" /></label>
+            {closeError && <p role="alert" className="text-sm text-red-700">{closeError}</p>}
+            <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <button type="button" disabled={closeSaving} onClick={() => setCloseDialogOpen(false)} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]">Cancel</button>
+              <button type="submit" disabled={closeSaving || closeConfirmation !== 'CLOSE'} className="bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50">{closeSaving ? 'Closing account…' : 'Permanently close account'}</button>
+            </div>
+          </form>
+        </section>
+      </div>}
+    </main>
   );
 }
