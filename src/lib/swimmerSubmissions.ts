@@ -51,6 +51,7 @@ export interface PublicSwimmerResult {
 }
 
 export interface SubmittedMeetDraft {
+  catalogMeetId: string | null;
   name: string;
   meetDate: string;
   openingCeremonyDate: string | null;
@@ -242,12 +243,16 @@ export async function deleteManagedSwimmer(id: string): Promise<void> {
 export async function findSubmittedMeet(meet: SubmittedMeetDraft): Promise<string | null> {
   const db = client();
   const lookup = () => {
-    let query = db.from('submitted_meets').select('id')
-    .ilike('name', meet.name.trim())
-    .eq('meet_date', meet.meetDate)
-    .ilike('location', meet.location.trim())
-    .eq('course', meet.course)
-    .eq('is_world_transplant_games', meet.isWorldTransplantGames);
+    let query = db.from('submitted_meets').select('id').eq('course', meet.course);
+    if (meet.catalogMeetId) {
+      query = query.eq('catalog_meet_id', meet.catalogMeetId);
+    } else {
+      query = query.is('catalog_meet_id', null)
+        .ilike('name', meet.name.trim())
+        .eq('meet_date', meet.meetDate)
+        .ilike('location', meet.location.trim())
+        .eq('is_world_transplant_games', meet.isWorldTransplantGames);
+    }
     query = meet.openingCeremonyDate ? query.eq('opening_ceremony_date', meet.openingCeremonyDate) : query.is('opening_ceremony_date', null);
     return query.maybeSingle();
   };
@@ -262,6 +267,7 @@ export async function findOrCreateSubmittedMeet(meet: SubmittedMeetDraft): Promi
   if (existingId) return existingId;
 
   const { data, error } = await db.from('submitted_meets').insert({
+    catalog_meet_id: meet.catalogMeetId,
     name: meet.name.trim(),
     meet_date: meet.meetDate,
     opening_ceremony_date: meet.openingCeremonyDate,

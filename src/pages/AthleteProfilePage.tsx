@@ -15,7 +15,7 @@ import Eyebrow from '../components/Eyebrow';
 import Pagination from '../components/Pagination';
 import { getSavedAvatar } from '../lib/avatars';
 import { loadPublicSwimmerDirectory, loadPublicSwimmerResults, type PublicSwimmerProfile, type PublicSwimmerResult } from '../lib/swimmerSubmissions';
-import { describeSupabaseError } from '../lib/supabase';
+import { describeSupabaseError, supabase } from '../lib/supabase';
 import type { AgeGroup, PersonalBest, Result } from '../types';
 import DatabaseResultsTable from '../components/DatabaseResultsTable';
 import PageLoading from '../components/PageLoading';
@@ -24,6 +24,12 @@ import { SkeletonTable } from '../components/Skeleton';
 const RESULT_PAGE_SIZE = 10;
 
 type Tab = 'Overview' | 'Medals';
+type ConfirmedWtgRecord = { id: string; event: string; age_group: string; gender: string; competition_category: string; course: string; holder_name: string; time_ms: number; source_evidence: string; confirmed_at: string; superseded_at: string | null };
+
+function displayMilliseconds(milliseconds: number) {
+  const totalSeconds=Math.floor(milliseconds/1000);const minutes=Math.floor(totalSeconds/60);const seconds=totalSeconds%60;const hundredths=Math.round((milliseconds%1000)/10);
+  return minutes?`${minutes}:${String(seconds).padStart(2,'0')}.${String(hundredths).padStart(2,'0')}`:`${seconds}.${String(hundredths).padStart(2,'0')}`;
+}
 
 export default function AthleteProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +37,8 @@ export default function AthleteProfilePage() {
   const [resultPage, setResultPage]     = useState(1);
   const [registeredAthlete, setRegisteredAthlete] = useState<PublicSwimmerProfile | null>(null);
   const [registeredResults, setRegisteredResults] = useState<PublicSwimmerResult[]>([]);
+  const [wtgRecords,setWtgRecords]=useState<ConfirmedWtgRecord[]>([]);
+  const [wtgRecordError,setWtgRecordError]=useState('');
   const [registeredLoading, setRegisteredLoading] = useState(false);
   const [registeredError, setRegisteredError] = useState('');
   useEffect(() => setResultPage(1), [id, tab]);
@@ -47,6 +55,11 @@ export default function AthleteProfilePage() {
     setRegisteredLoading(true);
     setRegisteredError('');
     setRegisteredResults([]);
+    setWtgRecords([]);setWtgRecordError('');
+    if(supabase){
+      supabase.from('wtg_record_history').select('id,event,age_group,gender,competition_category,course,holder_name,time_ms,source_evidence,confirmed_at,superseded_at').eq('swimmer_id',id).order('confirmed_at',{ascending:false})
+        .then(({data,error})=>{if(!active)return;if(error)setWtgRecordError(describeSupabaseError(error));else setWtgRecords((data??[]) as ConfirmedWtgRecord[]);});
+    }
     if (athlete) {
       setRegisteredAthlete(null);
       loadPublicSwimmerResults(id)
@@ -415,6 +428,10 @@ export default function AthleteProfilePage() {
             <section>
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Competition history</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Previous results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{registeredResults.length} result{registeredResults.length === 1 ? '' : 's'}</span></div>
               {registeredLoading ? <SkeletonTable rows={6} columns={7} /> : registeredError ? <EmptyState title="Results unavailable" subtitle={registeredError} /> : registeredResults.length > 0 ? <><ResultsTable results={databaseResultsForTable.slice((resultPage - 1) * RESULT_PAGE_SIZE, resultPage * RESULT_PAGE_SIZE)} /><Pagination page={resultPage} pageCount={Math.ceil(registeredResults.length / RESULT_PAGE_SIZE)} onPageChange={setResultPage} label="Athlete result pages" /></> : <EmptyState title="No results yet" subtitle="Competition results for this athlete have not been added to the database yet." />}
+            </section>
+            <section>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Officially confirmed achievements</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">World Transplant Games Records</h2></div><span className="font-mono text-xs text-[var(--muted)]">{wtgRecords.length} record{wtgRecords.length===1?'':'s'}</span></div>
+              {wtgRecordError?<EmptyState title="WTG records unavailable" subtitle={wtgRecordError} />:wtgRecords.length?<div className="ta-table-shell overflow-x-auto"><table className="w-full border-collapse"><thead><tr className="ta-table-header">{['Event','Age','Gender','Course','Time','Status','Meet date'].map(column=><th key={column} className="whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">{column}</th>)}</tr></thead><tbody>{wtgRecords.map(record=><tr key={record.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold sm:px-5">{record.event}</td><td className="px-3 py-3 text-sm">{record.age_group}</td><td className="px-3 py-3 text-sm">{record.gender}</td><td className="px-3 py-3 text-sm">{record.course}</td><td className="px-3 py-3 font-mono text-sm font-bold">{displayMilliseconds(record.time_ms)}</td><td className="px-3 py-3 text-xs">{record.superseded_at?'Former WTG record':'Current WTG record'}</td><td className="px-3 py-3 text-xs">{new Date(record.confirmed_at).toLocaleDateString()}</td></tr>)}</tbody></table></div>:<EmptyState title="No confirmed WTG records" subtitle="Officially confirmed World Transplant Games records will appear here and stay in this athlete’s history after they are broken." />}
             </section>
           </div>
           </div>

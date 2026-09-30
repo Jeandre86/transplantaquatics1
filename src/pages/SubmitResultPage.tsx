@@ -4,11 +4,13 @@ import { ArrowLeft, ArrowRight, Check, CircleAlert, Plus, Trash2, Trophy } from 
 import { useAuth } from '../contexts/AuthContext';
 import { COURSES, EVENTS, type Course } from '../types';
 import { getCompetitionAgeGroup, getSubmissionPoints, getWorldRecordBaseline } from '../lib/competitionAge';
+import { loadMeetCatalog, type MeetCatalogEdition } from '../lib/meetCatalog';
 import { findOrCreateSubmittedMeet, findSubmittedMeet, loadManagedSwimmers, loadMeetResults, saveSwimmerResult, type SubmittedMeetDraft, type SubmittedSwimmerResult, type SwimmerProfile } from '../lib/swimmerSubmissions';
 import { Skeleton } from '../components/Skeleton';
 
 type Step = 1 | 2 | 3;
 interface MeetForm {
+  catalogMeetId: string | null;
   name: string;
   meetDate: string;
   location: string;
@@ -40,7 +42,10 @@ export default function SubmitResultPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
-  const [meet, setMeet] = useState<MeetForm>({ name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' });
+  const [meet, setMeet] = useState<MeetForm>({ catalogMeetId: null, name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' });
+  const [meetCatalog, setMeetCatalog] = useState<MeetCatalogEdition[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState('');
   const [swimmers, setSwimmers] = useState<SwimmerProfile[]>([]);
   const [swimmerId, setSwimmerId] = useState('');
   const [profilesLoading, setProfilesLoading] = useState(true);
@@ -67,8 +72,41 @@ export default function SubmitResultPage() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    loadMeetCatalog().then(rows => {
+      if (!cancelled) setMeetCatalog(rows);
+    }).catch(() => {
+      if (!cancelled) setCatalogError('The official meet directory could not be loaded. You can still enter a meet manually.');
+    }).finally(() => {
+      if (!cancelled) setCatalogLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const selectedSwimmer = useMemo(() => swimmers.find(swimmer => swimmer.id === swimmerId), [swimmers, swimmerId]);
+  const selectedCatalogMeet = useMemo(() => meetCatalog.find(entry => entry.id === meet.catalogMeetId) ?? null, [meetCatalog, meet.catalogMeetId]);
+  const isCatalogWorldTransplantGames = (entry: MeetCatalogEdition) => entry.series_id === 'world-transplant-games-summer' || entry.series_id === 'world-transplant-games-winter';
+  const selectCatalogMeet = (catalogMeetId: string) => {
+    const selected = meetCatalog.find(entry => entry.id === catalogMeetId);
+    if (!selected) {
+      setMeet(current => ({ ...current, catalogMeetId: null, name: '', meetDate: '', location: '', isWorldTransplantGames: false, openingCeremonyDate: '' }));
+      return;
+    }
+    const isWorldTransplantGames = isCatalogWorldTransplantGames(selected);
+    const location = [selected.host_city, selected.host_country].filter(Boolean).join(', ');
+    setMeet(current => ({
+      ...current,
+      catalogMeetId: selected.id,
+      name: selected.name,
+      meetDate: selected.meet_date ?? '',
+      location,
+      isWorldTransplantGames,
+      openingCeremonyDate: isWorldTransplantGames ? selected.meet_date ?? '' : '',
+    }));
+  };
   const currentMeetDraft = (): SubmittedMeetDraft => ({
+    catalogMeetId: meet.catalogMeetId,
     name: meet.name,
     meetDate: meet.meetDate,
     location: meet.location,
@@ -159,15 +197,29 @@ export default function SubmitResultPage() {
 
       {step === 1 && <section className="space-y-6 bg-white p-5 sm:p-7">
         <div><h2 className="text-xl font-bold text-[var(--ink)]">Meet details</h2><p className="mt-1 text-sm text-[var(--muted)]">These details are saved once and shared by all event times from this meet.</p></div>
+        <div>
+          <label htmlFor="meet-catalog-select" className="text-xs font-semibold text-[var(--muted)]">Choose an official Games edition <span className="font-normal">(optional)</span></label>
+          <select id="meet-catalog-select" value={meet.catalogMeetId ?? ''} onChange={event => selectCatalogMeet(event.target.value)} disabled={catalogLoading} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] disabled:opacity-60">
+            <option value="">Other meet — enter details manually</option>
+            {(['World Transplant Games', 'National Transplant Games'] as const).map(category => {
+              const editions = meetCatalog.filter(entry => entry.category === category);
+              return editions.length ? <optgroup key={category} label={category}>{editions.map(entry => <option key={entry.id} value={entry.id}>{entry.name}{entry.host_city ? ` — ${entry.host_city}${entry.host_country ? `, ${entry.host_country}` : ''}` : entry.host_country ? ` — ${entry.host_country}` : ''}{entry.status === 'date_unconfirmed' ? ' · dates to be confirmed' : ''}</option>)}</optgroup> : null;
+            })}
+          </select>
+          {catalogLoading && <p className="mt-1 text-xs text-[var(--muted)]">Loading official Games…</p>}
+          {catalogError && <p role="status" className="mt-1 text-xs text-amber-800">{catalogError}</p>}
+          {selectedCatalogMeet?.end_date && <p className="mt-1 text-xs text-[var(--muted)]">Games edition: {selectedCatalogMeet.meet_date} to {selectedCatalogMeet.end_date}{selectedCatalogMeet.source_url ? <> · <a href={selectedCatalogMeet.source_url} target="_blank" rel="noreferrer" className="text-[var(--blue)] underline">Official source</a></> : null}</p>}
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Meet name<input required value={meet.name} onChange={event => setMeet(current => ({ ...current, name: event.target.value }))} placeholder="e.g. National Swimming Championships" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>
-          <label className="text-xs font-semibold text-[var(--muted)]">Meet date<input required type="date" value={meet.meetDate} onChange={event => setMeet(current => ({ ...current, meetDate: event.target.value, openingCeremonyDate: current.isWorldTransplantGames && !current.openingCeremonyDate ? event.target.value : current.openingCeremonyDate }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>
+          <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Meet name<input required readOnly={Boolean(selectedCatalogMeet)} value={meet.name} onChange={event => setMeet(current => ({ ...current, name: event.target.value }))} placeholder="e.g. National Swimming Championships" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] read-only:text-[var(--muted)]" /></label>
+          <label className="text-xs font-semibold text-[var(--muted)]">Meet date<input required type="date" readOnly={Boolean(selectedCatalogMeet?.meet_date)} value={meet.meetDate} onChange={event => setMeet(current => ({ ...current, meetDate: event.target.value, openingCeremonyDate: current.isWorldTransplantGames && !current.openingCeremonyDate ? event.target.value : current.openingCeremonyDate }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] read-only:text-[var(--muted)]" /></label>
           <label className="text-xs font-semibold text-[var(--muted)]">Course<select value={meet.course} onChange={event => setMeet(current => ({ ...current, course: event.target.value as Course }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{COURSES.map(course => <option key={course} value={course}>{course}</option>)}</select></label>
-          <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Location<input required value={meet.location} onChange={event => setMeet(current => ({ ...current, location: event.target.value }))} placeholder="City, country" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>
-          <label className="flex cursor-pointer items-start gap-3 border border-[var(--border)] p-3 sm:col-span-2">
+          <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Location<input required readOnly={Boolean(selectedCatalogMeet && meet.location)} value={meet.location} onChange={event => setMeet(current => ({ ...current, location: event.target.value }))} placeholder="City, country" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] read-only:text-[var(--muted)]" /></label>
+          {!selectedCatalogMeet && <label className="flex cursor-pointer items-start gap-3 border border-[var(--border)] p-3 sm:col-span-2">
             <input type="checkbox" checked={meet.isWorldTransplantGames} onChange={event => setMeet(current => ({ ...current, isWorldTransplantGames: event.target.checked, openingCeremonyDate: event.target.checked ? current.openingCeremonyDate || current.meetDate : '' }))} className="mt-0.5 size-4 accent-[var(--blue)]" />
             <span><span className="block text-sm font-semibold text-[var(--ink)]">This is a World Transplant Games meet</span><span className="mt-0.5 block text-xs leading-relaxed text-[var(--muted)]">Only WTG results can be marked as world-record candidates.</span></span>
-          </label>
+          </label>}
+          {selectedCatalogMeet && <div className="border border-[var(--border)] p-3 sm:col-span-2"><p className="text-sm font-semibold text-[var(--ink)]">{selectedCatalogMeet.category}</p><p className="mt-0.5 text-xs leading-relaxed text-[var(--muted)]">This result will be linked to the official Games edition in the meet directory.</p></div>}
           {meet.isWorldTransplantGames && <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Opening Ceremony date <span className="font-normal">(used to calculate age group)</span><input required type="date" value={meet.openingCeremonyDate} onChange={event => setMeet(current => ({ ...current, openingCeremonyDate: event.target.value }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]" /></label>}
         </div>
 
@@ -211,7 +263,7 @@ export default function SubmitResultPage() {
       {step === 3 && <section className="bg-white p-5 sm:p-7">
         <div className="mx-auto max-w-2xl text-center"><span className="mx-auto flex size-14 items-center justify-center rounded-full bg-[var(--ice)] text-[var(--blue)]"><Check size={25} /></span><p className="mt-4 font-mono text-xs uppercase tracking-[0.16em] text-[var(--blue)]">Saved</p><h2 className="mt-2 text-2xl font-extrabold text-[var(--ink)]">Results submitted</h2><p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">Your results now appear as swimmer-submitted. A result faster than a WTG record is marked as a record candidate until verified.</p></div>
         <div className="mx-auto mt-6 max-w-3xl divide-y divide-[var(--border)] border-y border-[var(--border)]">{savedResults.map(result => <div key={result.id} className="grid gap-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"><div><p className="font-semibold text-[var(--ink)]">{result.event}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{result.age_group} · {meet.course} · {result.status === 'verified' ? 'Verified' : 'Swimmer-submitted'}</p></div><span className="font-mono text-lg font-bold text-[var(--blue)]">{result.time}</span><div className="flex flex-wrap items-center gap-2">{result.points !== null && <span className="bg-[var(--ice)] px-2 py-1 font-mono text-xs font-bold text-[var(--navy)]">{result.points.toLocaleString()} PTS</span>}{result.record_candidate && <span className="inline-flex items-center gap-1 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-800"><Trophy size={13} /> Record candidate · pending verification</span>}{result.points === null && <span className="text-xs text-[var(--muted)]">PTS unavailable for this category</span>}</div></div>)}</div>
-        <div className="mt-6 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => navigate('/')} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]">Back to dashboard</button><button type="button" onClick={() => { setStep(1); setMeet({ name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' }); setEntries([newEntry()]); setExistingResults([]); setSavedResults([]); setError(''); }} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)]">Submit another meet</button></div>
+        <div className="mt-6 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => navigate('/')} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]">Back to dashboard</button><button type="button" onClick={() => { setStep(1); setMeet({ catalogMeetId: null, name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' }); setEntries([newEntry()]); setExistingResults([]); setSavedResults([]); setError(''); }} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)]">Submit another meet</button></div>
       </section>}
     </div>
   </main>;

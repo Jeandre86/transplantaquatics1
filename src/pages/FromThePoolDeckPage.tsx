@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { articles } from '../data/articles';
+import { usePublishedArticles } from '../hooks/usePublishedArticles';
 import ArticleCard from '../components/ArticleCard';
 import Eyebrow from '../components/Eyebrow';
 import { CheckCircle } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import AdSlot from '../components/AdSlot';
 
 const CATEGORIES = ['All', 'Athlete Stories', 'Training', 'Nutrition', 'Community', 'Competition', 'News', 'Recovery', 'Lifestyle'];
 const PAGE_SIZE = 10;
 
 export default function FromThePoolDeckPage() {
+  const { articles, loading, error } = usePublishedArticles();
   const [category, setCategory] = useState('All');
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -70,7 +72,11 @@ export default function FromThePoolDeckPage() {
       {/* Content */}
       <section style={{ backgroundColor: 'var(--paper)' }}>
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-20 text-center font-mono text-sm uppercase tracking-widest text-neutral-400">Loading stories…</div>
+          ) : error ? (
+            <div role="alert" className="py-20 text-center text-sm text-red-700">Stories could not be loaded: {error}</div>
+          ) : filtered.length === 0 ? (
             <div className="py-20 text-center border border-neutral-200">
               <p className="text-neutral-400 font-mono text-sm uppercase tracking-widest">No articles in this category yet</p>
             </div>
@@ -83,7 +89,10 @@ export default function FromThePoolDeckPage() {
               {/* Remaining articles */}
               {rest.length > 0 && (
                 <div className="flex flex-col">
-                  {rest.map(a => <ArticleCard key={a.id} article={a} feedRow />)}
+                  {rest.map((a, index) => <div key={a.id}>
+                    <ArticleCard article={a} feedRow />
+                    {index === 3 && <div className="my-7"><AdSlot placement="news_feed" compact /></div>}
+                  </div>)}
                 </div>
               )}
               <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Story pages" />
@@ -93,7 +102,7 @@ export default function FromThePoolDeckPage() {
       </section>
       {/* NEWSLETTER */}
       <section style={{ backgroundColor: 'var(--navy-mid)', borderTop: '1px solid var(--navy-light)' }}>
-        <div className="max-w-7xl mx-auto px-4 py-20">
+          <div className="mx-auto max-w-7xl px-4 py-20 text-center">
           {subscribed ? (
             <div className="flex flex-col items-center gap-4 text-center py-8">
               <CheckCircle size={40} style={{ color: 'var(--accent)' }} />
@@ -103,15 +112,15 @@ export default function FromThePoolDeckPage() {
             </div>
           ) : (
             <>
-              <h2 className="display text-4xl md:text-5xl" style={{ color: 'var(--ink-on-dark)' }}>
+              <h2 className="display mx-auto text-4xl md:text-5xl" style={{ color: 'var(--ink-on-dark)' }}>
                 Stay in the water.
               </h2>
-              <p className="mt-3 text-base max-w-md" style={{ color: 'var(--muted-on-dark)' }}>
+              <p className="mx-auto mt-3 max-w-md text-base" style={{ color: 'var(--muted-on-dark)' }}>
                 Race reports, athlete stories and records — delivered to your inbox.
               </p>
               <form
                 onSubmit={handleSubscribe}
-                className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md"
+                className="mx-auto mt-8 flex max-w-md flex-col justify-center gap-3 sm:flex-row"
               >
                 <input
                   type="email"

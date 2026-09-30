@@ -44,6 +44,9 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const CoachClubPage = lazy(() => import('./pages/CoachClubPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ClaimProfilePage = lazy(() => import('./pages/ClaimProfilePage'));
+const WriterPage = lazy(() => import('./pages/WriterPage'));
 
 function HomeRoute() {
   const auth = useAuth();
@@ -88,6 +91,9 @@ export default function App() {
           <Route path="clubs" element={<ClubsPage />} />
           <Route path="clubs/:id" element={<ClubPage />} />
           <Route path="coach/club" element={<Suspense fallback={<PageLoading />}><CoachClubPage /></Suspense>} />
+          <Route path="admin" element={<Suspense fallback={<PageLoading />}><AdminPage /></Suspense>} />
+          <Route path="writer" element={<Suspense fallback={<PageLoading />}><WriterPage /></Suspense>} />
+          <Route path="claim-profile" element={<Suspense fallback={<PageLoading />}><ClaimProfilePage /></Suspense>} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="submit" element={<SubmitResultPage />} />
           <Route path="games" element={<WTGPage />} />

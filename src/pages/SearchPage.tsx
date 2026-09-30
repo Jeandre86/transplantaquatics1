@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { athletes } from '../data/athletes';
 import { records } from '../data/records';
 import { countries } from '../data/countries';
-import { articles } from '../data/articles';
+import { usePublishedArticles } from '../hooks/usePublishedArticles';
 import SearchInput from '../components/SearchInput';
 import AthleteCard from '../components/AthleteCard';
 import RecordCard from '../components/RecordCard';
@@ -17,6 +17,7 @@ import EmptyState from '../components/EmptyState';
 const PAGE_SIZE = 10;
 
 export default function SearchPage() {
+  const { articles } = usePublishedArticles();
   const [query, setQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [athletePage, setAthletePage] = useState(1);

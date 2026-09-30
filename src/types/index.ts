@@ -137,6 +137,8 @@ export interface Article {
   friendLinkToken?: string;
   coverImage?: string;
   tags?: string[];
+  body?: string;
+  commentsEnabled?: boolean;
 }
 
 export interface Ranking {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, ArrowUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { articles } from '../data/articles';
+import { usePublishedArticles } from '../hooks/usePublishedArticles';
 import { latestRecords } from '../data/records';
 import { TRANSPLANT_TYPES, type AgeGroup, type Course, type Event, type Gender, type Ranking } from '../types';
 import { getFlagEmoji, getTransplantColor } from '../lib/utils';
@@ -40,6 +40,7 @@ function AnimatedStat({ value, suffix = '' }: { value: number; suffix?: string }
 }
 
 export default function HomePage() {
+  const { articles } = usePublishedArticles();
   const [ageGroup, setAgeGroup] = useState<AgeGroup | typeof ALL>(ALL);
   const [gender, setGender] = useState<Gender | typeof ALL>(ALL);
   const [event, setEvent] = useState<Event | typeof ALL>(ALL);

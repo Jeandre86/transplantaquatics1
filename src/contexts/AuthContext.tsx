@@ -24,6 +24,7 @@ export interface AuthUser {
   clubName?: string;
   clubId?: string;
   primaryEvent?: string;
+  siteRole?: 'writer';
 }
 
 interface AuthContextType {
@@ -70,6 +71,7 @@ function toAuthUser(user: SupabaseUser): AuthUser {
     clubName: metadata.club,
     clubId: metadata.club_id ? String(metadata.club_id) : undefined,
     primaryEvent: metadata.primary_event ?? metadata.primaryEvent,
+    siteRole: user.app_metadata?.site_role === 'writer' ? 'writer' : undefined,
   };
 }
 

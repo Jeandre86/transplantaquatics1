@@ -1,0 +1,477 @@
+{
+  "metadata": {
+    "title": "Transplant Games event directory",
+    "description": "A sourced starter catalogue of international, regional and national transplant sport games and championships. It combines verified historic editions with announced/current editions; it is not a complete world-wide event registry.",
+    "researched_at": "2026-09-30",
+    "date_format": "YYYY-MM-DD",
+    "status_values": [
+      "completed",
+      "in_progress",
+      "upcoming",
+      "cancelled",
+      "date_unconfirmed"
+    ],
+    "important_notes": [
+      "Event details are drawn from organizer or host sources wherever available. Each edition includes source URLs.",
+      "Some national organizers publish only the next edition or a short archive. Missing years are not inferred.",
+      "The 2026 Australian Transplant Games run from 2026-09-26 to 2026-10-03, so they are in progress on the research date.",
+      "The South African organizer's event listing names the 2026 National Transplant Games in Pretoria, but an exact date was not confirmed in the accessible source."
+    ]
+  },
+  "organizers": [
+    {
+      "id": "wtgf",
+      "name": "World Transplant Games Federation",
+      "acronym": "WTGF",
+      "region": "International",
+      "country": "United Kingdom",
+      "website": "https://wtgf.org/",
+      "source_urls": [
+        "https://wtgf.org/previous-games/",
+        "https://wtgf.org/results/"
+      ]
+    },
+    {
+      "id": "transplant-australia",
+      "name": "Transplant Australia",
+      "acronym": "TA",
+      "region": "National",
+      "country": "Australia",
+      "website": "https://transplant.org.au/",
+      "source_urls": [
+        "https://transplant.org.au/about-the-games/",
+        "https://transplant.org.au/australian-transplant-games-2026-launch/"
+      ]
+    },
+    {
+      "id": "transplant-life-foundation",
+      "name": "Transplant Life Foundation / Transplant Games of America",
+      "acronym": "TGA",
+      "region": "National",
+      "country": "United States",
+      "website": "https://www.transplantgamesofamerica.org/",
+      "source_urls": [
+        "https://www.transplantgamesofamerica.org/2026-transplant-games",
+        "https://www.transplantgamesofamerica.org/2028-transplant-games"
+      ]
+    },
+    {
+      "id": "canadian-transplant-association",
+      "name": "Canadian Transplant Association",
+      "acronym": "CTA",
+      "region": "National",
+      "country": "Canada",
+      "website": "https://www.canadiantransplant.com/",
+      "source_urls": [
+        "https://www.canadiantransplant.com/2026-cta-games",
+        "https://www.canadiantransplant.com/2026faqs"
+      ]
+    },
+    {
+      "id": "transplant-active",
+      "name": "Transplant Active",
+      "acronym": null,
+      "region": "National",
+      "country": "United Kingdom",
+      "website": "https://www.transplantactive.co.uk/",
+      "source_urls": [
+        "https://www.transplantactive.co.uk/britishtransplantgames/sheffield2026",
+        "https://www.transplantactive.co.uk/post/university-of-birmingham-to-host-2027-westfield-health-british-transplant-games"
+      ]
+    },
+    {
+      "id": "south-african-transplant-sports-association",
+      "name": "South African Transplant Sports Association",
+      "acronym": "SATSA / TGASA",
+      "region": "National",
+      "country": "South Africa",
+      "website": "https://transplantsports.org.za/",
+      "source_urls": [
+        "https://transplantsports.org.za/about/",
+        "https://transplantsports.org.za/events-2/"
+      ]
+    },
+    {
+      "id": "etdsf-ehltf",
+      "name": "European Transplant and Dialysis Sport Federation and European Heart and Lung Transplant Federation",
+      "acronym": "ETDSF / EHLTF",
+      "region": "Regional",
+      "country": "Europe",
+      "website": "https://www.eu-tsc.org/",
+      "source_urls": [
+        "https://www.eu-tsc.org/about",
+        "https://etdsf.org/news/etsc-2024",
+        "https://etg2026.nl/"
+      ]
+    }
+  ],
+  "series": [
+    {
+      "id": "world-transplant-games-summer",
+      "name": "Summer World Transplant Games",
+      "kind": "international_multisport_games",
+      "organizer_id": "wtgf",
+      "cadence": "Every two years (subject to organizer schedule)",
+      "official_url": "https://wtgf.org/previous-games/",
+      "editions": [
+        {
+          "year": 1978,
+          "number": 1,
+          "host_city": "Portsmouth",
+          "host_country": "United Kingdom",
+          "status": "completed"
+        },
+        {
+          "year": 1979,
+          "number": 2,
+          "host_city": "Portsmouth",
+          "host_country": "United Kingdom",
+          "status": "completed"
+        },
+        {
+          "year": 1980,
+          "number": 3,
+          "host_city": "New York",
+          "host_country": "United States",
+          "status": "completed"
+        },
+        {
+          "year": 1982,
+          "number": 4,
+          "host_city": "Athens",
+          "host_country": "Greece",
+          "status": "completed"
+        },
+        {
+          "year": 1984,
+          "number": 5,
+          "host_city": "Amsterdam",
+          "host_country": "Netherlands",
+          "status": "completed"
+        },
+        {
+          "year": 1987,
+          "number": 6,
+          "host_city": "Innsbruck",
+          "host_country": "Austria",
+          "status": "completed"
+        },
+        {
+          "year": 1989,
+          "number": 7,
+          "host_city": "Singapore",
+          "host_country": "Singapore",
+          "status": "completed"
+        },
+        {
+          "year": 1991,
+          "number": 8,
+          "host_city": "Budapest",
+          "host_country": "Hungary",
+          "status": "completed"
+        },
+        {
+          "year": 1993,
+          "number": 9,
+          "host_city": "Vancouver",
+          "host_country": "Canada",
+          "status": "completed"
+        },
+        {
+          "year": 1995,
+          "number": 10,
+          "host_city": "Manchester",
+          "host_country": "United Kingdom",
+          "status": "completed"
+        },
+        {
+          "year": 1997,
+          "number": 11,
+          "host_city": "Sydney",
+          "host_country": "Australia",
+          "status": "completed"
+        },
+        {
+          "year": 1999,
+          "number": 12,
+          "host_city": "Budapest",
+          "host_country": "Hungary",
+          "status": "completed"
+        },
+        {
+          "year": 2001,
+          "number": 13,
+          "host_city": "Kobe",
+          "host_country": "Japan",
+          "status": "completed"
+        },
+        {
+          "year": 2003,
+          "number": 14,
+          "host_city": "Nancy",
+          "host_country": "France",
+          "status": "completed"
+        },
+        {
+          "year": 2005,
+          "number": 15,
+          "host_city": "London, Ontario",
+          "host_country": "Canada",
+          "status": "completed"
+        },
+        {
+          "year": 2007,
+          "number": 16,
+          "host_city": "Bangkok",
+          "host_country": "Thailand",
+          "status": "completed"
+        },
+        {
+          "year": 2009,
+          "number": 17,
+          "host_city": "Gold Coast",
+          "host_country": "Australia",
+          "status": "completed"
+        },
+        {
+          "year": 2011,
+          "number": 18,
+          "host_city": "Gothenburg",
+          "host_country": "Sweden",
+          "status": "completed"
+        },
+        {
+          "year": 2013,
+          "number": 19,
+          "host_city": "Durban",
+          "host_country": "South Africa",
+          "status": "completed"
+        },
+        {
+          "year": 2015,
+          "number": 20,
+          "host_city": "Mar del Plata",
+          "host_country": "Argentina",
+          "status": "completed"
+        },
+        {
+          "year": 2017,
+          "number": 21,
+          "host_city": "Malaga",
+          "host_country": "Spain",
+          "status": "completed"
+        },
+        {
+          "year": 2019,
+          "number": 22,
+          "host_city": "Newcastle and Gateshead",
+          "host_country": "United Kingdom",
+          "status": "completed"
+        },
+        {
+          "year": 2021,
+          "number": 23,
+          "host_city": null,
+          "host_country": null,
+          "format": "Virtual 5K AnyWay / online community event",
+          "status": "completed",
+          "notes": "The planned Houston in-person Games were cancelled during the COVID-19 pandemic; WTGF lists a virtual edition."
+        },
+        {
+          "year": 2023,
+          "number": 24,
+          "host_city": "Perth",
+          "host_country": "Australia",
+          "status": "completed"
+        },
+        {
+          "year": 2025,
+          "number": 25,
+          "host_city": "Dresden",
+          "host_country": "Germany",
+          "dates": {
+            "start": "2025-08-17",
+            "end": "2025-08-24"
+          },
+          "status": "completed"
+        },
+        {
+          "year": 2027,
+          "number": 26,
+          "host_city": "Leuven",
+          "host_country": "Belgium",
+          "dates": {
+            "start": "2027-08-01",
+            "end": "2027-08-08"
+          },
+          "status": "upcoming"
+        }
+      ],
+      "sources": [
+        "https://wtgf.org/previous-games/",
+        "https://wtgf.org/results/",
+        "https://wtgf.org/wtgf-inspection-team-confirms-strong-progress-towards-the-2027-world-transplant-games-in-leuven/"
+      ]
+    },
+    {
+      "id": "transplant-games-of-america",
+      "name": "Transplant Games of America",
+      "kind": "national_multisport_games",
+      "organizer_id": "transplant-life-foundation",
+      "editions": [
+        {
+          "year": 2026,
+          "host_city": "Denver, Colorado",
+          "host_country": "United States",
+          "dates": {
+            "start": "2026-06-18",
+            "end": "2026-06-23"
+          },
+          "status": "completed",
+          "sports_count": 20,
+          "program_note": "Organizer reported more than 60 special events and programs."
+        },
+        {
+          "year": 2028,
+          "host_city": "Saint Paul, Minnesota",
+          "host_country": "United States",
+          "dates": {
+            "start": "2028-08-04",
+            "end": "2028-08-09"
+          },
+          "status": "upcoming"
+        }
+      ],
+      "sources": [
+        "https://www.transplantgamesofamerica.org/2026-transplant-games",
+        "https://www.transplantgamesofamerica.org/2028-transplant-games"
+      ]
+    },
+    {
+      "id": "australian-transplant-games",
+      "name": "Australian Transplant Games",
+      "kind": "national_multisport_games",
+      "organizer_id": "transplant-australia",
+      "cadence": "Organizer describes a national games series; intervals vary.",
+      "editions": [
+        {
+          "year": 2024,
+          "number": 17,
+          "host_city": "Canberra, Australian Capital Territory",
+          "host_country": "Australia",
+          "dates": {
+            "start": "2024-10-01",
+            "end": "2024-10-06"
+          },
+          "status": "completed"
+        },
+        {
+          "year": 2026,
+          "number": 18,
+          "host_city": "Launceston, Tasmania",
+          "host_country": "Australia",
+          "dates": {
+            "start": "2026-09-26",
+            "end": "2026-10-03"
+          },
+          "status": "in_progress"
+        }
+      ],
+      "sources": [
+        "https://transplant.org.au/about-the-games/",
+        "https://transplant.org.au/australian-transplant-games-2026-launch/",
+        "https://transplant.org.au/wp-content/uploads/2025/10/TA_Members-Update-2025-FA-Online.pdf"
+      ]
+    },
+    {
+      "id": "canadian-transplant-games",
+      "name": "Canadian Transplant Games",
+      "kind": "national_multisport_games",
+      "organizer_id": "canadian-transplant-association",
+      "editions": [
+        {
+          "year": 2026,
+          "host_city": "Sherbrooke, Quebec",
+          "host_country": "Canada",
+          "dates": {
+            "start": "2026-07-05",
+            "end": "2026-07-11"
+          },
+          "status": "completed",
+          "sports_note": "Organizer lists multiple sport events, including swimming."
+        }
+      ],
+      "sources": [
+        "https://www.canadiantransplant.com/2026-cta-games",
+        "https://www.canadiantransplant.com/2026faqs",
+        "https://www.canadiantransplant.com/sports"
+      ]
+    },
+    {
+      "id": "british-transplant-games",
+      "name": "British Transplant Games",
+      "kind": "national_multisport_games",
+      "organizer_id": "transplant-active",
+      "cadence": "Annual",
+      "editions": [
+        {
+          "year": 2026,
+          "host_city": "Sheffield",
+          "host_country": "United Kingdom",
+          "dates": {
+            "start": "2026-08-06",
+            "end": "2026-08-09"
+          },
+          "status": "completed",
+          "sports_count": 24
+        },
+        {
+          "year": 2027,
+          "host_city": "Birmingham",
+          "host_country": "United Kingdom",
+          "dates": {
+            "start": "2027-07-29",
+            "end": "2027-08-01"
+          },
+          "status": "upcoming"
+        }
+      ],
+      "sources": [
+        "https://www.transplantactive.co.uk/britishtransplantgames/sheffield2026",
+        "https://www.transplantactive.co.uk/post/university-of-birmingham-to-host-2027-westfield-health-british-transplant-games",
+        "https://www.saka.org.uk/transplant-games/"
+      ]
+    },
+    {
+      "id": "south-african-national-transplant-games",
+      "name": "South African National Transplant Games",
+      "kind": "national_multisport_games",
+      "organizer_id": "south-african-transplant-sports-association",
+      "editions": [
+        {
+          "year": 2022,
+          "number": 14,
+          "host_city": null,
+          "host_country": "South Africa",
+          "status": "completed",
+          "notes": "Organizer report identifies this as the 14th National Transplant Games; host city and dates are not included in this record."
+        },
+        {
+          "year": 2026,
+          "host_city": "Pretoria",
+          "host_country": "South Africa",
+          "dates": {
+            "start": "2026-09-24",
+            "end": "2026-09-27"
+          },
+          "status": "completed"
+        }
+      ],
+      "sources": [
+        "https://transplantsports.org.za/about/",
+        "https://transplantsports.org.za/events-2/",
+        "https://transplantsports.org.za/wp-content/uploads/2023/10/1-Final-Report-NTG-2022-July-1.pdf"
+      ]
+    }
+  ]
+}

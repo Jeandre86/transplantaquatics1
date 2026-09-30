@@ -46,6 +46,7 @@ export default function Footer() {
               {[
                 { to: '/countries',          label: 'Countries' },
                 { to: '/clubs',              label: 'Clubs' },
+                { to: '/calendar',           label: 'Meet Calendar' },
                 /*{ to: '/compare',            label: 'Compare Athletes' },*/
                 { to: '/from-the-pool-deck', label: 'News' },
                 /*{ to: '/search',             label: 'Search' },*/

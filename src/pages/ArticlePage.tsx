@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Bookmark, Check, Heart, MessageCircle, MoreHorizontal, Share2, X } from 'lucide-react';
-import { articles } from '../data/articles';
+import { usePublishedArticles } from '../hooks/usePublishedArticles';
 import { formatDate } from '../lib/utils';
 import EmptyState from '../components/EmptyState';
 import { FREE_MEMBER_STORIES_PER_MONTH, getMemberStoryReads, recordMemberStoryRead } from '../lib/storyAccess';
+import { articleHtmlToText, sanitizeArticleHtml } from '../lib/articleContent';
+import AdSlot from '../components/AdSlot';
 
 type StoryComment = { id: string; text: string; createdAt: string };
 
@@ -19,23 +21,26 @@ function readStoredComments(key: string): StoryComment[] {
   } catch { return []; }
 }
 
-function AdSpace({ compact = false }: { compact?: boolean }) {
-  return (
-    <aside
-      aria-label="Advertisement space"
-      className={`flex flex-col items-center justify-center border border-dashed border-neutral-300 bg-white/60 text-center ${compact ? 'min-h-40 p-5' : 'min-h-64 p-8'}`}
-    >
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-400">Advertisement</span>
-      <p className="mt-3 max-w-xs text-sm font-semibold text-neutral-600">Connect your brand with the transplant swimming community.</p>
-      <span className="mt-2 font-mono text-[10px] uppercase tracking-wider text-neutral-400">Ad placement</span>
-    </aside>
-  );
+function splitRichBodyForInlineAd(html: string): [string, string] {
+  if (typeof DOMParser === 'undefined') return [html, ''];
+  const documentBody = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html').body.firstElementChild;
+  if (!documentBody) return [html, ''];
+  const nodes = Array.from(documentBody.childNodes);
+  const splitAt = Math.ceil(nodes.length / 2);
+  const toHtml = (items: Node[]) => items.map(node => {
+    if (node.nodeType === Node.ELEMENT_NODE) return (node as Element).outerHTML;
+    const wrapper = document.createElement('div');
+    wrapper.append(node.cloneNode(true));
+    return wrapper.innerHTML;
+  }).join('');
+  return [toHtml(nodes.slice(0, splitAt)), toHtml(nodes.slice(splitAt))];
 }
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { articles, loading } = usePublishedArticles();
   const article = articles.find(a => a.slug === slug);
   const [memberReads, setMemberReads] = useState(getMemberStoryReads);
   const [friendLinkCopied, setFriendLinkCopied] = useState(false);
@@ -124,8 +129,8 @@ export default function ArticlePage() {
       <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
         <div className="max-w-3xl mx-auto px-6 py-20">
           <EmptyState
-            title="Article not found"
-            subtitle="This article may have been moved or removed."
+            title={loading ? 'Loading story' : 'Article not found'}
+            subtitle={loading ? 'Getting the published article…' : 'This article may have been moved or removed.'}
             onDark
           />
           <div className="mt-8 flex justify-center">
@@ -143,7 +148,11 @@ export default function ArticlePage() {
   }
 
   const related = articles.filter(a => a.slug !== slug).slice(0, 2);
-  const bodyParagraphs = [article.excerpt];
+  const bodyIsRichHtml = /<(?:p|h[23]|blockquote|ul|ol|img|strong|em)\b/i.test(article.body ?? '');
+  const safeArticleBody = bodyIsRichHtml ? sanitizeArticleHtml(article.body ?? '') : '';
+  const [richBodyBeforeAd, richBodyAfterAd] = bodyIsRichHtml ? splitRichBodyForInlineAd(safeArticleBody) : ['', ''];
+  const bodyParagraphs = (article.body || article.excerpt) ? (bodyIsRichHtml ? articleHtmlToText(article.body ?? '') : article.body || article.excerpt).split(/\n\s*\n/).map(paragraph => paragraph.trim()).filter(Boolean) : [];
+  const commentsEnabled = article.commentsEnabled !== false;
   const isFriendStory = hasFriendAccess;
   const storyLabel = isFriendStory ? 'Friend Link' : article.access === 'member' ? 'Member-only' : 'Free story';
   const storyTags = article.tags ?? [article.category];
@@ -160,7 +169,7 @@ export default function ArticlePage() {
       </div>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6">
-        <header className="mx-auto max-w-4xl pb-8 pt-8 md:pt-12">
+        <header className="mx-auto w-full pb-8 pt-8 md:pt-12">
           <div className="flex flex-wrap items-center gap-3">
             <span className={`inline-flex items-center gap-2 border px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] ${isFriendStory ? 'border-[#00a7b9]/30 bg-[#00c2d7]/10 text-[#007d89]' : article.access === 'member' ? 'border-[#f0b544]/40 bg-[#fff4d6] text-[#815600]' : 'border-emerald-700/20 bg-emerald-50 text-emerald-800'}`}>
               {isFriendStory && <Check size={13} aria-hidden="true" />}{storyLabel}
@@ -187,7 +196,7 @@ export default function ArticlePage() {
             </div>
             <div className="flex items-center gap-1 text-neutral-600" aria-label="Story actions">
               <button type="button" onClick={toggleLiked} aria-pressed={liked} aria-label={liked ? 'Unlike story' : 'Like story'} className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors hover:bg-neutral-200 ${liked ? 'text-rose-600' : ''}`}><Heart size={18} fill={liked ? 'currentColor' : 'none'} /><span>{liked ? 1 : 0}</span></button>
-              <button type="button" onClick={() => { setCommentsOpen(value => !value); window.setTimeout(() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0); }} aria-expanded={commentsOpen} className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors hover:bg-neutral-200"><MessageCircle size={18} /><span>{comments.length}</span></button>
+              {commentsEnabled && <button type="button" onClick={() => { setCommentsOpen(value => !value); window.setTimeout(() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0); }} aria-expanded={commentsOpen} className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors hover:bg-neutral-200"><MessageCircle size={18} /><span>{comments.length}</span></button>}
               <button type="button" onClick={toggleSaved} aria-pressed={saved} aria-label={saved ? 'Remove bookmark' : 'Bookmark story'} className={`rounded-full p-2 transition-colors hover:bg-neutral-200 ${saved ? 'text-[#007d89]' : ''}`}><Bookmark size={18} fill={saved ? 'currentColor' : 'none'} /></button>
               <button type="button" onClick={copyStoryLink} aria-label="Share story" className="rounded-full p-2 transition-colors hover:bg-neutral-200"><Share2 size={18} /></button>
               <div className="relative">
@@ -200,7 +209,7 @@ export default function ArticlePage() {
         </header>
 
         {!canReadFullStory ? (
-          <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="membership-gate-title">
+          <section className="pb-16" aria-labelledby="membership-gate-title">
             <div className="relative isolate flex min-h-[680px] items-center justify-center overflow-hidden py-16">
               <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[360px] select-none overflow-hidden">
                 <div className="mx-auto max-w-3xl space-y-7 px-4 pt-8 text-lg leading-8 text-neutral-600 opacity-[0.18] blur-[1px]">
@@ -225,27 +234,26 @@ export default function ArticlePage() {
             </div>
           </section>
         ) : (
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 pb-16 lg:grid-cols-[minmax(0,760px)_280px] lg:gap-14">
+          <div className="mx-auto grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-14">
             <article className="min-w-0">
               {article.access === 'member' && <p className="mb-7 border-l-4 border-[#00c2d7] bg-white/70 px-5 py-4 text-sm leading-relaxed text-neutral-700">{hasFriendAccess ? 'You are reading with a Friend Link.' : `Member-only story · ${Math.max(0, FREE_MEMBER_STORIES_PER_MONTH - memberReads.length)} free reads remaining this month.`}</p>}
-              <div className="space-y-7 text-lg leading-[1.85] text-neutral-800">
+              {bodyIsRichHtml ? <div className="article-rich-content space-y-7 text-lg leading-[1.85] text-neutral-800 [&_a]:text-[#007d89] [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-[#00c2d7] [&_blockquote]:pl-6 [&_blockquote]:italic [&_h2]:mt-10 [&_h2]:text-3xl [&_h2]:font-bold [&_h3]:mt-8 [&_h3]:text-2xl [&_h3]:font-bold [&_ol]:list-decimal [&_ol]:pl-7 [&_ul]:list-disc [&_ul]:pl-7"><div dangerouslySetInnerHTML={{ __html: richBodyBeforeAd }} /><div className="my-10"><AdSlot placement="article_inline" compact /></div>{richBodyAfterAd && <div dangerouslySetInnerHTML={{ __html: richBodyAfterAd }} />}</div> : <div className="space-y-7 text-lg leading-[1.85] text-neutral-800">
                 {bodyParagraphs.map((para, i) => <div key={i}>
                   <p>{para}</p>
-                  {i === 2 && <div className="my-10"><AdSpace compact /></div>}
-                  {i === 6 && bodyParagraphs.length >= 8 && <div className="my-10"><AdSpace compact /></div>}
+                  {i === Math.min(2, bodyParagraphs.length - 1) && <div className="my-10"><AdSlot placement="article_inline" compact /></div>}
                   {i === 3 && <blockquote className="my-10 border-l-4 border-[#00c2d7] py-2 pl-6 text-2xl font-semibold leading-snug text-neutral-900">“Every split matters. Every lane tells a story.”<footer className="mt-3 font-mono text-xs font-normal uppercase tracking-widest text-[#007d89]">— Transplant Aquatics</footer></blockquote>}
                 </div>)}
-              </div>
+              </div>}
               <div className="mt-12 border-y border-neutral-200 py-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={toggleLiked} aria-pressed={liked} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors hover:bg-neutral-200 ${liked ? 'text-rose-600' : 'text-neutral-700'}`}><Heart size={17} fill={liked ? 'currentColor' : 'none'} /> Appreciate · {liked ? 1 : 0}</button>
-                    <button type="button" onClick={() => { setCommentsOpen(true); commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-700 transition-colors hover:bg-neutral-200"><MessageCircle size={17} /> Respond</button>
+                    {commentsEnabled && <button type="button" onClick={() => { setCommentsOpen(true); commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-700 transition-colors hover:bg-neutral-200"><MessageCircle size={17} /> Respond</button>}
                   </div>
                   <button type="button" onClick={toggleSaved} aria-pressed={saved} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-wider text-neutral-700 transition-colors hover:bg-neutral-200"><Bookmark size={17} fill={saved ? 'currentColor' : 'none'} /> {saved ? 'Saved' : 'Save for later'}</button>
                 </div>
               </div>
-              <section id="comments" ref={commentsRef} className="mt-12 scroll-mt-24" aria-label="Comments">
+              {commentsEnabled && <section id="comments" ref={commentsRef} className="mt-12 scroll-mt-24" aria-label="Comments">
                 <div className="flex items-center justify-between gap-4">
                   <h2 className="text-2xl font-bold text-neutral-950">Responses <span className="font-mono text-base font-normal text-neutral-500">({comments.length})</span></h2>
                   <button type="button" onClick={() => setCommentsOpen(value => !value)} aria-expanded={commentsOpen} className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-neutral-600 hover:text-[#007d89]">{commentsOpen ? <X size={16} /> : <MessageCircle size={16} />}{commentsOpen ? 'Close' : 'Respond'}</button>
@@ -256,10 +264,10 @@ export default function ArticlePage() {
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-3"><span className="font-mono text-[10px] text-neutral-400">Preview responses are saved on this device.</span><button type="submit" disabled={!commentDraft.trim()} className="bg-[#0c233f] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#007d89] disabled:cursor-not-allowed disabled:opacity-40">Post response</button></div>
                 </form>}
                 <div className="mt-5 space-y-4">{comments.map(comment => <div key={comment.id} className="border-b border-neutral-200 pb-4"><p className="font-semibold text-neutral-900">Reader</p><p className="mt-2 text-sm leading-relaxed text-neutral-700">{comment.text}</p><time className="mt-2 block font-mono text-[10px] text-neutral-400">{formatDate(comment.createdAt)}</time></div>)}</div>
-              </section>
+              </section>}
             </article>
             <aside className="space-y-6 lg:pt-2">
-              <AdSpace />
+              <AdSlot placement="article_sidebar" />
               <div className="border-t border-neutral-200 pt-5">
                 <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-400">More from the deck</p>
                 {related.map(item => <Link key={item.id} to={`/from-the-pool-deck/${item.slug}`} className="mt-4 block border-b border-neutral-200 pb-4 text-neutral-900 hover:text-[#007d89]"><span className="font-mono text-[10px] uppercase tracking-wider text-[#007d89]">{item.category}</span><span className="mt-1 block font-semibold leading-snug">{item.title}</span><span className="mt-2 block font-mono text-[10px] text-neutral-500">{item.readTime} min read</span></Link>)}
@@ -269,9 +277,6 @@ export default function ArticlePage() {
         )}
       </main>
 
-      {canReadFullStory && <section className="border-t border-neutral-200 bg-white/60 py-10">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6"><AdSpace compact /></div>
-      </section>}
     </div>
   );
 }
