@@ -91,6 +91,14 @@
 }
 
 @layer components {
+  /* Shared photographic treatment for page mastheads and top hero sections. */
+  .ta-page-top {
+    background-color: var(--navy);
+    background-image: linear-gradient(rgba(7, 26, 43, 0.7), rgba(7, 26, 43, 0.7)), url('/images/topsectionbg.png');
+    background-position: center;
+    background-size: cover;
+  }
+
   .ta-filter-bar {
     color: var(--ink);
   }

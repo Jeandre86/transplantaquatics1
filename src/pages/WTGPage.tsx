@@ -3,11 +3,6 @@ import { latestRecords } from '../data/records';
 import { getFlagEmoji } from '../lib/utils';
 import Eyebrow from '../components/Eyebrow';
 
-const speedLines = {
-  backgroundImage:
-    'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
-};
-
 export default function WTGPage() {
   const wtgRecords = latestRecords.slice(0, 5);
 
@@ -15,11 +10,9 @@ export default function WTGPage() {
     <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
       {/* Hero */}
       <section
-        className="border-b relative overflow-hidden"
+        className="ta-page-top border-b relative overflow-hidden"
         style={{
-          backgroundColor: 'var(--navy-mid)',
           borderColor: 'var(--navy-light)',
-          ...speedLines,
         }}
       >
         <div className="max-w-7xl mx-auto px-4 py-20 md:py-28">

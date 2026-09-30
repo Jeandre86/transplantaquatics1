@@ -9,9 +9,9 @@ import Button from '../components/Button';
 import FilterBar from '../components/FilterBar';
 import { ArrowRight } from 'lucide-react';
 import { SkeletonTable } from '../components/Skeleton';
-import { loadClubRecords, type ClubRecord } from '../lib/clubs';
+import { getClubLogoUrl, loadClubRecords, type ClubRecord } from '../lib/clubs';
 
-type ListedClub = { id: string; slug: string; name: string; country: string; countryCode: string; city: string };
+type ListedClub = { id: string; slug: string; name: string; country: string; countryCode: string; city: string; logoUrl: string | null };
 
 const PAGE_SIZE = 10;
 
@@ -29,7 +29,7 @@ export default function ClubsPage() {
 
   const allClubs: ListedClub[] = liveClubs.map(club => ({
     id: club.id, slug: club.slug, name: club.name, country: club.country,
-    countryCode: club.country_code ?? '', city: club.city,
+    countryCode: club.country_code ?? '', city: club.city, logoUrl: getClubLogoUrl(club),
   }));
 
   const filtered = allClubs.filter(c => {
@@ -49,12 +49,12 @@ export default function ClubsPage() {
     <div>
       {/* Header */}
       <section
-        className="border-b"
+        className="ta-page-top border-b"
         style={{
-          backgroundColor: 'var(--navy-mid)',
           borderColor: 'var(--navy-light)',
-          backgroundImage:
-            'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
+          backgroundImage: "linear-gradient(rgba(7, 26, 43, 0.7), rgba(7, 26, 43, 0.7)), url('/images/topsectionbg.png')",
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
         }}
       >
         <div className="max-w-7xl mx-auto px-4 py-16">
@@ -91,7 +91,9 @@ export default function ClubsPage() {
                 className="ta-table-row group grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 px-3 py-5 no-underline sm:grid-cols-[minmax(200px,1.6fr)_minmax(150px,1.2fr)_28px] sm:gap-4 sm:px-5"
               >
                 <span className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-[var(--ice)] font-mono text-xs font-bold text-[var(--navy)]" aria-hidden="true">{club.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()}</span>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white font-mono text-xs font-bold text-[var(--navy)]" aria-hidden="true">
+                    {club.logoUrl ? <img src={club.logoUrl} alt="" className="h-full w-full rounded-full object-contain p-0.5" /> : club.name.split(' ').map(word => word[0]).join('').slice(0, 3).toUpperCase()}
+                  </span>
                   <span className="min-w-0">
                     <span className="block truncate text-base font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">{club.name}</span>
                     <span className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm text-[var(--muted)] sm:hidden"><span className="ta-table-flag shrink-0">{getFlagEmoji(club.countryCode)}</span><span className="truncate">{club.city}, {club.country}</span></span>

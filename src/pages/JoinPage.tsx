@@ -102,14 +102,7 @@ export default function JoinPage() {
     setLoading(true);
     try {
       const countryCode = countries.find(country => country.name === form.country)?.code;
-      if (requestClub) {
-        const { error: requestError } = await supabase.from('club_requests').insert({
-          name: clubRequest.name.trim(), country: clubRequest.country, city: clubRequest.city.trim(),
-          contact_email: form.email.trim(), contact_name: `${form.firstName} ${form.lastName}`.trim(),
-        });
-        if (requestError) throw requestError;
-      }
-      const { error: signupError } = await supabase.auth.signUp({
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
@@ -124,7 +117,7 @@ export default function JoinPage() {
             age_group: isSwimmerAccount ? ageGroupAtSignup : null,
             registrant_relationship: needsResponsibleAdult ? form.registrantRelationship : (joinRole === 'parent_guardian' ? 'parent' : null),
             gender: isSwimmerAccount ? form.gender : null,
-            club: isSwimmerAccount ? (form.club || null) : null,
+            club: isSwimmerAccount ? (requestClub ? clubRequest.name.trim() : form.club || null) : null,
             club_id: isSwimmerAccount ? (clubId || null) : null,
             primary_event: isSwimmerAccount ? form.primaryEvent : null,
           },
@@ -134,8 +127,26 @@ export default function JoinPage() {
         },
       });
       if (signupError) throw signupError;
+      if (requestClub && !signupData.user) {
+        setConfirmationSent(true);
+        setNotice(`We sent a confirmation link to ${form.email}. Your account was created, but the club request could not be linked automatically. After activating your account, request the club under Profile → Account → My swimmers.`);
+        return;
+      }
+      if (requestClub && signupData.user) {
+        const { error: requestError } = await supabase.from('club_requests').insert({
+          name: clubRequest.name.trim(), country: clubRequest.country, city: clubRequest.city.trim(),
+          contact_email: form.email.trim(), contact_name: `${form.firstName} ${form.lastName}`.trim(),
+          requested_by: signupData.user.id,
+        });
+        if (requestError) {
+          setConfirmationSent(true);
+          setNotice(`We sent a confirmation link to ${form.email}. Your account was created, but the club request could not be saved. After activating your account, request the club under Profile → Account → My swimmers.`);
+          setError(requestError.message);
+          return;
+        }
+      }
       setConfirmationSent(true);
-      setNotice(`We sent a confirmation link to ${form.email}. Open it to activate your account.`);
+      setNotice(`We sent a confirmation link to ${form.email}. Open it to activate your account.${requestClub ? ' Your club request is linked to your swimmer profile, so you can submit WTG results while it is reviewed.' : ''}`);
     } catch (signupError) {
       setError(signupError instanceof Error ? signupError.message : 'We could not start your registration. Please try again.');
     } finally {

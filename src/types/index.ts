@@ -101,7 +101,6 @@ export interface Record {
   gender: string;
   category?: string;
   time: string;
-  athleteId?: string;
   athleteName: string;
   country: string;
   date?: string;

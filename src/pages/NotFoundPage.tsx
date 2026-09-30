@@ -1,15 +1,9 @@
 import { Link } from 'react-router-dom';
 
-const speedLines = {
-  backgroundImage:
-    'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
-};
-
 export default function NotFoundPage() {
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
-      style={{ backgroundColor: 'var(--navy)', ...speedLines }}
+      className="ta-page-top min-h-screen flex flex-col items-center justify-center px-6 text-center"
     >
       <div className="max-w-lg w-full">
         {/* 404 */}

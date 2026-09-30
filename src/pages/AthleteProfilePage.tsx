@@ -435,6 +435,8 @@ export default function AthleteProfilePage() {
 function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlete: PublicSwimmerProfile; results: PublicSwimmerResult[]; loading: boolean; error: string }) {
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState<'Overview' | 'Personal Bests' | 'Medals'>('Overview');
+  const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
+  const clubPath = athlete.club_id || athlete.club_name?.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   useEffect(() => { setPage(1); setTab('Overview'); }, [athlete.id]);
   const pageCount = Math.ceil(results.length / RESULT_PAGE_SIZE);
   const visibleResults = results.slice((page - 1) * RESULT_PAGE_SIZE, page * RESULT_PAGE_SIZE);
@@ -457,16 +459,17 @@ function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlet
   const tabs = ['Overview', 'Personal Bests', 'Medals'] as const;
 
   return <div style={{ backgroundColor: 'var(--paper)' }}>
-    <section className="bg-[var(--navy)] text-white">
+    <section className="ta-page-top text-white">
       <div className="mx-auto max-w-7xl px-4 py-10">
         <Link to="/athletes" className="mb-6 inline-flex items-center gap-1.5 font-mono text-xs text-white/65 hover:text-white"><ArrowLeft size={13} /> All athletes</Link>
-        <div className="flex flex-col gap-6 md:flex-row md:items-end">
-          <div className="flex size-20 shrink-0 items-center justify-center rounded-full bg-[var(--navy-light)] font-mono text-2xl font-bold">{athlete.first_name[0]}{athlete.last_name[0]}</div>
+        <div className="flex flex-col gap-6 md:flex-row md:items-center">
+          <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--navy-light)] font-mono text-2xl font-bold">
+            {avatarUrl ? <img src={avatarUrl} alt={`${athlete.first_name} ${athlete.last_name}`} className="h-full w-full object-cover" /> : `${athlete.first_name[0]}${athlete.last_name[0]}`}
+          </div>
           <div className="min-w-0 flex-1">
             <Eyebrow onDark>Athlete profile</Eyebrow>
             <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{athlete.first_name} {athlete.last_name}</h1>
-            <p className="mt-2 text-sm text-white/70">{getFlagEmoji(athlete.country_code ?? '')} {athlete.country || 'Country unavailable'} <span className="px-1.5">·</span> {athlete.gender || 'Gender unavailable'} <span className="px-1.5">·</span> {athlete.transplant_type || 'Transplant type unavailable'} <span className="px-1.5">·</span> {athlete.age_group || 'Age group unavailable'}</p>
-            {athlete.club_name && <p className="mt-1 text-sm text-white/70">Club: {athlete.club_name}</p>}
+            <p className="mt-2 flex flex-wrap items-center gap-y-1 text-sm text-white/70"><span>{getFlagEmoji(athlete.country_code ?? '')} {athlete.country || 'Country unavailable'}</span><span className="px-1.5">·</span><span>{athlete.gender || 'Gender unavailable'}</span><span className="px-1.5">·</span><span>{athlete.transplant_type || 'Transplant type unavailable'}</span><span className="px-1.5">·</span><span>{athlete.age_group || 'Age group unavailable'}</span>{athlete.club_name && clubPath && <><span className="px-1.5">·</span><Link to={`/clubs/${clubPath}`} className="text-white/70 underline decoration-white/30 underline-offset-2 transition-colors hover:text-[var(--accent)]">{athlete.club_name}</Link></>}</p>
           </div>
           <div className="shrink-0 md:w-72">
             <Eyebrow onDark className="mb-3">Transplant Games Medals</Eyebrow>
@@ -500,7 +503,26 @@ function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlet
             </div>
             <div>
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Competition history</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{results.length} result{results.length === 1 ? '' : 's'}</span></div>
-              <DatabaseResultsTable results={visibleResults} showAthlete={false} />
+              <DatabaseResultsTable results={visibleResults.map(result => ({
+                ...result,
+                athlete_id: athlete.id,
+                swimmer_id: athlete.id,
+                swimmer_name: `${athlete.first_name} ${athlete.last_name}`,
+                country: athlete.country,
+                country_code: athlete.country_code,
+                gender: athlete.gender,
+                transplant_type: athlete.transplant_type,
+                record_candidate: false,
+                record_candidate_status: 'not_candidate' as const,
+                meet_id: null,
+                submitted_meets: {
+                  name: result.meet_name ?? '',
+                  meet_date: result.meet_date ?? result.created_at,
+                  location: result.location ?? '',
+                  course: result.course ?? '',
+                  is_world_transplant_games: result.is_world_transplant_games,
+                },
+              }))} showAthlete={false} />
               <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete results pages" />
             </div>
           </div>

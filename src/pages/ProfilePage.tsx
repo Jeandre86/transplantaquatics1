@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, CalendarDays, Camera, ChartNoAxesCombined, MapPin, Medal, Music2, Settings2, Target, Timer, Waves, Mail, LockKeyhole, Trash2, ShieldCheck } from 'lucide-react';
+import { CalendarDays, Camera, ChartNoAxesCombined, MapPin, Medal, Music2, Settings2, Timer, ShieldCheck, Eye, EyeOff, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getFlagEmoji } from '../lib/utils';
 import { athletes } from '../data/athletes';
 import { clubs } from '../data/clubs';
 import { results } from '../data/results';
-import { COURSES, EVENTS, type Course, type Event } from '../types';
+import { EVENTS, type Event } from '../types';
 import type { SocialLinks } from '../lib/avatars';
-import { athleteGoalsErrorMessage, createAthleteGoal, loadAthleteGoals, removeAthleteGoal, type AthleteGoal } from '../lib/athleteGoals';
+import { athleteGoalsErrorMessage, createAthleteGoal, loadAthleteGoals, removeAthleteGoal, setAthleteGoalVisibility, type AthleteGoal, type GoalCourse } from '../lib/athleteGoals';
+import { loadMyAccountResults, type SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
 import { supabase } from '../lib/supabase';
 import ManagedSwimmers from '../components/ManagedSwimmers';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
@@ -42,6 +43,25 @@ function strokeForEvent(event: string): string | null {
   return STROKES.find(stroke => event.toLowerCase().includes(stroke.toLowerCase())) ?? null;
 }
 
+function relativeCreatedAt(value: string): string {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
+  if (minutes < 1) return 'Created less than a minute ago';
+  if (minutes < 60) return `Created ${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Created ${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `Created ${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function formatGoalGap(seconds: number): string {
+  if (seconds >= 60) {
+    const minutes = Math.floor(seconds / 60);
+    const remainder = (seconds % 60).toFixed(2).padStart(5, '0');
+    return `${minutes}:${remainder} to goal`;
+  }
+  return `${seconds.toFixed(2)}s to goal`;
+}
+
 function ProfilePanel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="bg-white">
@@ -64,12 +84,18 @@ export default function ProfilePage() {
   const [socialDraft, setSocialDraft] = useState<SocialLinks>({});
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
   const [goals, setGoals] = useState<AthleteGoal[]>([]);
+  const [databaseResults, setDatabaseResults] = useState<SubmittedSwimmerResult[]>([]);
+  const [databaseResultsLoading, setDatabaseResultsLoading] = useState(true);
   const [goalsLoading, setGoalsLoading] = useState(true);
   const [goalError, setGoalError] = useState('');
+  const [goalFormOpen, setGoalFormOpen] = useState(false);
   const [goalSaving, setGoalSaving] = useState(false);
   const [removingGoalId, setRemovingGoalId] = useState<string | null>(null);
-  const [goalEvent, setGoalEvent] = useState<Event>(EVENTS[0]);
-  const [goalCourse, setGoalCourse] = useState<Course>('LCM');
+  const [goalMenuId, setGoalMenuId] = useState<string | null>(null);
+  const [visibilitySavingId, setVisibilitySavingId] = useState<string | null>(null);
+  const [goalEvent, setGoalEvent] = useState<Event | ''>('');
+  const [goalCourse, setGoalCourse] = useState<GoalCourse>('LCM');
+  const [goalPublic, setGoalPublic] = useState(false);
   const [goalTime, setGoalTime] = useState('');
   const [selectedSeason, setSelectedSeason] = useState(AVAILABLE_SEASONS[0] ?? '');
   const [accountEmail, setAccountEmail] = useState('');
@@ -121,6 +147,24 @@ export default function ProfilePage() {
     return () => { cancelled = true; };
   }, [auth.isLoggedIn]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!auth.isLoggedIn) {
+      setDatabaseResults([]);
+      setDatabaseResultsLoading(false);
+      return () => { cancelled = true; };
+    }
+    setDatabaseResultsLoading(true);
+    loadMyAccountResults().then(items => {
+      if (!cancelled) setDatabaseResults(items);
+    }).catch(() => {
+      if (!cancelled) setDatabaseResults([]);
+    }).finally(() => {
+      if (!cancelled) setDatabaseResultsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [auth.isLoggedIn]);
+
   const user = auth.user;
   const athlete = useMemo(() => {
     if (!user) return undefined;
@@ -158,9 +202,10 @@ export default function ProfilePage() {
     .flatMap(category => [...category.values()].sort((a, b) => parseTime(a.time) - parseTime(b.time)).map((row, index) => ({ ...row, rank: index + 1 })))
     .filter(row => row.athleteId === athlete?.id)
     .sort((a, b) => a.event.localeCompare(b.event));
-  const recordedEvents = athlete ? results.filter(result => result.athleteId === athlete.id).map(result => result.event) : [];
-  const swimEvents = athlete
-    ? recordedEvents.length ? recordedEvents : athlete.personalBests.map(best => best.event)
+  const normalizedName = name.trim().toLocaleLowerCase();
+  const swimmerDatabaseResults = databaseResults.filter(result => result.swimmer_name.trim().toLocaleLowerCase() === normalizedName && result.status !== 'rejected');
+  const swimEvents = swimmerDatabaseResults.length
+    ? swimmerDatabaseResults.map(result => result.event)
     : user.primaryEvent ? [user.primaryEvent] : [];
   const specialtyCounts = new Map<string, number>();
   swimEvents.forEach(event => {
@@ -197,6 +242,10 @@ export default function ProfilePage() {
 
   const addGoal = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!goalEvent) {
+      setGoalError('Select an event before creating a goal.');
+      return;
+    }
     if (parseTime(goalTime) <= 0) {
       setGoalError('Enter a valid target time, such as 58.50 or 1:02.50.');
       return;
@@ -204,9 +253,12 @@ export default function ProfilePage() {
     setGoalSaving(true);
     setGoalError('');
     try {
-      const goal = await createAthleteGoal({ event: goalEvent, course: goalCourse, targetTime: goalTime.trim() });
+      const goal = await createAthleteGoal({ event: goalEvent, course: goalCourse, targetTime: goalTime.trim(), isPublic: goalPublic });
       setGoals(current => [goal, ...current]);
       setGoalTime('');
+      setGoalEvent('');
+      setGoalPublic(false);
+      setGoalFormOpen(false);
     } catch (error) {
       setGoalError(athleteGoalsErrorMessage(error));
     } finally {
@@ -224,6 +276,19 @@ export default function ProfilePage() {
       setGoalError(athleteGoalsErrorMessage(error));
     } finally {
       setRemovingGoalId(null);
+    }
+  };
+
+  const toggleGoalVisibility = async (goal: AthleteGoal) => {
+    setVisibilitySavingId(goal.id);
+    setGoalError('');
+    try {
+      await setAthleteGoalVisibility(goal.id, !goal.isPublic);
+      setGoals(current => current.map(item => item.id === goal.id ? { ...item, isPublic: !goal.isPublic } : item));
+    } catch (error) {
+      setGoalError(athleteGoalsErrorMessage(error));
+    } finally {
+      setVisibilitySavingId(null);
     }
   };
 
@@ -360,7 +425,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--muted)]">
                     <span className="inline-flex items-center gap-1.5"><MapPin size={13} />{country}</span>
-                    {user.club && <><span aria-hidden="true">·</span><Link to={`/clubs/${profileClub?.id ?? clubSlug}`} state={{ fromProfile: true, clubName: user.club }} className="font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)] hover:underline">{user.club}</Link></>}
+                    {user.club && <><span aria-hidden="true">·</span><Link to={`/clubs/${user.clubId ?? profileClub?.id ?? clubSlug}`} state={{ fromProfile: true, clubName: user.club }} className="font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)] hover:underline">{user.club}</Link></>}
                     {user.transplantType && <><span aria-hidden="true">·</span><span>{user.transplantType} transplant</span></>}
                     {flag && <span className="text-base" aria-label={country}>{flag}</span>}
                     {SOCIAL_FIELDS.some(({ key }) => socialHref(key, user.socials?.[key])) && <div className="flex items-center gap-1" aria-label="Social media profiles">
@@ -431,7 +496,7 @@ export default function ProfilePage() {
 
         {activeTab === 'overview' && <div id="overview" className="mt-6 grid gap-5 lg:grid-cols-[minmax(250px,0.85fr)_minmax(0,2fr)]">
           <div className="space-y-5">
-            <ProfilePanel title="Specialty" action={<Waves size={17} className="text-[var(--blue)]" />}>
+            <ProfilePanel title="Specialty">
               <div className="mx-auto max-w-xs">
                 <svg viewBox="0 0 240 190" role="img" aria-label={specialties.length ? `Swim specialties: ${specialties.map(([stroke]) => stroke).join(', ')}` : 'No swim specialties recorded yet'} className="mx-auto w-full max-w-[270px]">
                   {[1, 0.8, 0.6, 0.4, 0.2].map(scale => (
@@ -457,7 +522,7 @@ export default function ProfilePage() {
                   <div className="mt-1.5 flex justify-between text-xs text-[var(--muted)]"><span>Sprint</span><span>Distance</span></div>
                 </div>
                 <p className="mt-4 text-center text-xs leading-relaxed text-[var(--muted)]">
-                  {specialties.length ? `Automatically based on ${athlete ? 'recorded swims' : 'your selected primary event'}.` : 'Your swim profile will appear here when events are added.'}
+                  {databaseResultsLoading ? 'Loading your swim data…' : specialties.length ? `Automatically based on ${swimmerDatabaseResults.length ? 'your submitted results' : 'your selected primary event'}.` : 'Your swim profile will appear here when events are added.'}
                 </p>
               </div>
             </ProfilePanel>
@@ -477,7 +542,7 @@ export default function ProfilePage() {
             <ProfilePanel title="Goals" action={<button type="button" onClick={() => setActiveTab('goals')} className="text-xs font-semibold text-[var(--blue)] hover:underline">Manage</button>}>
               {goalsLoading ? <div className="space-y-3"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-2 w-full" /><Skeleton className="h-4 w-1/2" /></div> : goals.length ? <div className="space-y-3">
                 {goals.slice(0, 2).map(goal => {
-                  const currentBest = athlete?.personalBests.filter(best => best.event === goal.event && best.course === goal.course).sort((a, b) => parseTime(a.time) - parseTime(b.time))[0];
+                  const currentBest = swimmerDatabaseResults.filter(result => result.event === goal.event && result.submitted_meets?.course === goal.course).sort((a, b) => parseTime(a.time) - parseTime(b.time))[0];
                   const targetSeconds = parseTime(goal.targetTime);
                   const currentSeconds = currentBest ? parseTime(currentBest.time) : 0;
                   const progress = currentSeconds && targetSeconds ? Math.min(100, Math.round((targetSeconds / currentSeconds) * 100)) : 0;
@@ -485,7 +550,7 @@ export default function ProfilePage() {
                   return <div key={goal.id}>
                     <div className="flex items-baseline justify-between gap-2"><p className="truncate text-xs font-semibold text-[var(--ink)]">{goal.event} · {goal.course}</p><p className="shrink-0 font-mono text-xs font-bold text-[var(--blue)]">{goal.targetTime}</p></div>
                     <div className="mt-1.5 h-1.5 bg-[var(--paper)]"><div className="h-full bg-[var(--accent)]" style={{ width: `${progress}%` }} /></div>
-                    <p className="mt-1 text-[10px] text-[var(--muted)]">{achieved ? 'Goal reached' : currentBest ? `${progress}% · PB ${currentBest.time}` : 'Add a result to track progress'}</p>
+                    <p className="mt-1 text-[10px] text-[var(--muted)]">{achieved ? 'Goal reached' : currentBest ? `${progress}% · PB ${currentBest.time}` : 'No progress yet'}</p>
                   </div>;
                 })}
                 {goals.length > 2 && <button type="button" onClick={() => setActiveTab('goals')} className="text-xs font-semibold text-[var(--blue)] hover:underline">View all {goals.length} goals</button>}
@@ -495,7 +560,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-5">
-            <ProfilePanel title="Latest Results" action={<Link to="/results" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">See all <ArrowRight size={14} /></Link>}>
+            <ProfilePanel title="Latest Results" action={<Link to="/results" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">See all</Link>}>
               <div id="latest-results" className="mb-4 flex items-center gap-3 border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5">
                 <span className="text-xl">{flag || '🏊'}</span>
                 <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--ink)]">{athleteResults[0]?.meet || 'Your meet results'}</p><p className="text-xs text-[var(--muted)]">{athleteResults[0]?.date || 'Personal results'}</p></div>
@@ -523,7 +588,7 @@ export default function ProfilePage() {
               )}
             </ProfilePanel>
 
-            <ProfilePanel title="Rankings" action={<Link to="/rankings" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">Explore <ArrowRight size={14} /></Link>}>
+            <ProfilePanel title="Rankings" action={<Link to="/rankings" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">Explore</Link>}>
               <p className="text-sm leading-relaxed text-[var(--muted)]">Your personal ranking will appear here when your verified results are linked to your athlete profile.</p>
             </ProfilePanel>
           </div>
@@ -544,33 +609,83 @@ export default function ProfilePage() {
 
         {activeTab === 'goals' && (
           <div className="mt-6 space-y-5">
-            <ProfilePanel title="Personal swim goals" action={<Target size={17} className="text-[var(--blue)]" />}>
-              <p className="mb-5 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Set a target time for an event and track it against your personal best. Your goals are saved to your Transplant Aquatics account.</p>
-              <form onSubmit={addGoal} className="grid gap-3 border-b border-[var(--border)] pb-5 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_130px_150px_auto]">
-                <label className="text-xs font-semibold text-[var(--muted)]">Event<select value={goalEvent} onChange={event => setGoalEvent(event.target.value as Event)} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{EVENTS.map(event => <option key={event}>{event}</option>)}</select></label>
-                <label className="text-xs font-semibold text-[var(--muted)]">Course<select value={goalCourse} onChange={event => setGoalCourse(event.target.value as Course)} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{COURSES.map(course => <option key={course}>{course}</option>)}</select></label>
-                <label className="text-xs font-semibold text-[var(--muted)]">Target time<input required value={goalTime} onChange={event => setGoalTime(event.target.value)} placeholder="e.g. 1:02.50" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--blue)]" /></label>
-                <button type="submit" disabled={goalSaving} className="self-end bg-[var(--navy)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-wait disabled:opacity-60">{goalSaving ? 'Saving…' : 'Add goal'}</button>
-              </form>
+            <ProfilePanel title="Personal swim goals" action={<button type="button" onClick={() => { setGoalError(''); setGoalFormOpen(true); }} className="inline-flex items-center gap-2 bg-[var(--navy)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--blue)]">Set goal</button>}>
+              <p className="mb-5 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Set a target time and track progress against your results.</p>
               {goalError && <p role="alert" className="mt-4 border-l-2 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-800">{goalError}</p>}
-              {goalsLoading ? <SkeletonTable rows={4} columns={5} /> : goals.length ? <div className="divide-y divide-[var(--border)]">{goals.map(goal => {
-                const currentBest = athlete?.personalBests.filter(best => best.event === goal.event && best.course === goal.course).sort((a, b) => parseTime(a.time) - parseTime(b.time))[0];
+              {goalsLoading ? <SkeletonTable rows={4} columns={2} /> : goals.length ? <div className="grid gap-4 sm:grid-cols-2">{goals.map(goal => {
+                const currentBest = swimmerDatabaseResults.filter(result => result.event === goal.event && result.submitted_meets?.course === goal.course).sort((a, b) => parseTime(a.time) - parseTime(b.time))[0];
                 const targetSeconds = parseTime(goal.targetTime);
                 const currentSeconds = currentBest ? parseTime(currentBest.time) : 0;
                 const progress = currentSeconds && targetSeconds ? Math.min(100, Math.round((targetSeconds / currentSeconds) * 100)) : 0;
                 const achieved = currentSeconds > 0 && currentSeconds <= targetSeconds;
-                return <div key={goal.id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <div><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-semibold text-[var(--ink)]">{goal.event} <span className="font-mono text-xs font-normal text-[var(--muted)]">· {goal.course}</span></p><p className="font-mono text-sm font-bold text-[var(--blue)]">Target {goal.targetTime}{currentBest && <span className="ml-3 text-[var(--muted)]">PB {currentBest.time}</span>}</p></div><div className="mt-3 h-2 bg-[var(--paper)]"><div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${progress}%` }} /></div><p className="mt-1.5 text-xs text-[var(--muted)]">{achieved ? 'Goal reached' : currentBest ? `${progress}% of target reached` : 'Add a result to track progress'}</p></div>
-                  <button type="button" disabled={removingGoalId === goal.id} onClick={() => void deleteGoal(goal.id)} className="justify-self-start text-xs font-semibold text-[var(--muted)] hover:text-red-600 disabled:opacity-50 sm:justify-self-end">{removingGoalId === goal.id ? 'Removing…' : 'Remove'}</button>
-                </div>;
+                return <article key={goal.id} className="relative rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      <h3 className="text-sm font-semibold text-[var(--ink)]">{goal.event}</h3>
+                      <span className="bg-neutral-100 px-2 py-1 text-[10px] font-bold text-neutral-700">{goal.course}</span>
+                      {!currentBest && <span className="bg-neutral-100 px-2 py-1 text-[10px] font-semibold text-neutral-500">No progress yet</span>}
+                      {achieved && <span className="bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-800">Goal reached</span>}
+                    </div>
+                    <div className="relative flex shrink-0 items-center gap-1">
+                      <button type="button" disabled={visibilitySavingId === goal.id} onClick={() => void toggleGoalVisibility(goal)} aria-label={goal.isPublic ? 'Make goal private' : 'Make goal public'} title={goal.isPublic ? 'Public goal' : 'Private goal'} className="p-1 text-[var(--muted)] hover:text-[var(--blue)] disabled:opacity-50">{goal.isPublic ? <Eye size={16} /> : <EyeOff size={16} />}</button>
+                      <button type="button" onClick={() => setGoalMenuId(current => current === goal.id ? null : goal.id)} aria-label="Goal options" aria-expanded={goalMenuId === goal.id} className="p-1 text-[var(--muted)] hover:text-[var(--ink)]"><MoreVertical size={17} /></button>
+                      {goalMenuId === goal.id && <div className="absolute right-0 top-8 z-10 min-w-32 border border-[var(--border)] bg-white p-1 shadow-lg"><button type="button" disabled={removingGoalId === goal.id} onClick={() => { setGoalMenuId(null); void deleteGoal(goal.id); }} className="w-full px-3 py-2 text-left text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">{removingGoalId === goal.id ? 'Removing…' : 'Remove goal'}</button></div>}
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                    <div><p className="text-[var(--muted)]">Personal Best</p><p className="mt-1 font-mono font-bold text-[var(--ink)]">{currentBest?.time ?? 'NT'}</p></div>
+                    <div className="text-right"><p className="text-[var(--muted)]">Goal</p><p className="mt-1 font-mono font-bold text-[var(--ink)]">{goal.targetTime}</p></div>
+                  </div>
+                  <div className="mt-2 h-2 rounded-full bg-neutral-100"><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} /></div>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                    <p className="text-[var(--muted)]">{relativeCreatedAt(goal.createdAt)}</p>
+                    <p className={`font-semibold ${achieved ? 'text-emerald-700' : 'text-red-600'}`}>{achieved ? 'Goal reached' : currentBest ? formatGoalGap(Math.max(0, currentSeconds - targetSeconds)) : 'No PB yet'}</p>
+                  </div>
+                </article>;
               })}</div> : <div className="py-9 text-center"><p className="font-semibold text-[var(--ink)]">Your goals will show here</p><p className="mt-1 text-sm text-[var(--muted)]">Add a target time above to start tracking your progress.</p></div>}
             </ProfilePanel>
           </div>
         )}
 
+        {goalFormOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onMouseDown={event => { if (event.target === event.currentTarget) setGoalFormOpen(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="goal-form-title" className="w-full max-w-lg bg-white text-neutral-900 shadow-2xl">
+            <header className="border-b border-neutral-200 px-6 py-5">
+              <h2 id="goal-form-title" className="text-xl font-bold">Set Goal</h2>
+              <p className="mt-1 text-sm text-neutral-500">Set a target time to track your progress and stay motivated</p>
+            </header>
+            <form onSubmit={addGoal}>
+              <div className="space-y-4 px-6 py-5">
+                {goalError && <p role="alert" className="border-l-2 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-800">{goalError}</p>}
+                <label className="block text-sm font-semibold text-neutral-800">Event <span className="text-red-600">*</span>
+                  <select required value={goalEvent} onChange={event => setGoalEvent(event.target.value as Event | '')} className="mt-1.5 w-full border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900">
+                    <option value="" disabled>Select event</option>{EVENTS.map(event => <option key={event} value={event}>{event}</option>)}
+                  </select>
+                </label>
+                <fieldset>
+                  <legend className="mb-1.5 text-sm font-semibold text-neutral-800">Course <span className="text-red-600">*</span></legend>
+                  <div role="group" aria-label="Course" className="grid grid-cols-3 border border-blue-200">
+                    {(['SCY', 'SCM', 'LCM'] as const).map(course => <button key={course} type="button" aria-pressed={goalCourse === course} onClick={() => setGoalCourse(course)} className={`px-3 py-2.5 text-sm font-semibold transition-colors ${goalCourse === course ? 'bg-[var(--navy)] text-white' : 'bg-white text-neutral-600 hover:bg-neutral-50'}`}>{course}</button>)}
+                  </div>
+                </fieldset>
+                <label className="block text-sm font-semibold text-neutral-800">Goal time <span className="text-red-600">*</span>
+                  <input required inputMode="decimal" value={goalTime} onChange={event => setGoalTime(event.target.value)} placeholder="e.g. 58.74 or 1:02.50" className="mt-1.5 w-full border border-neutral-300 bg-white px-3 py-2.5 text-right font-mono text-sm text-neutral-900 outline-none focus:border-[var(--blue)]" />
+                </label>
+                <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+                  <input type="checkbox" checked={goalPublic} onChange={event => setGoalPublic(event.target.checked)} className="mt-0.5 size-4 accent-[var(--blue)]" />
+                  <span><span className="font-semibold text-neutral-800">Make this goal public</span><span className="mt-0.5 block text-xs text-neutral-500">Visible on your public athlete profile.</span></span>
+                </label>
+              </div>
+              <footer className="flex justify-end gap-2 border-t border-neutral-200 px-6 py-4">
+                <button type="button" onClick={() => setGoalFormOpen(false)} className="border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">Cancel</button>
+                <button type="submit" disabled={goalSaving || !goalEvent || parseTime(goalTime) <= 0} className="bg-[var(--blue)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{goalSaving ? 'Creating…' : 'Create'}</button>
+              </footer>
+            </form>
+          </section>
+        </div>}
+
         {activeTab === 'rankings' && (
           <div className="mt-6 space-y-5">
-            <ProfilePanel title="Club rankings" action={<ChartNoAxesCombined size={17} className="text-[var(--blue)]" />}>
+            <ProfilePanel title="Club rankings">
               <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
                 <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Your place within {user.club || 'your club'} for each event, season by season.</p>
                 <label className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">Season<select value={selectedSeason} onChange={event => setSelectedSeason(event.target.value)} className="mt-1 block border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-sm font-semibold normal-case tracking-normal text-[var(--ink)]">{AVAILABLE_SEASONS.map(season => <option key={season} value={season}>{season} season</option>)}</select></label>
@@ -586,7 +701,7 @@ export default function ProfilePage() {
         {activeTab === 'account' && (
           <div className="mt-6 space-y-5">
             <ManagedSwimmers />
-            <ProfilePanel title="Email notifications" action={<Mail size={17} className="text-[var(--blue)]" />}>
+            <ProfilePanel title="Email notifications">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-semibold text-[var(--ink)]">Teams interested in you</h3>
@@ -599,7 +714,7 @@ export default function ProfilePage() {
               </div>
             </ProfilePanel>
 
-            <ProfilePanel title="Email" action={<Mail size={17} className="text-[var(--blue)]" />}>
+            <ProfilePanel title="Email">
               <form onSubmit={event => void updateEmail(event)} className="max-w-2xl">
                 <label className="block text-sm font-semibold text-[var(--ink)]">Update Email
                   <input type="email" autoComplete="email" required value={accountEmail} onChange={event => setAccountEmail(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal text-[var(--ink)] outline-none focus:border-[var(--blue)]" />
@@ -611,7 +726,7 @@ export default function ProfilePage() {
               </form>
             </ProfilePanel>
 
-            <ProfilePanel title="Change password" action={<LockKeyhole size={17} className="text-[var(--blue)]" />}>
+            <ProfilePanel title="Change password">
               <form onSubmit={event => void updatePassword(event)} className="max-w-2xl space-y-4">
                 <label className="block text-sm font-semibold text-[var(--ink)]">Old password<input type="password" autoComplete="current-password" required value={oldPassword} onChange={event => setOldPassword(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal text-[var(--ink)] outline-none focus:border-[var(--blue)]" /></label>
                 <label className="block text-sm font-semibold text-[var(--ink)]">New password<input type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={event => setNewPassword(event.target.value)} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal text-[var(--ink)] outline-none focus:border-[var(--blue)]" /></label>
@@ -624,7 +739,7 @@ export default function ProfilePage() {
               </form>
             </ProfilePanel>
 
-            <ProfilePanel title="Close account" action={<Trash2 size={17} className="text-red-600" />}>
+            <ProfilePanel title="Close account">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="max-w-2xl">
                   <h3 className="font-semibold text-[var(--ink)]">Are you sure you want to close your account?</h3>

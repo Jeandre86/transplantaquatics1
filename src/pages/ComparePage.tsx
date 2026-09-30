@@ -59,12 +59,9 @@ export default function ComparePage() {
     <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
       {/* Header */}
       <section
-        className="border-b"
+        className="ta-page-top border-b"
         style={{
-          backgroundColor: 'var(--navy-mid)',
           borderColor: 'var(--navy-light)',
-          backgroundImage:
-            'repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.015) 18px, rgba(255,255,255,0.015) 19px)',
         }}
       >
         <div className="max-w-7xl mx-auto px-4 py-14">

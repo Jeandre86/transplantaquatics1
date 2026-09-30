@@ -14,8 +14,9 @@ const COUNTRY_CODES: { [country: string]: string } = {
 };
 function Country({ name }: { name: string }) {
   const country = name?.trim() ?? '';
+  if (!country) return null;
   const code = COUNTRY_CODES[country];
-  return <span className="flex items-center gap-1.5" title={country || 'Country not provided'}><span className="text-base leading-none" aria-hidden="true">{code ? getFlagEmoji(code) : country ? '🏳️' : '—'}</span><span className="font-mono text-xs font-semibold tracking-wider text-[var(--muted)]">{code ? getCountryAlpha3(code) : country ? country.slice(0, 3).toUpperCase() : '—'}</span></span>;
+  return <span className="flex items-center gap-1.5" title={country}><span className="text-base leading-none" aria-hidden="true">{code ? getFlagEmoji(code) : '🏳️'}</span><span className="font-mono text-xs font-semibold tracking-wider text-[var(--muted)]">{code ? getCountryAlpha3(code) : country.slice(0, 3).toUpperCase()}</span></span>;
 }
 
 function AthleteAvatar({ name }: { name: string }) {
@@ -34,7 +35,7 @@ function AthleteAvatar({ name }: { name: string }) {
 
 function getStandingDuration(record: WorldRecord) {
   const year = Number(record.date?.slice(0, 4) ?? (record.games ?? record.meet).match(/\d{4}/)?.[0]);
-  if (!Number.isFinite(year) || year < 1) return '—';
+  if (!Number.isFinite(year) || year < 1) return '';
   const years = Math.max(0, new Date().getFullYear() - year);
   if (years === 0) return '<1 year';
   return `${years} ${years === 1 ? 'year' : 'years'}`;
@@ -59,6 +60,7 @@ export default function RecordsTable({ records }: { records: WorldRecord[] }) {
         {records.map(record => {
             const isExpanded = expanded.has(record.id);
             const hasHistory = Boolean(record.history?.length);
+            const mobileDetails = [record.event, record.ageGroup, record.gender, record.games || record.meet, getStandingDuration(record) ? `Standing ${getStandingDuration(record)}` : '', record.time].filter(Boolean).join(' · ');
             return (
               <Fragment key={record.id}>
                 <div className="ta-table-row group grid grid-cols-[minmax(0,1fr)_28px] items-center gap-3 px-3 py-5 sm:grid-cols-[minmax(170px,1.6fr)_minmax(100px,1.1fr)_65px_70px_minmax(115px,1fr)_85px_28px] sm:gap-4 sm:px-5 md:grid-cols-[minmax(190px,1.6fr)_minmax(120px,1.1fr)_75px_80px_minmax(140px,1fr)_95px_95px_28px]">
@@ -66,19 +68,19 @@ export default function RecordsTable({ records }: { records: WorldRecord[] }) {
                     <AthleteAvatar name={record.athleteName} />
                     <span className="min-w-0">
                       {record.athleteId
-                        ? <Link to={`/athletes/${record.athleteId}`} className="block truncate text-base font-semibold text-[var(--ink)] hover:text-[var(--accent-dark)]">{record.athleteName || '—'}</Link>
-                        : <span className="block truncate text-base font-semibold text-[var(--ink)]">{record.athleteName || '—'}</span>}
-                      <span className="mt-1 flex items-center gap-2 truncate text-xs text-[var(--muted)]"><Country name={record.country} /><span>{formatDate(record.date)}</span></span>
-                      <span className="mt-1 hidden truncate text-xs text-[var(--muted)] md:block">{formatDate(record.date)}</span>
-                      <span className="mt-1 block truncate font-mono text-[10px] text-[var(--muted)] sm:hidden">{record.event || '—'} · {record.ageGroup || '—'} {record.gender || '—'} · {record.games || record.meet || '—'} · Standing {getStandingDuration(record)} · {record.time || '—'}</span>
+                        ? <Link to={`/athletes/${record.athleteId}`} className="block truncate text-base font-semibold text-[var(--ink)] hover:text-[var(--accent-dark)]">{record.athleteName}</Link>
+                        : <span className="block truncate text-base font-semibold text-[var(--ink)]">{record.athleteName}</span>}
+                      {(record.country || record.date) && <span className="mt-1 flex items-center gap-2 truncate text-xs text-[var(--muted)]"><Country name={record.country} /><span>{formatDate(record.date ?? '') === '—' ? '' : formatDate(record.date ?? '')}</span></span>}
+                      {formatDate(record.date ?? '') !== '—' && <span className="mt-1 hidden truncate text-xs text-[var(--muted)] md:block">{formatDate(record.date ?? '')}</span>}
+                      {mobileDetails && <span className="mt-1 block truncate font-mono text-[10px] text-[var(--muted)] sm:hidden">{mobileDetails}</span>}
                     </span>
                   </span>
-                  <span className="hidden truncate text-sm text-[var(--ink)] sm:block">{record.event || '—'}</span>
-                  <span className="hidden min-w-0 text-sm text-[var(--ink)] sm:block">{record.ageGroup || '—'}{record.category && record.category.toLowerCase() !== 'adult' && <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wide text-[var(--accent-dark)]">{record.category}</span>}</span>
-                  <span className="hidden text-sm text-[var(--ink)] sm:block">{record.gender || '—'}</span>
-                  <span className="hidden truncate text-xs text-[var(--muted)] sm:block">{record.games || record.meet || '—'}</span>
+                  <span className="hidden truncate text-sm text-[var(--ink)] sm:block">{record.event}</span>
+                  <span className="hidden min-w-0 text-sm text-[var(--ink)] sm:block">{record.ageGroup}</span>
+                  <span className="hidden text-sm text-[var(--ink)] sm:block">{record.gender}</span>
+                  <span className="hidden truncate text-xs text-[var(--muted)] sm:block">{record.games || record.meet}</span>
                   <span className="hidden text-right text-sm text-[var(--muted)] md:block" title="Approximate duration since the Games edition listed as the record date">{getStandingDuration(record)}</span>
-                  <span className="hidden text-right font-mono text-base font-bold text-[var(--navy)] sm:block">{record.time || '—'}</span>
+                  <span className="hidden text-right font-mono text-base font-bold text-[var(--navy)] sm:block">{record.time}</span>
                   <span className="flex justify-end sm:justify-center">
                     {hasHistory && (
                       <button type="button" onClick={() => toggle(record.id)} aria-expanded={isExpanded} aria-label={`${isExpanded ? 'Hide' : 'Show'} record history for ${record.event}`} className="inline-flex items-center justify-center p-1 text-[var(--muted)] hover:text-[var(--accent-dark)]">

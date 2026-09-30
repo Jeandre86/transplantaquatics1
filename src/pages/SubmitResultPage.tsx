@@ -79,14 +79,14 @@ export default function SubmitResultPage() {
   const eventSelectionsAreUnique = new Set(entries.filter(entry => entry.event).map(entry => entry.event)).size === entries.filter(entry => entry.event).length;
   const entriesAreValid = entries.length > 0 && eventSelectionsAreUnique && entries.every(entry => entry.event && TIME_PATTERN.test(entry.time.trim()));
   const meetIsValid = Boolean(meet.name.trim() && meet.meetDate && meet.location.trim() && meet.course && (!meet.isWorldTransplantGames || meet.openingCeremonyDate));
-  const wtgClubValid = !meet.isWorldTransplantGames || Boolean(selectedSwimmer?.clubId);
+  const wtgClubValid = !meet.isWorldTransplantGames || Boolean(selectedSwimmer?.clubId || selectedSwimmer?.clubRequestPending);
   const existingByEvent = useMemo(() => new Map(existingResults.map(result => [result.event, result])), [existingResults]);
 
   const continueToEvents = async () => {
     setError('');
     if (!meetIsValid || !selectedSwimmer) return;
     if (!wtgClubValid) {
-      setError('A swimmer must belong to a club to compete at the World Transplant Games. Add their club under Profile → Account → My swimmers first.');
+      setError('A swimmer must belong to a club to compete at the World Transplant Games. Select a listed club or submit a club request under Profile → Account → My swimmers.');
       return;
     }
     setLoadingExisting(true);
@@ -144,7 +144,7 @@ export default function SubmitResultPage() {
   if (auth.isLoading || !auth.isLoggedIn) return null;
 
   return <main className="min-h-[70vh] bg-[var(--paper)]">
-    <section className="bg-[var(--navy)] text-white">
+    <section className="ta-page-top text-white">
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12">
         <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">My results</p>
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Submit results</h1>
@@ -175,7 +175,8 @@ export default function SubmitResultPage() {
           <div className="mb-3 flex items-center justify-between gap-3"><div><h3 className="font-bold text-[var(--ink)]">Swimmer</h3><p className="mt-1 text-xs text-[var(--muted)]">Choose yourself or a child/dependent managed by your account.</p></div><Link to="/profile" className="text-xs font-semibold text-[var(--blue)] hover:underline">Manage swimmers</Link></div>
           {profilesLoading ? <div role="status" aria-label="Loading swimmer profiles" className="max-w-xl space-y-2 py-3"><Skeleton className="h-3 w-1/3" /><Skeleton className="h-11 w-full" /></div> : swimmers.length ? <>
             <select value={swimmerId} onChange={event => setSwimmerId(event.target.value)} className="w-full max-w-xl border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{swimmers.map(swimmer => <option key={swimmer.id} value={swimmer.id}>{swimmer.firstName} {swimmer.lastName}{swimmer.isAccountHolder ? ' (me)' : ''}</option>)}</select>
-            {meet.isWorldTransplantGames && selectedSwimmer && !selectedSwimmer.clubId && <p role="alert" className="mt-3 max-w-xl border-l-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900">WTG participation requires a club. Add a club to {selectedSwimmer.firstName}’s swimmer profile before continuing. <Link to="/profile" className="font-semibold underline">Manage swimmer profiles</Link></p>}
+            {meet.isWorldTransplantGames && selectedSwimmer && !selectedSwimmer.clubId && !selectedSwimmer.clubRequestPending && <p role="alert" className="mt-3 max-w-xl border-l-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900">WTG participation requires a club. Select a listed club or submit a club request under Profile → Account → My swimmers. <Link to="/profile" className="font-semibold underline">Manage swimmer profiles</Link></p>}
+            {meet.isWorldTransplantGames && selectedSwimmer?.clubRequestPending && <p role="status" className="mt-2 max-w-xl border-l-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900">Club request pending review. These results will be submitted under {selectedSwimmer.clubName} while the request is reviewed.</p>}
             {meet.isWorldTransplantGames && selectedSwimmer?.clubId && <p className="mt-2 text-xs text-[var(--muted)]">Representing {selectedSwimmer.clubName || 'their current club'} at this World Transplant Games meet.</p>}
             {!meet.isWorldTransplantGames && selectedSwimmer?.clubName && <p className="mt-2 text-xs text-[var(--muted)]">Current club: {selectedSwimmer.clubName}. Country representation remains {selectedSwimmer.country}.</p>}
           </> : <div className="border-l-2 border-[var(--accent)] bg-[var(--paper)] p-4"><p className="text-sm font-semibold text-[var(--ink)]">Add a swimmer profile first</p><p className="mt-1 text-sm text-[var(--muted)]">Add your own or a child’s profile in Profile → Account → My swimmers. Date of birth is kept private.</p><Link to="/profile" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)]">Open Profile <ArrowRight size={14} /></Link></div>}
@@ -204,7 +205,7 @@ export default function SubmitResultPage() {
         <button type="button" onClick={() => setEntries(current => [...current, newEntry()])} disabled={entries.length >= RESULT_EVENTS.length} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:underline disabled:opacity-40"><Plus size={16} /> Add another event</button>
 
         <div className="border-t border-[var(--border)] pt-5"><p className="text-xs leading-relaxed text-[var(--muted)]">PTS use the 2026 World Aquatics base time for each event, gender, and course. Junior 25m events use the matching World Transplant Games age-group record when available. Dates of birth remain private. Results display as swimmer-submitted, and WTG record candidates remain pending verification.</p></div>
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between"><button type="button" onClick={() => setStep(1)} className="inline-flex items-center justify-center gap-2 border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]"><ArrowLeft size={15} /> Back</button><button type="button" onClick={() => void submitResults()} disabled={!entriesAreValid || saving} className="inline-flex items-center justify-center gap-2 bg-[var(--navy)] px-5 py-3 text-sm font-bold text-white hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving results…' : `Submit ${entries.length} ${entries.length === 1 ? 'result' : 'results'}`} <ArrowRight size={16} /></button></div>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between"><button type="button" onClick={() => setStep(1)} className="inline-flex items-center justify-center gap-2 border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]"><ArrowLeft size={15} /> Back</button><button type="button" onClick={() => void submitResults()} disabled={!entriesAreValid || saving} className="inline-flex items-center justify-center gap-2 px-0 py-3 text-sm font-semibold text-[var(--blue)] transition-colors hover:text-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving results…' : `Submit ${entries.length} ${entries.length === 1 ? 'result' : 'results'}`} <ArrowRight size={16} /></button></div>
       </section>}
 
       {step === 3 && <section className="bg-white p-5 sm:p-7">

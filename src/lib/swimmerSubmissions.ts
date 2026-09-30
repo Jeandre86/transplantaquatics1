@@ -1,4 +1,5 @@
 import type { Gender, TransplantType } from '../types';
+import { getCompetitionAgeGroup } from './competitionAge';
 import { supabase } from './supabase';
 
 export interface SwimmerProfile {
@@ -12,6 +13,7 @@ export interface SwimmerProfile {
   countryCode: string;
   clubId?: string;
   clubName?: string;
+  clubRequestPending?: boolean;
   isAccountHolder: boolean;
 }
 
@@ -85,6 +87,7 @@ export interface SubmittedSwimmerResult {
   country_code: string | null;
   gender: string;
   transplant_type: string;
+  current_age_group?: string;
   represented_club_id?: string | null;
   represented_club_name?: string | null;
   submitted_meets?: {
@@ -191,9 +194,23 @@ function mapSwimmer(row: Record<string, unknown>): SwimmerProfile {
 }
 
 export async function loadManagedSwimmers(): Promise<SwimmerProfile[]> {
-  const { data, error } = await client().from('swimmer_profiles').select('*').order('is_account_holder', { ascending: false }).order('first_name');
+  const db = client();
+  const { data, error } = await db.from('swimmer_profiles').select('*').order('is_account_holder', { ascending: false }).order('first_name');
   if (error) throw error;
-  return (data ?? []).map(row => mapSwimmer(row as Record<string, unknown>));
+  const { data: authData, error: authError } = await db.auth.getUser();
+  if (authError) throw authError;
+  const accountId = authData.user?.id;
+  let pendingClubNames = new Set<string>();
+  if (accountId) {
+    const { data: requests, error: requestError } = await db.from('club_requests').select('name').eq('requested_by', accountId).in('status', ['pending', 'reviewed']);
+    if (requestError) throw requestError;
+    pendingClubNames = new Set((requests ?? []).map(request => String(request.name).trim().toLocaleLowerCase()));
+  }
+  return (data ?? []).map(row => {
+    const profile = mapSwimmer(row as Record<string, unknown>);
+    profile.clubRequestPending = Boolean(!profile.clubId && profile.clubName && pendingClubNames.has(profile.clubName.trim().toLocaleLowerCase()));
+    return profile;
+  });
 }
 
 export async function saveManagedSwimmer(profile: SwimmerProfileDraft): Promise<SwimmerProfile> {
@@ -304,6 +321,42 @@ export async function loadMySubmittedResults(): Promise<SubmittedSwimmerResult[]
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(row => normalizeSubmittedResult(row));
+}
+
+/** Loads results belonging to the signed-in account's swimmer profiles,
+ * regardless of whether the account itself or another authorized user added them. */
+export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> {
+  const db = client();
+  const { data: { user }, error: userError } = await db.auth.getUser();
+  if (userError) throw userError;
+  if (!user) return [];
+
+  const resultFields = 'id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
+  const [profileResult, submittedResult] = await Promise.all([
+    db.from('swimmer_profiles').select('id,date_of_birth'),
+    db.from('swimmer_results').select(resultFields).eq('submitted_by', user.id).order('created_at', { ascending: false }),
+  ]);
+  if (profileResult.error) throw profileResult.error;
+  if (submittedResult.error) throw submittedResult.error;
+
+  const profiles = profileResult.data ?? [];
+  const swimmerIds = profiles.map(profile => String(profile.id));
+  const linkedResult = swimmerIds.length
+    ? await db.from('swimmer_results').select(resultFields).in('swimmer_id', swimmerIds).neq('status', 'rejected').order('created_at', { ascending: false })
+    : { data: [], error: null };
+  if (linkedResult.error) throw linkedResult.error;
+
+  const rows = [...(submittedResult.data ?? []), ...(linkedResult.data ?? [])];
+  const uniqueRows = new Map(rows.map(row => [String(row.id), row]));
+  const currentDate = new Date().toISOString().slice(0, 10);
+  const ageGroupBySwimmer = new Map(profiles.map(profile => [
+    String(profile.id),
+    profile.date_of_birth ? getCompetitionAgeGroup(String(profile.date_of_birth), currentDate) : null,
+  ]));
+  return [...uniqueRows.values()].map(row => {
+    const result = normalizeSubmittedResult(row);
+    return { ...result, current_age_group: result.swimmer_id ? ageGroupBySwimmer.get(result.swimmer_id) ?? undefined : undefined };
+  });
 }
 
 export async function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> {

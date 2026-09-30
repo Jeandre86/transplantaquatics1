@@ -28,3 +28,6 @@ dist-ssr
 
 # Local agent session state
 **/.claude-flow/
+
+# Netlify local site link
+.netlify/

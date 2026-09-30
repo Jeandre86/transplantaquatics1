@@ -17,7 +17,8 @@ const PAGE_SIZE = 10;
 export default function CountryPage() {
   const { code = '' } = useParams();
   const [page, setPage] = useState(1);
-  const [recordPage, setRecordPage] = useState(1);
+  const [swimmerRecordPage, setSwimmerRecordPage] = useState(1);
+  const [donorRecordPage, setDonorRecordPage] = useState(1);
   const [swimmers, setSwimmers] = useState<PublicSwimmerProfile[]>([]);
   const [records, setRecords] = useState<WorldRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,8 @@ export default function CountryPage() {
 
   useEffect(() => {
     setPage(1);
-    setRecordPage(1);
+    setSwimmerRecordPage(1);
+    setDonorRecordPage(1);
     setLoading(true);
     setLoadError('');
     setRecordLoadError('');
@@ -55,14 +57,18 @@ export default function CountryPage() {
   const countryFlag = getFlagEmoji(sample?.country_code ?? recordSample?.countryCode ?? countryMeta?.code ?? '');
   const countryRecords = records.filter(record => record.countryCode?.toLowerCase() === code.toLowerCase()
     || record.country.toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase());
+  const swimmerRecords = countryRecords.filter(record => record.category?.trim().toLowerCase() !== 'donor');
+  const donorRecords = countryRecords.filter(record => record.category?.trim().toLowerCase() === 'donor');
   const pageCount = Math.ceil(countrySwimmers.length / PAGE_SIZE);
   const pageSwimmers = countrySwimmers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const recordPageCount = Math.ceil(countryRecords.length / PAGE_SIZE);
-  const pageRecords = countryRecords.slice((recordPage - 1) * PAGE_SIZE, recordPage * PAGE_SIZE);
+  const recordGroups = [
+    { key: 'swimmers', title: 'Swimmer records', rows: swimmerRecords, page: swimmerRecordPage, setPage: setSwimmerRecordPage },
+    { key: 'donors', title: 'Donor records', rows: donorRecords, page: donorRecordPage, setPage: setDonorRecordPage },
+  ];
 
   return (
     <div>
-      <section style={{ backgroundColor: 'var(--navy)' }}>
+      <section className="ta-page-top">
         <div className="max-w-7xl mx-auto px-4 py-14">
           <Link to="/countries" className="mb-8 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-white/65 hover:text-white"><ArrowLeft size={14} /> All countries</Link>
           <div className="flex items-center gap-4">
@@ -94,14 +100,21 @@ export default function CountryPage() {
         <div className="max-w-7xl mx-auto px-4 py-10">
           <div className="mb-6 flex items-end justify-between border-b border-[var(--border)] pb-5">
             <div><Eyebrow>World records</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Records held for {countryName || 'this country'}</h2></div>
-            {!loading && !recordLoadError && <span className="font-mono text-xs text-neutral-600">{countryRecords.length} {countryRecords.length === 1 ? 'record' : 'records'}</span>}
+            {!loading && !recordLoadError && <span className="font-mono text-xs text-neutral-600">{swimmerRecords.length} swimmer · {donorRecords.length} donor</span>}
           </div>
           {loading ? <SkeletonTable rows={5} columns={5} /> : recordLoadError ? <EmptyState title="World record data is unavailable" subtitle={recordLoadError} /> : countryRecords.length ? <>
-            <div className="ta-table-shell">
-              <div className="ta-table-header grid grid-cols-[minmax(0,1fr)_65px_minmax(0,1fr)] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)_minmax(120px,auto)_90px] sm:px-5 sm:text-xs"><span>Event</span><span>Age</span><span>Record holder</span><span className="hidden sm:block">Games</span><span className="hidden text-right sm:block">Time</span></div>
-              <div>{pageRecords.map(record => <div key={record.id} className="ta-table-row grid grid-cols-[minmax(0,1fr)_65px_minmax(0,1fr)] items-center gap-3 px-3 py-4 sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)_minmax(120px,auto)_90px] sm:px-5"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--ink)]">{record.event || '—'}</span><span className="font-mono text-[10px] text-[var(--muted)] sm:hidden">{record.gender || '—'} · {record.time || '—'}</span></span><span className="text-xs text-[var(--muted)]">{record.ageGroup || '—'}</span>{record.athleteId ? <Link to={`/athletes/${record.athleteId}`} className="truncate text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent-dark)]">{record.athleteName || '—'}</Link> : <span className="truncate text-sm text-[var(--ink)]">{record.athleteName || '—'}</span>}<span className="hidden truncate text-xs text-[var(--muted)] sm:block">{record.games || record.meet || '—'}</span><span className="hidden text-right font-mono text-sm font-bold text-[var(--navy)] sm:block">{record.time || '—'}</span></div>)}</div>
-            </div>
-            <Pagination page={recordPage} pageCount={recordPageCount} onPageChange={setRecordPage} label="Country record pages" />
+            {recordGroups.map(group => {
+              const groupPageCount = Math.ceil(group.rows.length / PAGE_SIZE);
+              const pageRows = group.rows.slice((group.page - 1) * PAGE_SIZE, group.page * PAGE_SIZE);
+              return <section key={group.key} className="mb-10 last:mb-0">
+                <div className="mb-3 flex items-end justify-between border-b border-[var(--border)] pb-3"><h3 className="text-lg font-bold text-[var(--ink)]">{group.title}</h3><span className="font-mono text-xs text-[var(--muted)]">{group.rows.length}</span></div>
+                <div className="ta-table-shell">
+                  <div className="ta-table-header grid grid-cols-[minmax(0,1fr)_65px_minmax(0,1fr)] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)_minmax(120px,auto)_90px] sm:px-5 sm:text-xs"><span>Event</span><span>Age</span><span>Record holder</span><span className="hidden sm:block">Games</span><span className="hidden text-right sm:block">Time</span></div>
+                  <div>{pageRows.length ? pageRows.map(record => <div key={record.id} className="ta-table-row grid grid-cols-[minmax(0,1fr)_65px_minmax(0,1fr)] items-center gap-3 px-3 py-4 sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)_minmax(120px,auto)_90px] sm:px-5"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--ink)]">{record.event || '—'}</span><span className="font-mono text-[10px] text-[var(--muted)] sm:hidden">{record.gender || '—'} · {record.time || '—'}</span></span><span className="text-xs text-[var(--muted)]">{record.ageGroup || '—'}</span>{record.athleteId ? <Link to={`/athletes/${record.athleteId}`} className="truncate text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent-dark)]">{record.athleteName || '—'}</Link> : <span className="truncate text-sm text-[var(--ink)]">{record.athleteName || '—'}</span>}<span className="hidden truncate text-xs text-[var(--muted)] sm:block">{record.games || record.meet || '—'}</span><span className="hidden text-right font-mono text-sm font-bold text-[var(--navy)] sm:block">{record.time || '—'}</span></div>) : <p className="px-4 py-6 text-sm text-[var(--muted)]">No {group.key === 'donors' ? 'donor' : 'swimmer'} records listed for {countryName || 'this country'}.</p>}</div>
+                </div>
+                {group.rows.length > 0 && <Pagination page={group.page} pageCount={groupPageCount} onPageChange={group.setPage} label={`${group.title} pages`} />}
+              </section>;
+            })}
           </> : <EmptyState title="No world records listed" subtitle={`There are no records attributed to ${countryName || 'this country'} in the current database.`} />}
         </div>
       </section>

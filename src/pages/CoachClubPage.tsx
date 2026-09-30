@@ -118,7 +118,7 @@ export default function CoachClubPage() {
   };
 
   return <main className="min-h-screen bg-[var(--paper)]">
-    <section className="bg-[var(--navy)] py-12 text-white sm:py-16"><div className="mx-auto max-w-7xl px-4"><Eyebrow color="accent" className="mb-2">Coach workspace</Eyebrow><h1 className="display text-3xl font-black uppercase sm:text-5xl">Club management</h1><p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65">Create your club’s public page, then bring the rest of the coaching team in with an invitation link.</p></div></section>
+    <section className="ta-page-top py-12 text-white sm:py-16"><div className="mx-auto max-w-7xl px-4"><Eyebrow color="accent" className="mb-2">Coach workspace</Eyebrow><h1 className="display text-3xl font-black uppercase sm:text-5xl">Club management</h1><p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65">Create your club’s public page, then bring the rest of the coaching team in with an invitation link.</p></div></section>
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:py-10">
       {error && <p role="alert" className="border-l-2 border-red-600 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}{notice && <p role="status" className="border-l-2 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
       {loading ? <SkeletonTable rows={4} columns={3} /> : <>

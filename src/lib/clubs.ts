@@ -21,6 +21,12 @@ export interface ClubCoachRecord {
   role: 'owner' | 'coach';
 }
 
+export function getClubLogoUrl(club: Pick<ClubRecord, 'name' | 'slug' | 'logo_url'>): string | null {
+  const identity = `${club.slug} ${club.name}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  if (identity.includes('barracudas-aquarama')) return '/images/baracudas.webp';
+  return club.logo_url;
+}
+
 export async function loadClubRecords(): Promise<ClubRecord[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.from('clubs').select('*').order('name');

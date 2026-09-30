@@ -13,6 +13,7 @@ import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
 import { describeSupabaseError } from '../lib/supabase';
 import { SkeletonTable } from '../components/Skeleton';
+import { getSavedAvatar } from '../lib/avatars';
 
 const PAGE_SIZE = 10;
 const ALL = 'All';
@@ -75,25 +76,32 @@ export default function AthletesPage() {
     </section>
     <section style={{ backgroundColor: 'var(--paper)' }}>
       <div className="max-w-7xl mx-auto px-4 py-10">
-        {loading ? <SkeletonTable rows={6} columns={7} />
+        {loading ? <SkeletonTable rows={6} columns={6} />
           : loadError ? <EmptyState title="Athlete data is unavailable" subtitle={loadError} />
             : <>
               <div className="mb-6 flex items-center justify-between">
                 <span className="font-mono text-xs uppercase tracking-widest text-neutral-500">{filtered.length ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} athletes` : '0 athletes'}</span>
               </div>
               {pageAthletes.length ? <div className="ta-table-shell">
-                <div className="ta-table-header grid grid-cols-[86px_minmax(0,1fr)_90px_100px_minmax(120px,1fr)_minmax(120px,1fr)_minmax(105px,auto)] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:gap-4 sm:px-5 sm:text-xs">
-                  <span>Country</span><span>Athlete</span><span>Gender</span><span>Age group</span><span>Transplant type</span><span>Club</span><span className="text-right">Profile</span>
+                <div className="ta-table-header grid grid-cols-[86px_minmax(0,1fr)_90px_100px_minmax(120px,1fr)_minmax(105px,auto)] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:gap-4 sm:px-5 sm:text-xs">
+                  <span>Country</span><span>Athlete</span><span>Gender</span><span>Age group</span><span>Transplant type</span><span className="text-right">Profile</span>
                 </div>
-                <div>{pageAthletes.map(athlete => <Link key={athlete.id} to={`/athletes/${athlete.id}`} className="ta-table-row group grid grid-cols-[86px_minmax(0,1fr)_90px_100px_minmax(120px,1fr)_minmax(120px,1fr)_minmax(105px,auto)] items-center gap-3 px-3 py-4 sm:gap-4 sm:px-5">
+                <div>{pageAthletes.map(athlete => {
+                  const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
+                  return <Link key={athlete.id} to={`/athletes/${athlete.id}`} className="ta-table-row group grid grid-cols-[86px_minmax(0,1fr)_90px_100px_minmax(120px,1fr)_minmax(105px,auto)] items-center gap-3 px-3 py-4 sm:gap-4 sm:px-5">
                   <span className="flex min-w-0 items-center gap-1.5" title={athlete.country}><span className="ta-table-flag" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span><span className="font-mono text-[10px] font-semibold tracking-wider text-[var(--muted)]">{getCountryAlpha3(athlete.country_code ?? '')}</span></span>
-                  <span className="min-w-0 truncate text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">{athlete.first_name} {athlete.last_name}</span>
+                  <span className="flex min-w-0 items-center gap-3 text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">
+                    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--navy)] font-mono text-xs font-bold text-white" aria-hidden="true">
+                      {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : `${athlete.first_name[0] ?? ''}${athlete.last_name[0] ?? ''}`}
+                    </span>
+                    <span className="min-w-0 truncate">{athlete.first_name} {athlete.last_name}</span>
+                  </span>
                   <span className="text-sm text-[var(--muted)]">{athlete.gender}</span>
                   <span className="font-mono text-xs text-[var(--muted)]">{athlete.age_group}</span>
                   <span className="truncate text-sm text-[var(--muted)]">{athlete.transplant_type}</span>
-                  <span className="truncate text-sm text-[var(--muted)]">{athlete.club_name || '—'}</span>
-                  <span className="flex items-center justify-end gap-2 whitespace-nowrap text-xs font-semibold text-[var(--muted)] group-hover:text-[var(--accent-dark)]"><ArrowRight size={15} /><span>View profile</span></span>
-                </Link>)}</div>
+                  <span className="flex items-center justify-end gap-2 whitespace-nowrap text-xs font-semibold text-[var(--muted)] group-hover:text-[var(--accent-dark)]"><span>View profile</span><ArrowRight size={15} /></span>
+                  </Link>;
+                })}</div>
               </div> : <EmptyState title="No athletes found" subtitle={athletes.length ? 'Try adjusting your search or filters.' : 'Swimmer profiles will appear here when swimmers join.'} action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear search and filters</Button> : undefined} />}
               {filtered.length > 0 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete pages" />}
             </>}

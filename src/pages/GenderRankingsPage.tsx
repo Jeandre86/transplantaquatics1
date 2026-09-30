@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Ranking } from '../types';
 import { AGE_GROUPS, COURSES, EVENTS } from '../types';
 import RankingTable from '../components/RankingTable';
@@ -22,10 +22,11 @@ const PAGE_SIZE = 10;
 export default function GenderRankingsPage() {
   const { gender: genderParam } = useParams<{ gender: string }>();
   const gender = genderParam?.toLowerCase() === 'men' ? 'Men' : genderParam?.toLowerCase() === 'women' ? 'Women' : null;
-  const [ageGroup, setAgeGroup] = useState(ALL);
-  const [event, setEvent] = useState(ALL);
-  const [course, setCourse] = useState(ALL);
-  const [rankMode, setRankMode] = useState<'Points' | 'Time'>('Points');
+  const [searchParams] = useSearchParams();
+  const [ageGroup, setAgeGroup] = useState(searchParams.get('ageGroup') || ALL);
+  const [event, setEvent] = useState(searchParams.get('event') || ALL);
+  const [course, setCourse] = useState(searchParams.get('course') || ALL);
+  const [rankMode, setRankMode] = useState<'Points' | 'Time'>(searchParams.get('rankBy') === 'Time' ? 'Time' : 'Points');
   const [page, setPage] = useState(1);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);

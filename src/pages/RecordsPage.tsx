@@ -25,6 +25,7 @@ export default function RecordsPage() {
   const [filterEvent, setFilterEvent] = useState(ALL);
   const [filterCourse, setFilterCourse] = useState(ALL);
   const [filterCategory, setFilterCategory] = useState(ALL);
+  const [filterHolderType, setFilterHolderType] = useState(ALL);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
@@ -45,7 +46,7 @@ export default function RecordsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, filterAgeGroup, filterGender, filterEvent, filterCourse, filterCategory]);
+  }, [search, filterAgeGroup, filterGender, filterEvent, filterCourse, filterCategory, filterHolderType]);
 
   const ageGroups = [...new Set(records.map(r => r.ageGroup))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const genders = [...new Set(records.map(r => r.gender))].sort();
@@ -55,6 +56,9 @@ export default function RecordsPage() {
 
   const query = search.trim().toLowerCase();
   const filtered = records.filter(r => {
+    const isDonor = r.category?.trim().toLowerCase() === 'donor';
+    if (filterHolderType === 'Donors' && !isDonor) return false;
+    if (filterHolderType === 'Swimmers' && isDonor) return false;
     if (filterAgeGroup !== ALL && r.ageGroup !== filterAgeGroup) return false;
     if (filterGender !== ALL && r.gender !== filterGender) return false;
     if (filterEvent !== ALL && r.event !== filterEvent) return false;
@@ -64,7 +68,7 @@ export default function RecordsPage() {
       .some(value => value?.toLowerCase().includes(query))) return false;
     return true;
   });
-  const hasActiveFilters = Boolean(search.trim()) || [filterAgeGroup, filterGender, filterCategory, filterEvent, filterCourse]
+  const hasActiveFilters = Boolean(search.trim()) || [filterAgeGroup, filterGender, filterCategory, filterEvent, filterCourse, filterHolderType]
     .some(value => value !== ALL);
 
   const clearFilters = () => {
@@ -73,6 +77,7 @@ export default function RecordsPage() {
     setFilterCategory(ALL);
     setFilterEvent(ALL);
     setFilterCourse(ALL);
+    setFilterHolderType(ALL);
     setSearch('');
   };
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
@@ -95,6 +100,7 @@ export default function RecordsPage() {
             <FilterSelect label="Age Group" value={filterAgeGroup} options={[ALL, ...ageGroups]} onChange={setFilterAgeGroup} />
             <FilterSelect label="Gender" value={filterGender} options={[ALL, ...genders]} onChange={setFilterGender} />
             <FilterSelect label="Category" value={filterCategory} options={[ALL, ...categories]} onChange={setFilterCategory} />
+            <FilterSelect label="Record Holder" value={filterHolderType} options={[ALL, 'Swimmers', 'Donors']} onChange={setFilterHolderType} />
             <FilterSelect label="Event" value={filterEvent} options={[ALL, ...events]} onChange={setFilterEvent} />
             <FilterSelect label="Course" value={filterCourse} options={[ALL, ...courses]} onChange={setFilterCourse} />
             {hasActiveFilters && (

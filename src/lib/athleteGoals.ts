@@ -1,19 +1,23 @@
-import type { Course, Event } from '../types';
+import type { Event } from '../types';
 import { supabase } from './supabase';
+
+export type GoalCourse = 'SCY' | 'SCM' | 'LCM';
 
 export interface AthleteGoal {
   id: string;
   event: Event;
-  course: Course;
+  course: GoalCourse;
   targetTime: string;
+  isPublic: boolean;
   createdAt: string;
 }
 
 interface GoalRow {
   id: string;
   event: Event;
-  course: Course;
+  course: GoalCourse;
   target_time: string;
+  is_public: boolean;
   created_at: string;
 }
 
@@ -31,28 +35,33 @@ export function athleteGoalsErrorMessage(error: unknown): string {
 }
 
 function fromRow(row: GoalRow): AthleteGoal {
-  return { id: row.id, event: row.event, course: row.course, targetTime: row.target_time, createdAt: row.created_at };
+  return { id: row.id, event: row.event, course: row.course, targetTime: row.target_time, isPublic: row.is_public, createdAt: row.created_at };
 }
 
 export async function loadAthleteGoals(): Promise<AthleteGoal[]> {
   const client = requireSupabase();
   const { data, error } = await client
     .from('athlete_goals')
-    .select('id,event,course,target_time,created_at')
+    .select('id,event,course,target_time,is_public,created_at')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as GoalRow[]).map(fromRow);
 }
 
-export async function createAthleteGoal(goal: Pick<AthleteGoal, 'event' | 'course' | 'targetTime'>): Promise<AthleteGoal> {
+export async function createAthleteGoal(goal: Pick<AthleteGoal, 'event' | 'course' | 'targetTime' | 'isPublic'>): Promise<AthleteGoal> {
   const client = requireSupabase();
   const { data, error } = await client
     .from('athlete_goals')
-    .insert({ event: goal.event, course: goal.course, target_time: goal.targetTime })
-    .select('id,event,course,target_time,created_at')
+    .insert({ event: goal.event, course: goal.course, target_time: goal.targetTime, is_public: goal.isPublic })
+    .select('id,event,course,target_time,is_public,created_at')
     .single();
   if (error) throw error;
   return fromRow(data as GoalRow);
+}
+
+export async function setAthleteGoalVisibility(id: string, isPublic: boolean): Promise<void> {
+  const { error } = await requireSupabase().from('athlete_goals').update({ is_public: isPublic }).eq('id', id);
+  if (error) throw error;
 }
 
 export async function removeAthleteGoal(id: string): Promise<void> {

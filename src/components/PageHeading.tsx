@@ -11,7 +11,7 @@ interface PageHeadingProps {
 
 export default function PageHeading({ eyebrow, title, description, children, className = '' }: PageHeadingProps) {
   return (
-    <section className={`border-b border-[var(--navy-light)] bg-[var(--navy)] ${className}`}>
+    <section className={`ta-page-top border-b border-[var(--navy-light)] ${className}`}>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 md:py-16">
         <Eyebrow color="accent" onDark>{eyebrow}</Eyebrow>
         <h1 className="mt-4 max-w-5xl text-4xl font-extrabold leading-[1.08] tracking-tight text-[var(--ink-on-dark)] sm:text-5xl lg:text-6xl">{title}</h1>

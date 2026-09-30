@@ -107,8 +107,8 @@ export default function MeetPage() {
     <div style={{ backgroundColor: 'var(--navy)', minHeight: '100vh' }}>
       {/* Header */}
       <section
-        className="border-b"
-        style={{ backgroundColor: 'var(--navy-mid)', borderColor: 'var(--navy-light)' }}
+        className="ta-page-top border-b"
+        style={{ borderColor: 'var(--navy-light)' }}
       >
         <div className="max-w-7xl mx-auto px-4 py-14">
           <Link

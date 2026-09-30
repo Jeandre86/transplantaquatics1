@@ -69,9 +69,7 @@ export default function AboutPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden border-b border-[var(--navy-light)] bg-[var(--navy)]">
-        <img src="/assets/aquatics-hero.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, var(--navy) 15%, rgba(7,26,43,.72) 100%)' }} />
+      <section className="ta-page-top relative overflow-hidden border-b border-[var(--navy-light)]">
         <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 md:py-16">
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--accent)]">About Transplant Aquatics</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">

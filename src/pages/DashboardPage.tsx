@@ -2,11 +2,41 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CalendarDays, ChartNoAxesCombined, ClipboardList, Goal, MapPin, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getFlagEmoji } from '../lib/utils';
+import { getFlagEmoji, timeToSeconds } from '../lib/utils';
 import Button from '../components/Button';
 import { loadAthleteGoals, type AthleteGoal } from '../lib/athleteGoals';
-import { loadMySubmittedResults, type SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
+import { loadMyAccountResults, loadPublicSubmittedResults, type SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
+import DatabaseResultsTable from '../components/DatabaseResultsTable';
+import { loadDatabaseRankings } from '../lib/databaseRankings';
+import type { Ranking } from '../types';
+
+const RANKING_PREVIEW_SIZE = 4;
+
+function buildOwnEventRankings(results: SubmittedSwimmerResult[], rankings: Ranking[]) {
+  const personalBests = new Map<string, SubmittedSwimmerResult>();
+  for (const result of results) {
+    const course = result.submitted_meets?.course;
+    if (!result.swimmer_id || !course || result.status === 'rejected') continue;
+    if (!result.current_age_group) continue;
+    const key = [result.swimmer_id, result.event, result.gender, course].join('|');
+    const current = personalBests.get(key);
+    if (!current || timeToSeconds(result.time) < timeToSeconds(current.time)) personalBests.set(key, result);
+  }
+
+  return [...personalBests.values()].map(result => {
+    const course = result.submitted_meets?.course ?? '';
+    const eventRankings = rankings.filter(ranking => ranking.event === result.event
+      && ranking.ageGroup === result.current_age_group
+      && ranking.gender === result.gender
+      && ranking.course === course);
+    const ownTime = timeToSeconds(result.time);
+    const rank = eventRankings.filter(ranking => timeToSeconds(ranking.time) < ownTime).length + 1;
+    return { result, rank };
+  }).sort((a, b) => a.result.swimmer_name.localeCompare(b.result.swimmer_name)
+    || a.result.event.localeCompare(b.result.event)
+    || (a.result.submitted_meets?.course ?? '').localeCompare(b.result.submitted_meets?.course ?? ''));
+}
 
 function DashboardCard({
   eyebrow,
@@ -46,6 +76,13 @@ export default function DashboardPage() {
   const [submittedResults, setSubmittedResults] = useState<SubmittedSwimmerResult[]>([]);
   const [resultsLoaded, setResultsLoaded] = useState(false);
   const [resultsLoadFailed, setResultsLoadFailed] = useState(false);
+  const [databaseRankings, setDatabaseRankings] = useState<Ranking[]>([]);
+  const [rankingsLoaded, setRankingsLoaded] = useState(false);
+  const [rankingsLoadFailed, setRankingsLoadFailed] = useState(false);
+  const [rankingCourse, setRankingCourse] = useState<'LCM' | 'SCM'>('LCM');
+  const [worldResults, setWorldResults] = useState<SubmittedSwimmerResult[]>([]);
+  const [worldResultsLoaded, setWorldResultsLoaded] = useState(false);
+  const [worldResultsLoadFailed, setWorldResultsLoadFailed] = useState(false);
 
   useEffect(() => {
     if (!auth.isLoading && !auth.isLoggedIn) navigate('/login', { replace: true });
@@ -72,9 +109,41 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
     if (!auth.isLoggedIn) return () => { cancelled = true; };
+    setWorldResultsLoaded(false);
+    setWorldResultsLoadFailed(false);
+    loadPublicSubmittedResults().then(rows => {
+      if (!cancelled) setWorldResults(rows);
+    }).catch(() => {
+      if (!cancelled) {
+        setWorldResults([]);
+        setWorldResultsLoadFailed(true);
+      }
+    }).finally(() => { if (!cancelled) setWorldResultsLoaded(true); });
+    return () => { cancelled = true; };
+  }, [auth.isLoggedIn]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!auth.isLoggedIn) return () => { cancelled = true; };
+    setRankingsLoaded(false);
+    setRankingsLoadFailed(false);
+    loadDatabaseRankings().then(rows => {
+      if (!cancelled) setDatabaseRankings(rows);
+    }).catch(() => {
+      if (!cancelled) {
+        setDatabaseRankings([]);
+        setRankingsLoadFailed(true);
+      }
+    }).finally(() => { if (!cancelled) setRankingsLoaded(true); });
+    return () => { cancelled = true; };
+  }, [auth.isLoggedIn]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!auth.isLoggedIn) return () => { cancelled = true; };
     setResultsLoaded(false);
     setResultsLoadFailed(false);
-    loadMySubmittedResults().then(items => {
+    loadMyAccountResults().then(items => {
       if (!cancelled) setSubmittedResults(items);
     }).catch(() => {
       if (!cancelled) {
@@ -94,10 +163,14 @@ export default function DashboardPage() {
   const completeness = Math.round((completedFields / profileFields.length) * 100);
   const flag = user.countryCode ? getFlagEmoji(user.countryCode) : '';
   const countryLabel = user.country || user.countryCode || 'Not added yet';
-
+  const ownEventRankings = buildOwnEventRankings(submittedResults, databaseRankings);
+  const rankedEventCount = ownEventRankings.filter(item => item.rank !== null).length;
+  const bestEventRank = ownEventRankings.reduce<number | null>((best, item) => item.rank !== null && (best === null || item.rank < best) ? item.rank : best, null);
+  const courseEventRankings = ownEventRankings.filter(({ result }) => result.submitted_meets?.course === rankingCourse);
+  const visibleOwnEventRankings = courseEventRankings.slice(0, RANKING_PREVIEW_SIZE);
   return (
     <div className="min-h-full bg-[var(--paper)]">
-      <section className="bg-[var(--navy)] text-white">
+      <section className="ta-page-top text-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-12">
           <div>
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Dashboard</p>
@@ -126,12 +199,12 @@ export default function DashboardPage() {
             { label: 'Profile details', value: `${completeness}%`, detail: completeness === 100 ? 'Complete' : 'Complete your details' },
             { label: 'My results', value: resultsLoaded ? String(submittedResults.length) : '—', detail: !resultsLoaded ? 'Loading results' : resultsLoadFailed ? 'Results unavailable' : `${submittedResults.length} submitted result${submittedResults.length === 1 ? '' : 's'}` },
             { label: 'My goals', value: goalsLoaded ? String(personalGoals.length) : '—', detail: !goalsLoaded ? 'Loading goals' : goalsLoadFailed ? 'Goals unavailable' : personalGoals.length ? `${personalGoals.length} active target${personalGoals.length === 1 ? '' : 's'}` : 'No goals set yet' },
-            { label: 'My ranking', value: '—', detail: 'Available when results are linked' },
+            { label: 'My ranking', value: !resultsLoaded || !rankingsLoaded || resultsLoadFailed || rankingsLoadFailed ? '—' : bestEventRank === null ? '—' : `#${bestEventRank}`, detail: !resultsLoaded || !rankingsLoaded ? 'Loading ranking' : resultsLoadFailed || rankingsLoadFailed ? 'Ranking unavailable' : rankedEventCount ? `Best of ${rankedEventCount} event ranking${rankedEventCount === 1 ? '' : 's'}` : 'Add results to calculate a ranking' },
           ].map(item => (
             <div key={item.label} className="bg-white px-5 py-5 sm:px-6">
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">{item.label}</p>
-              <p className="mt-2 text-3xl font-extrabold tracking-tight text-[var(--ink)]">{item.label === 'My results' && !resultsLoaded || item.label === 'My goals' && !goalsLoaded ? <Skeleton className="mt-2 h-8 w-16" /> : item.value}</p>
-              <p className="mt-1 text-xs text-[var(--muted)]">{item.label === 'My results' && !resultsLoaded || item.label === 'My goals' && !goalsLoaded ? <Skeleton className="h-3 w-28" /> : item.detail}</p>
+              <p className="mt-2 text-3xl font-extrabold tracking-tight text-[var(--ink)]">{item.label === 'My results' && !resultsLoaded || item.label === 'My goals' && !goalsLoaded || item.label === 'My ranking' && (!resultsLoaded || !rankingsLoaded) ? <Skeleton className="mt-2 h-8 w-16" /> : item.value}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">{item.label === 'My results' && !resultsLoaded || item.label === 'My goals' && !goalsLoaded || item.label === 'My ranking' && (!resultsLoaded || !rankingsLoaded) ? <Skeleton className="h-3 w-28" /> : item.detail}</p>
             </div>
           ))}
         </section>
@@ -166,7 +239,7 @@ export default function DashboardPage() {
                   <span className={`w-fit px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${result.record_candidate ? 'bg-amber-50 text-amber-800' : 'bg-[var(--ice)] text-[var(--navy)]'}`}>{result.record_candidate ? 'Record candidate' : result.status === 'verified' ? 'Verified' : 'Swimmer-submitted'}</span>
                 </div>)}
               </div> : <div className="flex flex-1 flex-col justify-center"><p className="font-semibold text-[var(--ink)]">{resultsLoadFailed ? 'Your results could not be loaded' : 'Start with your next meet'}</p><p className="mt-1 max-w-md text-sm leading-relaxed text-[var(--muted)]">{resultsLoadFailed ? 'Check the meet submission tables in Supabase and try refreshing.' : 'Add a meet and record each event your swimmer competed in. Results show as swimmer-submitted immediately.'}</p></div>}
-              <Link to="/submit" className="mt-4 inline-flex items-center gap-2 bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)]">Submit results <ArrowRight size={15} /></Link>
+              <Link to="/submit" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] transition-colors hover:text-[var(--accent-dark)]">Submit results <ArrowRight size={15} /></Link>
             </div>
           </DashboardCard>
 
@@ -191,14 +264,31 @@ export default function DashboardPage() {
           </DashboardCard>
 
           <DashboardCard eyebrow="Your standing" title="Rankings" icon={ChartNoAxesCombined} className="lg:col-span-2">
-            <div className="flex min-h-52 flex-col items-start justify-center">
-              <p className="text-2xl font-extrabold tracking-tight text-[var(--ink)]">Your ranking starts with your results</p>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-                Once your verified swims are linked to your profile, your time and points rankings will be shown here.
-              </p>
-              <Link to="/rankings" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">
-                Explore world rankings <ArrowRight size={15} />
-              </Link>
+            <div className="min-h-52">
+              {!resultsLoaded || !rankingsLoaded ? <SkeletonTable rows={4} columns={4} />
+                : resultsLoadFailed || rankingsLoadFailed ? <p role="status" className="py-8 text-sm text-[var(--muted)]">Your event rankings could not be loaded. Please refresh to try again.</p>
+                  : ownEventRankings.length ? <>
+                    <div role="tablist" aria-label="Ranking course" className="mb-4 flex border-b border-[var(--border)]">
+                      {(['LCM', 'SCM'] as const).map(course => <button key={course} type="button" role="tab" aria-selected={rankingCourse === course} onClick={() => setRankingCourse(course)} className={`border-b-2 px-4 py-2.5 font-mono text-xs font-bold tracking-widest transition-colors ${rankingCourse === course ? 'border-[var(--blue)] text-[var(--blue)]' : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'}`}>{course}</button>)}
+                    </div>
+                    {courseEventRankings.length ? <>
+                    <p className="mb-3 text-sm text-[var(--muted)]">Your best time and world position for each event you’ve swum.</p>
+                    <div className="ta-table-shell">
+                      <div className="ta-table-header grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] gap-3 px-3 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-4">
+                        <span>Rank</span><span>Event</span><span>Age</span><span>Time</span><span>Pts</span>
+                      </div>
+                      {visibleOwnEventRankings.map(({ result, rank }) => <Link key={`${result.swimmer_id}-${result.event}-${result.gender}-${result.submitted_meets?.course}`} to={`/rankings/${result.gender.toLowerCase()}?ageGroup=${encodeURIComponent(result.current_age_group ?? '')}&event=${encodeURIComponent(result.event)}&course=${encodeURIComponent(rankingCourse)}&rankBy=Time`} className="ta-table-row grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-3 px-3 py-3 transition-colors hover:bg-[var(--paper)] sm:px-4">
+                        <span className="whitespace-nowrap font-mono text-sm font-bold text-[var(--ink)]">{rank === null ? '—' : `#${rank}`}</span>
+                        <span className="min-w-0 truncate text-sm font-semibold text-[var(--ink)]">{result.event}</span>
+                        <span className="whitespace-nowrap text-xs text-[var(--muted)]">{result.current_age_group}</span>
+                        <span className="whitespace-nowrap font-mono text-sm font-bold text-[var(--blue)]">{result.time}</span>
+                        <span className="whitespace-nowrap font-mono text-xs text-[var(--muted)]">{result.points ?? '—'}</span>
+                      </Link>)}
+                    </div>
+                    {courseEventRankings.length > RANKING_PREVIEW_SIZE && <p className="mt-3 text-xs text-[var(--muted)]">Showing {RANKING_PREVIEW_SIZE} of {courseEventRankings.length} {rankingCourse} events.</p>}
+                    <Link to="/rankings" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Explore more rankings <ArrowRight size={15} /></Link>
+                    </> : <div className="py-8 text-center"><p className="font-semibold text-[var(--ink)]">No {rankingCourse} rankings yet</p><p className="mt-1 text-sm text-[var(--muted)]">Your {rankingCourse} event rankings will appear here when results are added.</p></div>}
+                  </> : <div className="flex min-h-36 flex-col items-start justify-center"><p className="font-semibold text-[var(--ink)]">Your event rankings will appear here</p><p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">Submit a swim result to see your best time, points, and world position for each event.</p><Link to="/submit" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Submit results <ArrowRight size={15} /></Link></div>}
             </div>
           </DashboardCard>
         </div>
@@ -217,10 +307,12 @@ export default function DashboardPage() {
         </section>
 
         <DashboardCard eyebrow="Public competition results" title="World Results" icon={Trophy}>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-[var(--muted)]">Public meet results will appear here when they are added to the platform.</p>
-            <Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse results <ArrowRight size={15} /></Link>
-          </div>
+          {!worldResultsLoaded ? <SkeletonTable rows={3} columns={2} />
+            : worldResultsLoadFailed ? <div className="flex flex-wrap items-center justify-between gap-4"><p role="status" className="text-sm text-[var(--muted)]">World results could not be loaded. Please refresh to try again.</p><Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse results <ArrowRight size={15} /></Link></div>
+              : worldResults.length ? <>
+                <DatabaseResultsTable results={worldResults.slice(0, 4)} />
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-[var(--muted)]">Showing {Math.min(4, worldResults.length)} of {worldResults.length} public result{worldResults.length === 1 ? '' : 's'}.</p><Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse all results <ArrowRight size={15} /></Link></div>
+              </> : <div className="flex flex-wrap items-center justify-between gap-4"><p className="text-sm text-[var(--muted)]">No public competition results have been added yet.</p><Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse results <ArrowRight size={15} /></Link></div>}
         </DashboardCard>
 
       </div>

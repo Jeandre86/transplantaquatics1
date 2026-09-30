@@ -31,7 +31,7 @@ export default function FromThePoolDeckPage() {
   return (
     <div>
       {/* Header */}
-      <section style={{ backgroundColor: "var(--navy)", borderBottom: "1px solid var(--navy-light)" }}>
+      <section className="ta-page-top" style={{ borderBottom: "1px solid var(--navy-light)" }}>
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 md:py-16">
           <div>
             <Eyebrow color="accent">News</Eyebrow>

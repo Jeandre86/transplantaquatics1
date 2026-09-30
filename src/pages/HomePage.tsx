@@ -1,21 +1,43 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, ArrowUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { athletes } from '../data/athletes';
 import { articles } from '../data/articles';
-import { rankings } from '../data/rankings';
 import { latestRecords } from '../data/records';
-import { TRANSPLANT_TYPES, type AgeGroup, type Course, type Event, type Gender } from '../types';
+import { TRANSPLANT_TYPES, type AgeGroup, type Course, type Event, type Gender, type Ranking } from '../types';
 import { getFlagEmoji, getTransplantColor } from '../lib/utils';
 import ArticleCard from '../components/ArticleCard';
 import Eyebrow from '../components/Eyebrow';
 import RankingFilters from '../components/RankingFilters';
 import { useFastestByTransplantType } from '../hooks/useFastestByTransplantType';
+import { loadDatabaseRankings } from '../lib/databaseRankings';
+import { describeSupabaseError } from '../lib/supabase';
+import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
 import { Skeleton } from '../components/Skeleton';
 
 const section = 'mx-auto w-full max-w-7xl px-4 py-16 sm:py-20';
 const title = 'mt-3 text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl';
 const ALL = 'All';
+
+function AnimatedStat({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const duration = 1400;
+    let frame = 0;
+    let startedAt: number | null = null;
+    const animate = (now: number) => {
+      if (startedAt === null) startedAt = now;
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      setCount(Math.round(value * eased));
+      if (progress < 1) frame = window.requestAnimationFrame(animate);
+    };
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [value]);
+
+  return <>{count.toLocaleString('en-US')}{suffix}</>;
+}
 
 export default function HomePage() {
   const [ageGroup, setAgeGroup] = useState<AgeGroup | typeof ALL>(ALL);
@@ -23,7 +45,31 @@ export default function HomePage() {
   const [event, setEvent] = useState<Event | typeof ALL>(ALL);
   const [course, setCourse] = useState<Course | typeof ALL>(ALL);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [databaseRankings, setDatabaseRankings] = useState<Ranking[]>([]);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
+  const [rankingsError, setRankingsError] = useState<string | null>(null);
+  const [athleteProfiles, setAthleteProfiles] = useState<PublicSwimmerProfile[]>([]);
+  const [athletesLoading, setAthletesLoading] = useState(true);
+  const [athletesError, setAthletesError] = useState<string | null>(null);
   const { swims: fastestSwims, loading: fastestLoading, error: fastestError } = useFastestByTransplantType();
+
+  useEffect(() => {
+    let active = true;
+    loadDatabaseRankings()
+      .then(rows => { if (active) setDatabaseRankings(rows); })
+      .catch(error => { if (active) setRankingsError(describeSupabaseError(error)); })
+      .finally(() => { if (active) setRankingsLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadPublicSwimmerDirectory()
+      .then(rows => { if (active) setAthleteProfiles(rows); })
+      .catch(error => { if (active) setAthletesError(describeSupabaseError(error)); })
+      .finally(() => { if (active) setAthletesLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 300);
@@ -31,22 +77,20 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const topRankings = rankings
+  const topRankings = databaseRankings
     .filter(r => (ageGroup === ALL || r.ageGroup === ageGroup)
       && (gender === ALL || r.gender === gender)
       && (event === ALL || r.event === event)
       && (course === ALL || r.course === course))
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 5);
-  const featuredAthletes = athletes.slice(0, 4);
+  const featuredAthletes = athleteProfiles.slice(0, 4);
   const featuredRecords = latestRecords.slice(0, 4);
   const featuredArticles = articles.slice(0, 3);
 
   return (
     <div className="bg-[var(--paper)]">
-      <section className="relative isolate flex min-h-[820px] items-center overflow-hidden bg-[var(--navy)]">
-        <img src="/assets/aquatics-hero.png" alt="" className="absolute inset-0 -z-20 h-full w-full object-cover object-center opacity-40" />
-        <div className="absolute inset-0 -z-10 bg-[rgba(7,26,43,0.85)]" />
+      <section className="ta-page-top relative isolate flex min-h-[820px] items-center overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-30">
           {Array.from({ length: 7 }, (_, i) => <div key={i} className="absolute inset-y-0 border-l border-white/30" style={{ left: `${(i + 1) * 12.5}%` }} />)}
           <div className="absolute inset-y-0 left-1/2 border-l-2 border-[var(--lime)]/70" />
@@ -86,7 +130,9 @@ export default function HomePage() {
               <div className="flex items-center bg-[#0b233d] px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-[var(--accent)] sm:px-5">
                 <span className="w-14">Rank</span><span className="min-w-0 flex-1 px-2">Athlete</span><span className="hidden w-20 sm:block">Country</span><span className="hidden w-40 md:block">Event</span><span className="w-24 text-right">Time</span>
               </div>
-              {topRankings.length ? topRankings.map((r, i) => (
+              {rankingsLoading ? <div className="space-y-0" role="status" aria-label="Loading world rankings">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-4 border-t border-white/10 px-4 py-4 sm:px-5"><Skeleton dark className="h-4 w-10" /><Skeleton dark className="h-4 flex-1" /><Skeleton dark className="hidden h-4 w-20 sm:block" /><Skeleton dark className="hidden h-4 w-32 md:block" /><Skeleton dark className="h-4 w-16" /></div>)}</div>
+              : rankingsError ? <p role="status" className="px-5 py-8 text-sm text-red-200">World rankings could not be loaded: {rankingsError}</p>
+              : topRankings.length ? topRankings.map((r, i) => (
                 <Link key={`${r.athleteId}-${r.rank}`} to={`/athletes/${r.athleteId}`} className={`flex items-center border-t border-white/10 px-4 py-4 transition hover:bg-white/5 sm:px-5 ${i % 2 ? 'bg-white/[0.025]' : ''}`}>
                   <span className="w-14 font-mono text-sm font-bold text-[var(--lime)]">#{r.rank}</span>
                   <span className="min-w-0 flex-1 truncate px-2 text-sm font-bold text-white">{r.athleteName}</span>
@@ -108,12 +154,14 @@ export default function HomePage() {
           <Eyebrow color="blue">The athletes</Eyebrow>
           <h2 className={title}>Athletes making history</h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">Meet the swimmers redefining performance and possibility after transplant.</p>
-          {featuredAthletes.length ? <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {athletesLoading ? <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" role="status" aria-label="Loading athletes">{Array.from({ length: 4 }, (_, index) => <div key={index} className="border border-[var(--border)] bg-white p-5"><div className="flex items-start gap-4"><Skeleton className="size-13 shrink-0" /><div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /><Skeleton className="h-3 w-2/3" /></div></div></div>)}</div>
+            : athletesError ? <p role="status" className="mt-8 border-t border-[var(--border)] py-6 text-sm text-red-700">Athlete profiles could not be loaded: {athletesError}</p>
+            : featuredAthletes.length ? <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {featuredAthletes.map(a => (
               <Link key={a.id} to={`/athletes/${a.id}`} className="group border border-[var(--border)] bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg">
                 <div className="flex items-start gap-4">
-                  <div className="flex size-13 shrink-0 items-center justify-center bg-[var(--navy)] font-mono text-sm font-bold text-white">{a.firstName[0]}{a.lastName[0]}</div>
-                  <div className="min-w-0"><h3 className="truncate font-bold text-[var(--ink)] group-hover:text-[var(--blue)]">{a.firstName} {a.lastName}</h3><p className="mt-1 text-sm text-[var(--muted)]">{getFlagEmoji(a.countryCode)} {a.country}</p><p className="mt-2 text-xs text-[var(--muted)]">{a.ageGroup} · {a.transplantType}</p></div>
+                  <div className="flex size-13 shrink-0 items-center justify-center bg-[var(--navy)] font-mono text-sm font-bold text-white">{a.first_name[0]}{a.last_name[0]}</div>
+                  <div className="min-w-0"><h3 className="truncate font-bold text-[var(--ink)] group-hover:text-[var(--blue)]">{a.first_name} {a.last_name}</h3><p className="mt-1 text-sm text-[var(--muted)]">{getFlagEmoji(a.country_code ?? '')} {a.country}</p><p className="mt-2 text-xs text-[var(--muted)]">{a.age_group} · {a.transplant_type}</p></div>
                 </div>
                 <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"><span>View athlete profile</span><ArrowRight size={14} className="text-[var(--blue)]" /></div>
               </Link>
@@ -138,6 +186,23 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="ta-page-top relative isolate overflow-hidden border-y border-white/10 text-white" aria-label="Transplant Aquatics in numbers">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 opacity-70">
+          {Array.from({ length: 7 }, (_, index) => <span key={index} className={`absolute inset-y-0 ${index === 3 ? 'border-l-2 border-[var(--lime)]/70' : 'border-l border-white/20'}`} style={{ left: `${(index + 1) * 12.5}%` }} />)}
+        </div>
+        <div className="relative mx-auto grid max-w-7xl grid-cols-2 px-4 py-8 sm:py-10 md:grid-cols-4">
+          {[
+            { value: 1420, suffix: '+', label: 'Verified athletes' },
+            { value: 54, label: 'Countries represented' },
+            { value: 48, label: 'World records held' },
+            { value: 12500, suffix: '+', label: 'Logged timings' },
+          ].map(stat => <div key={stat.label} className="relative z-10 flex flex-col items-center justify-center px-2 py-5 text-center sm:px-4">
+            <p className="font-mono text-3xl font-black tracking-tight text-[var(--lime)] sm:text-4xl lg:text-5xl"><AnimatedStat value={stat.value} suffix={stat.suffix} /></p>
+            <p className="mt-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--accent)] sm:text-[11px] sm:tracking-[0.16em]">{stat.label}</p>
+          </div>)}
+        </div>
+      </section>
+
 
       <section className="bg-white">
         <div className={section}>
@@ -146,19 +211,24 @@ export default function HomePage() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">Explore leading performances from swimmers with similar transplant backgrounds.</p>
           <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {TRANSPLANT_TYPES.map(type => {
-              const eventBest = fastestSwims.filter(swim => swim.transplantType === type).slice(0, 4);
+              const eventBest = fastestSwims.filter(swim => swim.transplantType === type).slice(0, 1);
               return <div key={type} className="border border-[var(--border)] bg-[var(--paper)] p-5">
                 <div className="mb-3 flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ backgroundColor: getTransplantColor(type) }} /><span className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">{type}</span></div>
                 {fastestLoading ? <div role="status" aria-label="Loading fastest swims" className="space-y-3"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-8 w-full" /></div> : fastestError ? <p className="text-sm text-[var(--muted)]">Unable to load swims.</p> : eventBest.length ? <div className="space-y-3">
                   {eventBest.map(swim => <div key={`${swim.event}-${swim.gender}-${swim.course}`} className="border-t border-[var(--border)] pt-3 first:border-0 first:pt-0">
                     <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">{swim.event} · {swim.gender}{swim.course ? ` · ${swim.course}` : ''}</p>
-                    <div className="mt-1 flex items-baseline justify-between gap-2"><Link to={`/athletes/${swim.athleteId}`} className="truncate font-bold text-[var(--ink)] hover:text-[var(--blue)]">{swim.athleteName}</Link><span className="shrink-0 font-mono text-lg font-bold text-[var(--blue)]">{swim.time}</span></div>
+                    <div className="mt-1 flex items-baseline justify-between gap-2"><span className="truncate font-bold text-[var(--ink)]">{swim.athleteName}</span><span className="shrink-0 font-mono text-lg font-bold text-[var(--blue)]">{swim.time}</span></div>
                     {swim.status === 'swimmer_submitted' && <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]">Pending verification</p>}
                   </div>)}
-                  <Link to="/rankings/transplant-type" className="inline-block pt-1 text-xs font-bold uppercase tracking-wider text-[var(--blue)]">View all events →</Link>
                 </div> : <p className="text-sm text-[var(--muted)]">No submitted swims yet</p>}
               </div>;
             })}
+          </div>
+          <div className="mt-6 flex flex-col items-center gap-4 text-center">
+            <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Explore every event and filter results by transplant type, age group, gender, and course.</p>
+            <Link to="/rankings/transplant-type" className="inline-flex items-center gap-2 bg-[var(--accent)] px-4 py-3 text-xs font-extrabold uppercase tracking-wider text-[var(--navy)] transition-colors hover:bg-[var(--navy)] hover:text-white">
+              Fastest by transplant type <ArrowRight size={15} />
+            </Link>
           </div>
           {fastestError && <p role="status" className="mt-4 text-sm text-red-700">Fastest swims could not be loaded: {fastestError}</p>}
         </div>
