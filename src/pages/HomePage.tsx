@@ -91,11 +91,15 @@ export default function HomePage() {
 
   return (
     <div className="bg-[var(--paper)]">
-      <section className="ta-page-top relative isolate flex min-h-[820px] items-center overflow-hidden">
+      <section className="relative isolate flex min-h-[calc(100svh-3.5rem)] items-center overflow-hidden bg-[var(--navy)]" style={{ backgroundImage: "linear-gradient(90deg, rgba(7, 26, 43, 0.94) 0%, rgba(7, 26, 43, 0.82) 52%, rgba(7, 26, 43, 0.45) 100%), url('/assets/aquatics-hero.png')", backgroundPosition: 'center', backgroundSize: 'cover' }}>
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-30">
           {Array.from({ length: 7 }, (_, i) => <div key={i} className="absolute inset-y-0 border-l border-white/30" style={{ left: `${(i + 1) * 12.5}%` }} />)}
           <div className="absolute inset-y-0 left-1/2 border-l-2 border-[var(--lime)]/70" />
         </div>
+        <div aria-label="Race split times" className="absolute right-6 top-6 z-10 hidden font-mono text-right text-xs leading-6 tracking-wider text-[var(--lime)]/30 sm:block lg:right-8 lg:top-8">
+          <div>58.92</div><div>1:01.14</div><div>1:01.77</div><div>1:02.88</div>
+        </div>
+        <div aria-label="Race splits" className="absolute bottom-6 left-6 z-10 hidden font-mono text-[10px] leading-5 tracking-wider text-[var(--lime)]/30 sm:block lg:bottom-8 lg:left-8">SPLIT 01 / 29.11<br />SPLIT 02 / 29.81<br />FINAL / 58.92</div>
         <div className="relative mx-auto w-full max-w-7xl px-4 py-24 sm:py-28 lg:py-36">
           <div className="max-w-3xl">
             <Eyebrow color="accent" onDark>World Transplant Aquatics</Eyebrow>
