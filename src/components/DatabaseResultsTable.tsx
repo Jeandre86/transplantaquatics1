@@ -5,7 +5,7 @@ import VerificationBadge from './VerificationBadge';
 
 export default function DatabaseResultsTable({ results, showAthlete = true }: { results: SubmittedSwimmerResult[]; showAthlete?: boolean }) {
   return (
-    <div className="w-full overflow-x-auto ta-table-shell">
+    <div className="w-full ta-table-scroll ta-table-shell">
       <table className="w-full border-collapse">
         <thead>
           <tr className="ta-table-header">

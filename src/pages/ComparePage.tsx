@@ -212,7 +212,7 @@ export default function ComparePage() {
         {/* Comparison table */}
         {selected.length > 0 && (
           <div
-            className="border overflow-x-auto"
+            className="ta-table-scroll border"
             style={{ borderColor: 'var(--navy-light)' }}
           >
             {/* Table header — athlete columns */}

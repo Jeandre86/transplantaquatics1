@@ -87,13 +87,14 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
   return (
     <div className="space-y-0">
       {/* ── Medals Breakdown table ───────────────────────────────────────────── */}
-      <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <div className="ta-table-scroll" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
 
         {/* Table header */}
         <div
           className="grid items-center px-5 py-3"
           style={{
-            gridTemplateColumns: '1fr 72px 72px 72px 56px 36px',
+            gridTemplateColumns: 'minmax(220px,1fr) 72px 72px 72px 56px 36px',
+            minWidth: '620px',
             borderBottom: '1px solid var(--border)',
           }}
         >
@@ -126,7 +127,7 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
               {/* Main row */}
               <div
                 className="grid items-center px-5 py-4 cursor-pointer group"
-                style={{ gridTemplateColumns: '1fr 72px 72px 72px 56px 36px' }}
+                style={{ gridTemplateColumns: 'minmax(220px,1fr) 72px 72px 72px 56px 36px', minWidth: '620px' }}
                 onClick={() => toggleRow(year)}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(23,105,194,0.04)')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -259,7 +260,8 @@ export default function MedalDisplay({ medals }: MedalDisplayProps) {
         <div
           className="grid items-center px-5 py-4"
           style={{
-            gridTemplateColumns: '1fr 72px 72px 72px 56px 36px',
+            gridTemplateColumns: 'minmax(220px,1fr) 72px 72px 72px 56px 36px',
+            minWidth: '620px',
             borderTop: '2px solid var(--border)',
             backgroundColor: 'var(--paper)',
           }}

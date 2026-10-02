@@ -89,9 +89,9 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
   }
 
   return (
-    <div className={genderCard ? `ta-table-shell${paperSurface ? ' ta-table-shell-paper' : ''}` : light ? 'overflow-x-auto' : 'ta-table-shell'}>
+    <div className={genderCard ? `ta-table-shell${paperSurface ? ' ta-table-shell-paper' : ''}` : light ? 'ta-table-scroll' : 'ta-table-shell'}>
       {genderCard && title && <h3 className={`px-4 ${paperSurface ? 'pt-4' : 'pt-5'} text-xl font-semibold text-[var(--ink)]`}>{title}</h3>}
-      <div className={genderCard ? `w-full overflow-x-auto ${paperSurface ? 'pt-3' : 'pt-4'}` : undefined}>
+      <div className={genderCard ? `ta-table-scroll ${paperSurface ? 'pt-3' : 'pt-4'}` : undefined}>
       <table className="w-full border-collapse">
         <thead>
           <tr className="ta-table-header">

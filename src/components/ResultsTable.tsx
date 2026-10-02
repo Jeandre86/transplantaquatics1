@@ -52,7 +52,7 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
         ))}
       </div>
 
-      <div className={`w-full overflow-x-auto ${dark ? 'border-0 bg-transparent' : 'ta-table-shell'}`}>
+      <div className={`ta-table-scroll ${dark ? 'border-0 bg-transparent' : 'ta-table-shell'}`}>
         <table className="w-full border-collapse">
           <thead>
             <tr className="ta-table-header">

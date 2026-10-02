@@ -130,19 +130,19 @@ export default function HomePage() {
             <RankingFilters dark ageGroup={ageGroup} gender={gender} event={event} course={course} onChange={({ ageGroup: ag, gender: g, event: ev, course: co }) => { setAgeGroup(ag as AgeGroup | typeof ALL); setGender(g as Gender | typeof ALL); setEvent(ev as Event | typeof ALL); setCourse(co as Course | typeof ALL); }} />
             {[ageGroup, gender, event, course].some(value => value !== ALL) && <button type="button" onClick={() => { setAgeGroup(ALL); setGender(ALL); setEvent(ALL); setCourse(ALL); }} className="font-mono text-xs font-semibold uppercase tracking-wider text-white/70 transition-colors hover:text-[var(--accent)]">Clear filters</button>}
           </div>
-          <div className="mt-5 overflow-x-auto rounded-lg border border-white/10">
+          <div className="ta-table-scroll mt-5 rounded-lg border border-white/10">
             <div className="min-w-[600px]">
               <div className="flex items-center bg-[#0b233d] px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-[var(--accent)] sm:px-5">
-                <span className="w-14">Rank</span><span className="min-w-0 flex-1 px-2">Athlete</span><span className="hidden w-20 sm:block">Country</span><span className="hidden w-40 md:block">Event</span><span className="w-24 text-right">Time</span>
+                <span className="w-14">Rank</span><span className="min-w-0 flex-1 px-2">Athlete</span><span className="w-20">Country</span><span className="w-40">Event</span><span className="w-24 text-right">Time</span>
               </div>
-              {rankingsLoading ? <div className="space-y-0" role="status" aria-label="Loading world rankings">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-4 border-t border-white/10 px-4 py-4 sm:px-5"><Skeleton dark className="h-4 w-10" /><Skeleton dark className="h-4 flex-1" /><Skeleton dark className="hidden h-4 w-20 sm:block" /><Skeleton dark className="hidden h-4 w-32 md:block" /><Skeleton dark className="h-4 w-16" /></div>)}</div>
+              {rankingsLoading ? <div className="space-y-0" role="status" aria-label="Loading world rankings">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-4 border-t border-white/10 px-4 py-4 sm:px-5"><Skeleton dark className="h-4 w-10" /><Skeleton dark className="h-4 flex-1" /><Skeleton dark className="h-4 w-20" /><Skeleton dark className="h-4 w-32" /><Skeleton dark className="h-4 w-16" /></div>)}</div>
               : rankingsError ? <p role="status" className="px-5 py-8 text-sm text-red-200">World rankings could not be loaded: {rankingsError}</p>
               : topRankings.length ? topRankings.map((r, i) => (
                 <Link key={`${r.athleteId}-${r.rank}`} to={`/athletes/${r.athleteId}`} className={`flex items-center border-t border-white/10 px-4 py-4 transition hover:bg-white/5 sm:px-5 ${i % 2 ? 'bg-white/[0.025]' : ''}`}>
                   <span className="w-14 font-mono text-sm font-bold text-[var(--lime)]">#{r.rank}</span>
                   <span className="min-w-0 flex-1 truncate px-2 text-sm font-bold text-white">{r.athleteName}</span>
-                  <span className="hidden w-20 text-sm text-white/70 sm:block">{getFlagEmoji(r.countryCode)} {r.countryCode}</span>
-                  <span className="hidden w-40 text-sm text-white/70 md:block">{r.event}</span>
+                  <span className="w-20 text-sm text-white/70">{getFlagEmoji(r.countryCode)} {r.countryCode}</span>
+                  <span className="w-40 text-sm text-white/70">{r.event}</span>
                   <span className="w-24 text-right font-mono text-sm font-bold text-white">{r.time}</span>
                 </Link>
               )) : <p className="px-5 py-8 text-sm text-white/60">No rankings match these filters yet.</p>}

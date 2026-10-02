@@ -125,9 +125,35 @@
   .ta-table-shell {
     width: 100%;
     min-width: 0;
-    overflow: visible;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
     border: 0;
     background: transparent;
+  }
+
+  /* Keep every data column available on narrow screens. The content can scroll
+     horizontally instead of shrinking columns until values become unreadable. */
+  .ta-table-shell > table,
+  .ta-table-scroll > table {
+    width: 100%;
+    min-width: max-content;
+  }
+
+  .ta-table-shell > .ta-table-header,
+  .ta-table-shell > .ta-table-row,
+  .ta-table-shell > div > .ta-table-row {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .ta-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .ta-table-header {
