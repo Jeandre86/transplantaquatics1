@@ -33,6 +33,7 @@ export function getTransplantColor(type: string): string {
     Lung: '#8b5cf6',
     Pancreas: '#10b981',
     'Bone Marrow': '#6366f1',
+    'Donor': '#0d9488',
   };
   return map[type] || '#6b7280';
 }

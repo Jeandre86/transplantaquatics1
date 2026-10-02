@@ -248,6 +248,16 @@ export default function AdminPage() {
     if (!supabase || !authorized) return;
     if (target === 'Swimmers') {
       const { data, error: queryError } = await supabase.rpc('admin_list_swimmer_profiles');
+      if (queryError?.code === 'PGRST202') {
+        // Keep the admin list usable while the privileged directory migration
+        // is being applied. The public directory intentionally omits private
+        // account and club fields, which remain available through the admin RPC.
+        const { data: publicRows, error: publicError } = await supabase.rpc('get_public_swimmer_directory');
+        if (publicError) throw queryError;
+        setSwimmerRows((publicRows ?? []).map((row: Record<string, unknown>) => ({ ...row, club_name: null, account_id: null })) as Record<string, unknown>[]);
+        setNotice('Showing the public swimmer details while the admin directory database function is unavailable. Apply the admin swimmer directory migration to restore account and club details.');
+        return;
+      }
       if (queryError) throw queryError;
       setSwimmerRows((data ?? []) as Record<string, unknown>[]);
       return;
