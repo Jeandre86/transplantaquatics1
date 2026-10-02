@@ -20,7 +20,7 @@ export default function DatabaseResultsTable({ results, showAthlete = true }: { 
           {results.length ? results.map(result => {
             const swimmerId = result.athlete_id || result.swimmer_id;
             const meet = result.submitted_meets;
-            const verifiedStatus = result.status === 'verified' ? 'Verified' : 'Pending';
+            const verifiedStatus = result.status === 'verified' ? 'Verified' : result.status === 'imported_unverified' ? 'Unverified' : 'Pending';
             return (
               <tr key={result.id} className="ta-table-row">
                 {showAthlete && <td className="px-3 py-4 text-sm font-semibold text-[var(--ink)] sm:px-5">
@@ -41,7 +41,7 @@ export default function DatabaseResultsTable({ results, showAthlete = true }: { 
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{result.gender || '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{result.transplant_type || '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-base font-bold text-[var(--navy)] sm:px-5">{result.time || '—'}</td>
-                <td className="whitespace-nowrap px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{meet?.course || '—'}</td>
+                <td className="whitespace-nowrap px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{result.course || meet?.course || '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-sm font-semibold text-[var(--ink)] sm:px-5">{result.points?.toLocaleString() ?? '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{formatDate(meet?.meet_date || result.created_at)}</td>
                 <td className="max-w-56 px-3 py-4 text-xs text-[var(--muted)] sm:px-5">

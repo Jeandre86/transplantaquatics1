@@ -1,0 +1,392 @@
+{
+  "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften",
+  "retrieved_at": "2026-10-02T09:54:04.863031+00:00",
+  "id": "0b541bbf7c0a6566cbb0",
+  "status": "downloaded",
+  "final_url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften",
+  "file": "data/swimming/sources/0b541bbf7c0a6566cbb0.html",
+  "sha256": "9885c32cccd59c223721dac9465fff36e154c49aa09929273dc027afefcf7fce",
+  "title": "Weltmeisterschaften - Weltmeisterschaften - TransDia-Sport Deutschland e.V.",
+  "links": [
+    {
+      "text": "Skip to main content",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften#tm-main"
+    },
+    {
+      "text": "",
+      "url": "https://transdiaev.de/"
+    },
+    {
+      "text": "",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften#tm-dialog-mobile"
+    },
+    {
+      "text": "Mitglied werden",
+      "url": "https://transdiaev.de/ueber-uns/mitglied-werden"
+    },
+    {
+      "text": "",
+      "url": "https://transdiaev.de/"
+    },
+    {
+      "text": "Über uns",
+      "url": "https://transdiaev.de/ueber-uns"
+    },
+    {
+      "text": "Unser Team",
+      "url": "https://transdiaev.de/ueber-uns/unser-team"
+    },
+    {
+      "text": "Mitglied werden",
+      "url": "https://transdiaev.de/ueber-uns/mitglied-werden"
+    },
+    {
+      "text": "Geschichte",
+      "url": "https://transdiaev.de/ueber-uns/geschichte"
+    },
+    {
+      "text": "Satzung & Geschäftsordnung",
+      "url": "https://transdiaev.de/ueber-uns/satzung-geschaeftsordnung"
+    },
+    {
+      "text": "Spenden an uns",
+      "url": "https://transdiaev.de/ueber-uns/spenden-an-uns"
+    },
+    {
+      "text": "Aktuelles",
+      "url": "https://transdiaev.de/news"
+    },
+    {
+      "text": "Event Kalender",
+      "url": "https://transdiaev.de/news/event-kalender"
+    },
+    {
+      "text": "Presse und Medien",
+      "url": "https://transdiaev.de/news/medien"
+    },
+    {
+      "text": "Sport",
+      "url": "https://transdiaev.de/sportveranstaltungen"
+    },
+    {
+      "text": "Kids Sporttag 2026",
+      "url": "https://transdiaev.de/sportveranstaltungen/kids-sporttag-2026"
+    },
+    {
+      "text": "Deutsche Meisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften"
+    },
+    {
+      "text": "Grundlegendes",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/grundlegendes"
+    },
+    {
+      "text": "DM 2026 Straubing",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/dm-2026-straubing"
+    },
+    {
+      "text": "DM 2025 Dresden",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/dm-2025-dresden"
+    },
+    {
+      "text": "DM 2024 Duisburg",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/dm-2024-duisburg"
+    },
+    {
+      "text": "Europameisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/europameisterschaften"
+    },
+    {
+      "text": "Weltmeisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/weltmeisterschaften"
+    },
+    {
+      "text": "WTG 2025 in Dresden",
+      "url": "https://transdiaev.de/sportveranstaltungen/weltmeisterschaften/wtg-2025-in-dresden"
+    },
+    {
+      "text": "Winter-Meisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften#"
+    },
+    {
+      "text": "16. Österreichische Schi-Meisterschaften der Transplantierten und Dialysepatienten",
+      "url": "https://transdiaev.de/sportveranstaltungen/winter-meisterschaften/16-österreichische-schi-meisterschaften-der-transplantierten-und-dialysepatienten"
+    },
+    {
+      "text": "WINTER WOLRD GAMES",
+      "url": "https://transdiaev.de/sportveranstaltungen/winter-wolrd-games"
+    },
+    {
+      "text": "Winter World Transplant Games 2024",
+      "url": "https://transdiaev.de/sportveranstaltungen/winter-wolrd-games/winter-world-transplant-games-2024"
+    },
+    {
+      "text": "Radtour-pro-Organspende",
+      "url": "https://transdiaev.de/sportveranstaltungen/radtour-pro-organspende"
+    },
+    {
+      "text": "Euregio-Tour",
+      "url": "https://transdiaev.de/sportveranstaltungen/euregio-tour"
+    },
+    {
+      "text": "Sportergebnisse früherer Spiele",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse"
+    },
+    {
+      "text": "Kontakt",
+      "url": "https://transdiaev.de/kontakt_1"
+    },
+    {
+      "text": "",
+      "url": "https://twitter.com/TransdiaSport"
+    },
+    {
+      "text": "",
+      "url": "https://www.instagram.com/transdia_ger/"
+    },
+    {
+      "text": "",
+      "url": "https://de-de.facebook.com/transdia"
+    },
+    {
+      "text": "",
+      "url": "https://transdiaev.de/"
+    },
+    {
+      "text": "",
+      "url": "https://transdiaev.de/"
+    },
+    {
+      "text": "Über uns",
+      "url": "https://transdiaev.de/ueber-uns"
+    },
+    {
+      "text": "Unser Team",
+      "url": "https://transdiaev.de/ueber-uns/unser-team"
+    },
+    {
+      "text": "Mitglied werden",
+      "url": "https://transdiaev.de/ueber-uns/mitglied-werden"
+    },
+    {
+      "text": "Geschichte",
+      "url": "https://transdiaev.de/ueber-uns/geschichte"
+    },
+    {
+      "text": "Satzung & Geschäftsordnung",
+      "url": "https://transdiaev.de/ueber-uns/satzung-geschaeftsordnung"
+    },
+    {
+      "text": "Spenden an uns",
+      "url": "https://transdiaev.de/ueber-uns/spenden-an-uns"
+    },
+    {
+      "text": "Aktuelles",
+      "url": "https://transdiaev.de/news"
+    },
+    {
+      "text": "Event Kalender",
+      "url": "https://transdiaev.de/news/event-kalender"
+    },
+    {
+      "text": "Presse und Medien",
+      "url": "https://transdiaev.de/news/medien"
+    },
+    {
+      "text": "Sport",
+      "url": "https://transdiaev.de/sportveranstaltungen"
+    },
+    {
+      "text": "Kids Sporttag 2026",
+      "url": "https://transdiaev.de/sportveranstaltungen/kids-sporttag-2026"
+    },
+    {
+      "text": "Deutsche Meisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften"
+    },
+    {
+      "text": "Grundlegendes",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/grundlegendes"
+    },
+    {
+      "text": "DM 2026 Straubing",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/dm-2026-straubing"
+    },
+    {
+      "text": "DM 2025 Dresden",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/dm-2025-dresden"
+    },
+    {
+      "text": "DM 2024 Duisburg",
+      "url": "https://transdiaev.de/sportveranstaltungen/deutsche-meisterschaften/dm-2024-duisburg"
+    },
+    {
+      "text": "Europameisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/europameisterschaften"
+    },
+    {
+      "text": "Weltmeisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/weltmeisterschaften"
+    },
+    {
+      "text": "WTG 2025 in Dresden",
+      "url": "https://transdiaev.de/sportveranstaltungen/weltmeisterschaften/wtg-2025-in-dresden"
+    },
+    {
+      "text": "Winter-Meisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften#"
+    },
+    {
+      "text": "16. Österreichische Schi-Meisterschaften der Transplantierten und Dialysepatienten",
+      "url": "https://transdiaev.de/sportveranstaltungen/winter-meisterschaften/16-österreichische-schi-meisterschaften-der-transplantierten-und-dialysepatienten"
+    },
+    {
+      "text": "WINTER WOLRD GAMES",
+      "url": "https://transdiaev.de/sportveranstaltungen/winter-wolrd-games"
+    },
+    {
+      "text": "Winter World Transplant Games 2024",
+      "url": "https://transdiaev.de/sportveranstaltungen/winter-wolrd-games/winter-world-transplant-games-2024"
+    },
+    {
+      "text": "Radtour-pro-Organspende",
+      "url": "https://transdiaev.de/sportveranstaltungen/radtour-pro-organspende"
+    },
+    {
+      "text": "Euregio-Tour",
+      "url": "https://transdiaev.de/sportveranstaltungen/euregio-tour"
+    },
+    {
+      "text": "Sportergebnisse früherer Spiele",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse"
+    },
+    {
+      "text": "Kontakt",
+      "url": "https://transdiaev.de/kontakt_1"
+    },
+    {
+      "text": "MITGLIED WERDEN",
+      "url": "https://transdiaev.de/ueber-uns/mitglied-werden"
+    },
+    {
+      "text": "Sport",
+      "url": "https://transdiaev.de/sportveranstaltungen"
+    },
+    {
+      "text": "Sportergebnisse früherer Spiele",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse"
+    },
+    {
+      "text": "Weltmeisterschaften",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften"
+    },
+    {
+      "text": "Categories",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse"
+    },
+    {
+      "text": "WM 2017 Malaga",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/3-wm/6-wm-2017-malaga"
+    },
+    {
+      "text": "WTG_2005_London.pdf",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=14:wtg-2005-london"
+    },
+    {
+      "text": "Download",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=14:wtg-2005-london"
+    },
+    {
+      "text": "WTG-Malaga-2017_all_results.pdf",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=62:wtg-2017-alle-resultate"
+    },
+    {
+      "text": "Download",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=62:wtg-2017-alle-resultate"
+    },
+    {
+      "text": "WTG_2015_Games_Results.pdf",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=23:world-transplant-games-2015-argentinien"
+    },
+    {
+      "text": "Download",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=23:world-transplant-games-2015-argentinien"
+    },
+    {
+      "text": "WTG_2013_Results_Booklet.pdf",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=10:world-transplant-games-2013-ergebnisse"
+    },
+    {
+      "text": "Download",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=10:world-transplant-games-2013-ergebnisse"
+    },
+    {
+      "text": "WTG_2009_Australien_Results.pdf",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=6:world-transplant-games-2009"
+    },
+    {
+      "text": "Download",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=6:world-transplant-games-2009"
+    },
+    {
+      "text": "WM_2007_Bangkok_Ergebnisse.pdf",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=12:world-transplant-games-2007-ergebnisse-transdia"
+    },
+    {
+      "text": "Download",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=12:world-transplant-games-2007-ergebnisse-transdia"
+    },
+    {
+      "text": "WTG_2007_all results.pdf",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007"
+    },
+    {
+      "text": "Download",
+      "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007"
+    },
+    {
+      "text": "Phoca Download",
+      "url": "https://www.phoca.cz/phocadownload"
+    },
+    {
+      "text": "Impressum",
+      "url": "https://transdiaev.de/impressum"
+    },
+    {
+      "text": "Datenschutz",
+      "url": "https://transdiaev.de/datenschutz"
+    },
+    {
+      "text": "Cookie-Settings",
+      "url": "javascript:UC_UI.showSecondLayer();"
+    },
+    {
+      "text": "Spenden",
+      "url": "https://transdiaev.de/ueber-uns/spenden-an-uns"
+    },
+    {
+      "text": "Sitemap",
+      "url": "https://transdiaev.de/sitemap?view=html&id=1"
+    },
+    {
+      "text": "",
+      "url": "https://twitter.com/TransdiaSport"
+    },
+    {
+      "text": "",
+      "url": "https://www.instagram.com/transdia_ger/"
+    },
+    {
+      "text": "",
+      "url": "https://de-de.facebook.com/transdia"
+    },
+    {
+      "text": "EUROPEAN TRANSPLANT AND DIALYSIS SPORTS FEDERATION",
+      "url": "http://etdsf.org/"
+    },
+    {
+      "text": "WORLD TRANSPLANT GAMES FEDERATION",
+      "url": "https://wtgf.org/"
+    }
+  ]
+}

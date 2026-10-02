@@ -1,0 +1,716 @@
+{
+  "url": "https://wtgf.org/results/",
+  "retrieved_at": "2026-10-02T09:36:58.052086+00:00",
+  "id": "6ec3aef20c27111e1b25",
+  "status": "downloaded",
+  "final_url": "https://wtgf.org/results/",
+  "file": "data/swimming/sources/6ec3aef20c27111e1b25.html",
+  "sha256": "4a70e3b770e09288876989ee54a63c5a8702c35b20e9fd6d12807f44d0e7a09d",
+  "title": "Results & Awards - World Transplant Games Federation",
+  "links": [
+    {
+      "text": "",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "+44 (0) 1962 448004 |",
+      "url": "tel:+4401962448004"
+    },
+    {
+      "text": "wtgf@wtgf.org",
+      "url": "mailto:wtgf@wtgf.org"
+    },
+    {
+      "text": "",
+      "url": "https://wtgf.org/"
+    },
+    {
+      "text": "615 Bears Donated",
+      "url": "https://wtgf.org/about-tx/"
+    },
+    {
+      "text": "",
+      "url": "javascript:void(0)"
+    },
+    {
+      "text": "Home",
+      "url": "https://wtgf.org/"
+    },
+    {
+      "text": "About Us",
+      "url": "https://wtgf.org/about-us/"
+    },
+    {
+      "text": "Our Team",
+      "url": "https://wtgf.org/our-team/"
+    },
+    {
+      "text": "Past Presidents",
+      "url": "https://wtgf.org/past-presidents/"
+    },
+    {
+      "text": "Athletes Advisory Commission",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "About",
+      "url": "https://wtgf.org/athletes-advisory-commission/"
+    },
+    {
+      "text": "Members",
+      "url": "https://wtgf.org/athletes-advisory-commission-members/"
+    },
+    {
+      "text": "Membership",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Member Countries",
+      "url": "https://wtgf.org/member-countries/"
+    },
+    {
+      "text": "Join",
+      "url": "https://wtgf.org/join/"
+    },
+    {
+      "text": "Team Managers",
+      "url": "https://wtgf.org/team-managers/"
+    },
+    {
+      "text": "Governance",
+      "url": "https://wtgf.org/governance/"
+    },
+    {
+      "text": "Privacy Notice",
+      "url": "https://wtgf.org/privacy-notice/"
+    },
+    {
+      "text": "Contact Us",
+      "url": "https://wtgf.org/contact/"
+    },
+    {
+      "text": "Events",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Events Calendar",
+      "url": "https://wtgf.org/events/"
+    },
+    {
+      "text": "Virtual Events",
+      "url": "https://wtgf.org/virtual-events/"
+    },
+    {
+      "text": "Previous Virtual Events",
+      "url": "https://wtgf.org/previous-virtual-events/"
+    },
+    {
+      "text": "Summer Games",
+      "url": "https://wtgf.org/summer-games/"
+    },
+    {
+      "text": "Previous Games",
+      "url": "https://wtgf.org/previous-games/"
+    },
+    {
+      "text": "Awards",
+      "url": "https://wtgf.org/awards/"
+    },
+    {
+      "text": "General Event Policy",
+      "url": "https://wtgf.org/wp-content/uploads/2023/04/WTGF-General-Event-Policy.pdf?ver"
+    },
+    {
+      "text": "Winter Games",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "2024 Games Bormio, Italy",
+      "url": "https://wtgf.org/2024-games-bormio-italy/"
+    },
+    {
+      "text": "Previous Games",
+      "url": "https://wtgf.org/previous-games-winter/"
+    },
+    {
+      "text": "Football",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "2026 Transplant Football World Cup presented by Sanofi",
+      "url": "https://wtgf.org/2026-transplant-football-world-cup/"
+    },
+    {
+      "text": "2024 Transplant Football World Cup",
+      "url": "https://wtgf.org/2024-transplant-football-world-cup-summary/"
+    },
+    {
+      "text": "Country Teams",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Team Spain",
+      "url": "https://wtgf.org/team-spain-football-program/"
+    },
+    {
+      "text": "Team Australia",
+      "url": "https://wtgf.org/transplant-australia-football-club/"
+    },
+    {
+      "text": "Hosting a Games",
+      "url": "https://wtgf.org/hosting-a-games/"
+    },
+    {
+      "text": "Participation",
+      "url": "https://wtgf.org/participation/"
+    },
+    {
+      "text": "Sports",
+      "url": "https://wtgf.org/sports/"
+    },
+    {
+      "text": "Code of Conduct",
+      "url": "https://wtgf.org/athletes-code-of-conduct/"
+    },
+    {
+      "text": "Sports Rules",
+      "url": "https://wtgf.org/sports-rules/"
+    },
+    {
+      "text": "Results & Awards",
+      "url": "https://wtgf.org/results/"
+    },
+    {
+      "text": "Hall of Fame",
+      "url": "https://wtgf.org/hall-of-fame/"
+    },
+    {
+      "text": "Fit for Life!",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "About Fit for Life!",
+      "url": "https://wtgf.org/about-fit-for-life/"
+    },
+    {
+      "text": "Fit for Life! Initiatives",
+      "url": "https://wtgf.org/fit-for-life-initiatives/"
+    },
+    {
+      "text": "Refit for Life! Toolkit",
+      "url": "https://wtgf.org/refitforlife/"
+    },
+    {
+      "text": "Ambassadors",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Become an Ambassador",
+      "url": "https://wtgf.org/become-an-ambassador/"
+    },
+    {
+      "text": "Current Ambassadors",
+      "url": "https://wtgf.org/current-ambassadors/"
+    },
+    {
+      "text": "Transplant Ambassador Role Description",
+      "url": "https://wtgf.org/transplant-ambassador-role-description/"
+    },
+    {
+      "text": "Youth",
+      "url": "https://wtgf.org/youth/"
+    },
+    {
+      "text": "Transplant Next",
+      "url": "https://wtgf.org/transplant-next/"
+    },
+    {
+      "text": "Being Active Post-transplant",
+      "url": "https://wtgf.org/being-active-post-transplant/"
+    },
+    {
+      "text": "Sports",
+      "url": "https://wtgf.org/sports-youth/"
+    },
+    {
+      "text": "Tackers camps",
+      "url": "https://wtgf.org/tackers-camps/"
+    },
+    {
+      "text": "Transplant Next Conversations",
+      "url": "https://wtgf.org/transplant-next-conversations/"
+    },
+    {
+      "text": "Education",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Refit for Life! Toolkit",
+      "url": "https://wtgf.org/refitforlife/"
+    },
+    {
+      "text": "Women’s Wellness Program",
+      "url": "https://wtgf.org/womens-wellness-program/"
+    },
+    {
+      "text": "Men’s Wellness Program",
+      "url": "https://wtgf.org/mens-wellness/"
+    },
+    {
+      "text": "Living Forward",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Introducing the Living Forward Series",
+      "url": "https://mailchi.mp/wtgf/worldwide-abbott-press-release-introducing-the-living-forward-series"
+    },
+    {
+      "text": "Research Initiative",
+      "url": "https://wtgf.org/research-about-2/"
+    },
+    {
+      "text": "Library",
+      "url": "https://wtgf.org/library/"
+    },
+    {
+      "text": "Research Support",
+      "url": "https://wtgf.org/research-support/"
+    },
+    {
+      "text": "Research Network",
+      "url": "https://wtgf.org/network/"
+    },
+    {
+      "text": "Webinars",
+      "url": "https://wtgf.org/research-webinars/"
+    },
+    {
+      "text": "Support us",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Make A Donation",
+      "url": "https://wtgf.org/make-a-donation/"
+    },
+    {
+      "text": "Our Partners",
+      "url": "https://wtgf.org/our-partners/"
+    },
+    {
+      "text": "Collaborations",
+      "url": "https://wtgf.org/collaborations/"
+    },
+    {
+      "text": "Become a Partner",
+      "url": "https://wtgf.org/become-a-partner/"
+    },
+    {
+      "text": "News & Media",
+      "url": "https://wtgf.org/news-and-media/"
+    },
+    {
+      "text": "WTGF News",
+      "url": "https://wtgf.org/wtgf-news/"
+    },
+    {
+      "text": "Publications & Resources",
+      "url": "https://wtgf.org/publications-and-resources/"
+    },
+    {
+      "text": "Gallery & Videos",
+      "url": "https://wtgf.org/gallery-and-videos/"
+    },
+    {
+      "text": "Home",
+      "url": "https://wtgf.org/"
+    },
+    {
+      "text": "About Us",
+      "url": "https://wtgf.org/about-us/"
+    },
+    {
+      "text": "Our Team",
+      "url": "https://wtgf.org/our-team/"
+    },
+    {
+      "text": "Past Presidents",
+      "url": "https://wtgf.org/past-presidents/"
+    },
+    {
+      "text": "Athletes Advisory Commission",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "About",
+      "url": "https://wtgf.org/athletes-advisory-commission/"
+    },
+    {
+      "text": "Members",
+      "url": "https://wtgf.org/athletes-advisory-commission-members/"
+    },
+    {
+      "text": "Membership",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Member Countries",
+      "url": "https://wtgf.org/member-countries/"
+    },
+    {
+      "text": "Join",
+      "url": "https://wtgf.org/join/"
+    },
+    {
+      "text": "Team Managers",
+      "url": "https://wtgf.org/team-managers/"
+    },
+    {
+      "text": "Governance",
+      "url": "https://wtgf.org/governance/"
+    },
+    {
+      "text": "Privacy Notice",
+      "url": "https://wtgf.org/privacy-notice/"
+    },
+    {
+      "text": "Contact Us",
+      "url": "https://wtgf.org/contact/"
+    },
+    {
+      "text": "Events",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Events Calendar",
+      "url": "https://wtgf.org/events/"
+    },
+    {
+      "text": "Virtual Events",
+      "url": "https://wtgf.org/virtual-events/"
+    },
+    {
+      "text": "Previous Virtual Events",
+      "url": "https://wtgf.org/previous-virtual-events/"
+    },
+    {
+      "text": "Summer Games",
+      "url": "https://wtgf.org/summer-games/"
+    },
+    {
+      "text": "Previous Games",
+      "url": "https://wtgf.org/previous-games/"
+    },
+    {
+      "text": "Awards",
+      "url": "https://wtgf.org/awards/"
+    },
+    {
+      "text": "General Event Policy",
+      "url": "https://wtgf.org/wp-content/uploads/2023/04/WTGF-General-Event-Policy.pdf?ver"
+    },
+    {
+      "text": "Winter Games",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "2024 Games Bormio, Italy",
+      "url": "https://wtgf.org/2024-games-bormio-italy/"
+    },
+    {
+      "text": "Previous Games",
+      "url": "https://wtgf.org/previous-games-winter/"
+    },
+    {
+      "text": "Football",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "2026 Transplant Football World Cup presented by Sanofi",
+      "url": "https://wtgf.org/2026-transplant-football-world-cup/"
+    },
+    {
+      "text": "2024 Transplant Football World Cup",
+      "url": "https://wtgf.org/2024-transplant-football-world-cup-summary/"
+    },
+    {
+      "text": "Country Teams",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Team Spain",
+      "url": "https://wtgf.org/team-spain-football-program/"
+    },
+    {
+      "text": "Team Australia",
+      "url": "https://wtgf.org/transplant-australia-football-club/"
+    },
+    {
+      "text": "Hosting a Games",
+      "url": "https://wtgf.org/hosting-a-games/"
+    },
+    {
+      "text": "Participation",
+      "url": "https://wtgf.org/participation/"
+    },
+    {
+      "text": "Sports",
+      "url": "https://wtgf.org/sports/"
+    },
+    {
+      "text": "Code of Conduct",
+      "url": "https://wtgf.org/athletes-code-of-conduct/"
+    },
+    {
+      "text": "Sports Rules",
+      "url": "https://wtgf.org/sports-rules/"
+    },
+    {
+      "text": "Results & Awards",
+      "url": "https://wtgf.org/results/"
+    },
+    {
+      "text": "Hall of Fame",
+      "url": "https://wtgf.org/hall-of-fame/"
+    },
+    {
+      "text": "Fit for Life!",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "About Fit for Life!",
+      "url": "https://wtgf.org/about-fit-for-life/"
+    },
+    {
+      "text": "Fit for Life! Initiatives",
+      "url": "https://wtgf.org/fit-for-life-initiatives/"
+    },
+    {
+      "text": "Refit for Life! Toolkit",
+      "url": "https://wtgf.org/refitforlife/"
+    },
+    {
+      "text": "Ambassadors",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Become an Ambassador",
+      "url": "https://wtgf.org/become-an-ambassador/"
+    },
+    {
+      "text": "Current Ambassadors",
+      "url": "https://wtgf.org/current-ambassadors/"
+    },
+    {
+      "text": "Transplant Ambassador Role Description",
+      "url": "https://wtgf.org/transplant-ambassador-role-description/"
+    },
+    {
+      "text": "Youth",
+      "url": "https://wtgf.org/youth/"
+    },
+    {
+      "text": "Transplant Next",
+      "url": "https://wtgf.org/transplant-next/"
+    },
+    {
+      "text": "Being Active Post-transplant",
+      "url": "https://wtgf.org/being-active-post-transplant/"
+    },
+    {
+      "text": "Sports",
+      "url": "https://wtgf.org/sports-youth/"
+    },
+    {
+      "text": "Tackers camps",
+      "url": "https://wtgf.org/tackers-camps/"
+    },
+    {
+      "text": "Transplant Next Conversations",
+      "url": "https://wtgf.org/transplant-next-conversations/"
+    },
+    {
+      "text": "Education",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Refit for Life! Toolkit",
+      "url": "https://wtgf.org/refitforlife/"
+    },
+    {
+      "text": "Women’s Wellness Program",
+      "url": "https://wtgf.org/womens-wellness-program/"
+    },
+    {
+      "text": "Men’s Wellness Program",
+      "url": "https://wtgf.org/mens-wellness/"
+    },
+    {
+      "text": "Living Forward",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Introducing the Living Forward Series",
+      "url": "https://mailchi.mp/wtgf/worldwide-abbott-press-release-introducing-the-living-forward-series"
+    },
+    {
+      "text": "Research Initiative",
+      "url": "https://wtgf.org/research-about-2/"
+    },
+    {
+      "text": "Library",
+      "url": "https://wtgf.org/library/"
+    },
+    {
+      "text": "Research Support",
+      "url": "https://wtgf.org/research-support/"
+    },
+    {
+      "text": "Research Network",
+      "url": "https://wtgf.org/network/"
+    },
+    {
+      "text": "Webinars",
+      "url": "https://wtgf.org/research-webinars/"
+    },
+    {
+      "text": "Support us",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Make A Donation",
+      "url": "https://wtgf.org/make-a-donation/"
+    },
+    {
+      "text": "Our Partners",
+      "url": "https://wtgf.org/our-partners/"
+    },
+    {
+      "text": "Collaborations",
+      "url": "https://wtgf.org/collaborations/"
+    },
+    {
+      "text": "Become a Partner",
+      "url": "https://wtgf.org/become-a-partner/"
+    },
+    {
+      "text": "News & Media",
+      "url": "https://wtgf.org/news-and-media/"
+    },
+    {
+      "text": "WTGF News",
+      "url": "https://wtgf.org/wtgf-news/"
+    },
+    {
+      "text": "Publications & Resources",
+      "url": "https://wtgf.org/publications-and-resources/"
+    },
+    {
+      "text": "Gallery & Videos",
+      "url": "https://wtgf.org/gallery-and-videos/"
+    },
+    {
+      "text": "",
+      "url": "https://wtgf.org/results/#"
+    },
+    {
+      "text": "Home",
+      "url": "https://wtgf.org/"
+    },
+    {
+      "text": "Results for the 2025 World Transplant Games",
+      "url": "https://wtgf.org/wp-content/uploads/2026/06/2025-WTG-Results.pdf"
+    },
+    {
+      "text": "Results for the 2024 Winter World Transplant Games",
+      "url": "https://wtgf.org/wp-content/uploads/2024/11/Results-for-the-2024-WInter-World-Transplant-Games.pdf"
+    },
+    {
+      "text": "2024 Winter World Transplant Games Medals",
+      "url": "https://wtgf.org/wp-content/uploads/2024/11/2024-Winter-World-Transplant-Games-Medals.pdf"
+    },
+    {
+      "text": "Results for the 2023 World Transplant Games",
+      "url": "https://wtgf.org/wp-content/uploads/2025/03/Perth-Results-with-Medal-Tally.pdf"
+    },
+    {
+      "text": "Results for the 2020 World Transplant Games",
+      "url": "https://wtgf.org/wp-content/uploads/2020/03/2020-World-Transplant-Winter-Games-Banff-Complete-Results.pdf"
+    },
+    {
+      "text": "2020 World Transplant Games Medals",
+      "url": "https://wtgf.org/wp-content/uploads/2020/03/WTWG-Medals-03-10-2020.pdf"
+    },
+    {
+      "text": "Results for the 2019 World Transplant Games in Newcastle, Gateshead",
+      "url": "https://wtgf.org/wp-content/uploads/2020/08/WTG2019-results-1.pdf"
+    },
+    {
+      "text": "Results for the 2017 World Transplant Games in Malaga, Spain",
+      "url": "https://wtgf.org/wp-content/uploads/2019/08/2017-World-Transplant-Games-Results-August-2018-new.pdf"
+    },
+    {
+      "text": "Results for 2015 Summer World Transplant Games in Mar del Plata, Argentina",
+      "url": "https://wtgf.org/wp-content/uploads/2016/06/2015_Games_Results.pdf"
+    },
+    {
+      "text": "Results for 2013 Summer World Transplant Games in Durban, South Africa",
+      "url": "https://wtgf.org/wp-content/uploads/2016/06/WTG2013_Results_compressed.pdf"
+    },
+    {
+      "text": "Games Record Performances – Women, Men and Juniors Track & Field",
+      "url": "https://wtgf.org/wp-content/uploads/2026/03/Records-Athletics-updated-March-2026.pdf"
+    },
+    {
+      "text": "Games Record Performances – Women, Men and Juniors Swimming (long course)",
+      "url": "https://wtgf.org/wp-content/uploads/2026/03/Records-Swimming-Long-Course-updated-Feb-2026.pdf"
+    },
+    {
+      "text": "Games Record Performances – Women and Men Swimming (short course)",
+      "url": "https://wtgf.org/wp-content/uploads/2016/06/World_Records_Swimming_Short_Course2.pdf"
+    },
+    {
+      "text": "Games Record Performances – Juniors Swimming (short course)",
+      "url": "https://wtgf.org/wp-content/uploads/2016/06/World_Records_-_Juniors_Swimming_Short_Course.pdf"
+    },
+    {
+      "text": "Donate Now!",
+      "url": "https://wtgf.org/make-a-donation/"
+    },
+    {
+      "text": "Making A Difference Cards",
+      "url": "https://gb.makingadifference.cards/supporting/world-transplant-games-federation"
+    },
+    {
+      "text": "READ MORE",
+      "url": "http://wtgf.org/about-us/"
+    },
+    {
+      "text": "The Race to Host the 2029 World Transplant Games Continues",
+      "url": "https://wtgf.org/the-race-to-host-the-2029-world-transplant-games-continues/"
+    },
+    {
+      "text": "Peter van Maurik reflects on the two questions – How Long Do I Have and What Do I Do Now?",
+      "url": "https://wtgf.org/how-long-do-i-have-and-what-do-i-do-now/"
+    },
+    {
+      "text": "Running with Purpose: Rita Completes Her First 12km Race",
+      "url": "https://wtgf.org/running-with-purpose-rita-completes-her-first-12km-race/"
+    },
+    {
+      "text": "+44 (0) 1962 448004",
+      "url": "tel:+4401962448004"
+    },
+    {
+      "text": "wtgf@wtgf.org",
+      "url": "mailto:wtgf@wtgf.org"
+    },
+    {
+      "text": "Privacy Notice",
+      "url": "https://wtgf.org/privacy-notice/"
+    },
+    {
+      "text": "Weblab",
+      "url": "http://theweblab.co.za"
+    }
+  ]
+}

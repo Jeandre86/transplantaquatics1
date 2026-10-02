@@ -36,7 +36,7 @@ export default function FastestByTransplantTypeSection() {
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{fastest ? `${fastest.event} · ${fastest.gender}` : '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-base font-bold text-[var(--navy)] sm:px-5">{fastest?.time ?? '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{fastest?.course ?? '—'}</td>
-                <td className="whitespace-nowrap px-3 py-4 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] sm:px-5">{fastest ? (fastest.status === 'verified' ? 'Verified' : 'Pending verification') : 'No results'}</td>
+                <td className="whitespace-nowrap px-3 py-4 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] sm:px-5">{fastest ? (fastest.status === 'verified' ? 'Verified' : fastest.status === 'imported_unverified' ? 'Imported · unverified' : 'Pending verification') : 'No results'}</td>
               </tr>;
             })}</tbody>
           </table>

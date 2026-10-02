@@ -1,0 +1,7 @@
+sources/*.pdf
+sources/*.html
+sources/*.txt
+sources/*.pages.json
+sources/*.plain.json
+sources/*.msl.json
+sources/*.ocr.json

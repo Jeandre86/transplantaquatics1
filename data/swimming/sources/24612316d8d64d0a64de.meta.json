@@ -1,0 +1,7 @@
+{
+  "url": "https://tingleyllc.com/Swim-Meets/2024/TransplantGames/",
+  "retrieved_at": "2026-10-02T09:37:47.954775+00:00",
+  "id": "24612316d8d64d0a64de",
+  "status": "unavailable",
+  "error": "HTTPSConnectionPool(host='tingleyllc.com', port=443): Max retries exceeded with url: /Swim-Meets/2024/TransplantGames/ (Caused by NameResolutionError(\"HTTPSConnection(host='tingleyllc.com', port=443): Failed to resolve 'tingleyllc.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+}

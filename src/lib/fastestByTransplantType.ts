@@ -13,7 +13,7 @@ export interface FastestTransplantSwim {
   event: string;
   time: string;
   course: string | null;
-  status: 'swimmer_submitted' | 'verified';
+  status: 'swimmer_submitted' | 'imported_unverified' | 'verified';
 }
 
 interface ResultRow {
@@ -42,7 +42,7 @@ export async function loadFastestByTransplantType(): Promise<FastestTransplantSw
   const fastestByEventCategory = new Map<string, FastestTransplantSwim>();
 
   for (const row of (resultsResponse.data ?? []) as unknown as ResultRow[]) {
-    if (!row.swimmer_id || !row.time || !row.event || (row.status !== 'verified' && row.status !== 'swimmer_submitted')) continue;
+    if (!row.swimmer_id || !row.time || !row.event || !['verified', 'swimmer_submitted', 'imported_unverified'].includes(row.status)) continue;
     const profile = profileById.get(row.swimmer_id);
     if (!profile || !Number.isFinite(timeToSeconds(row.time))) continue;
 
@@ -62,7 +62,7 @@ export async function loadFastestByTransplantType(): Promise<FastestTransplantSw
       event: row.event,
       time: row.time,
       course: meet?.course ?? null,
-      status: row.status,
+      status: row.status as FastestTransplantSwim['status'],
     });
   }
 

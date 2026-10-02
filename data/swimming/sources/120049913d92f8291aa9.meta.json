@@ -1,0 +1,568 @@
+{
+  "url": "https://live.swimrankings.net/49279/",
+  "retrieved_at": "2026-10-02T09:37:12.270702+00:00",
+  "id": "120049913d92f8291aa9",
+  "status": "downloaded",
+  "final_url": "https://live.swimrankings.net/49279/",
+  "file": "data/swimming/sources/120049913d92f8291aa9.html",
+  "sha256": "5cbf7614d580bb588c9bcecde0754411b8502914fa7b3fba81efe2660a500a60",
+  "title": "European Transplant Games 2026 - SPLASH Meet Manager 11",
+  "links": [
+    {
+      "text": "Events",
+      "url": "https://live.swimrankings.net/49279/#"
+    },
+    {
+      "text": "Day 1",
+      "url": "https://live.swimrankings.net/49279/#"
+    },
+    {
+      "text": "Day 2",
+      "url": "https://live.swimrankings.net/49279/#"
+    },
+    {
+      "text": "Last Heat Results",
+      "url": "https://live.swimrankings.net/49279/#"
+    },
+    {
+      "text": "Startlist Session 1 - Monday",
+      "url": "https://live.swimrankings.net/49279/Arnhem_ETG2026_startlist_260622_Morning.pdf"
+    },
+    {
+      "text": "Startlist Session 2 - Monday",
+      "url": "https://live.swimrankings.net/49279/Arnhem_ETG2026_startlist_260622_Afternoon.pdf"
+    },
+    {
+      "text": "Startlist Session 3 - Tuesday",
+      "url": "https://live.swimrankings.net/49279/Arnhem_ETG2026_startlist_260623_Morning.pdf"
+    },
+    {
+      "text": "Startlist Session 4 - Tuesday",
+      "url": "https://live.swimrankings.net/49279/Arnhem_ETG2026_startlist_260623_Afternoon.pdf"
+    },
+    {
+      "text": "",
+      "url": "https://play.google.com/store/apps/details?id=com.splashme"
+    },
+    {
+      "text": "",
+      "url": "https://itunes.apple.com/us/app/splashme/id584805809?l=de&ls=1&mt=8"
+    },
+    {
+      "text": "Entry Statistics by Club",
+      "url": "https://live.swimrankings.net/49279/EntryStatistics.pdf"
+    },
+    {
+      "text": "Medal Statistics",
+      "url": "https://live.swimrankings.net/49279/Medals.pdf"
+    },
+    {
+      "text": "Medalists by Event",
+      "url": "https://live.swimrankings.net/49279/MedalsByEvent.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_23.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_23.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_22.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_22.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_27.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_27.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_26.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_26.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_4.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_4.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_3.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_3.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_21.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_21.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_20.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_20.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_2.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_2.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_1.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_1.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_6.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_6.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_5.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_5.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_25.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_25.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_24.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_24.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_15.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_15.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_14.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_14.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_19.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_19.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_18.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_18.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_8.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_8.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_7.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_7.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_10.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_10.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_9.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_9.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_17.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_17.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_16.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_16.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_11.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_11.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_29.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_29.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_12.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_12.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_13.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_13.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_28.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_28.pdf"
+    },
+    {
+      "text": "",
+      "url": "https://play.google.com/store/apps/details?id=com.splashme"
+    },
+    {
+      "text": "",
+      "url": "https://itunes.apple.com/us/app/splashme/id584805809?l=de&ls=1&mt=8"
+    },
+    {
+      "text": "Entry Statistics by Club",
+      "url": "https://live.swimrankings.net/49279/EntryStatistics.pdf"
+    },
+    {
+      "text": "Medal Statistics",
+      "url": "https://live.swimrankings.net/49279/Medals.pdf"
+    },
+    {
+      "text": "Medalists by Event",
+      "url": "https://live.swimrankings.net/49279/MedalsByEvent.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_1.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_1.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_2.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_2.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_3.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_3.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_4.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_4.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_5.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_5.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_6.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_6.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_7.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_7.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_8.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_8.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_9.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_9.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_10.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_10.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_11.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_11.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_12.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_12.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_13.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_13.pdf"
+    },
+    {
+      "text": "",
+      "url": "https://play.google.com/store/apps/details?id=com.splashme"
+    },
+    {
+      "text": "",
+      "url": "https://itunes.apple.com/us/app/splashme/id584805809?l=de&ls=1&mt=8"
+    },
+    {
+      "text": "Entry Statistics by Club",
+      "url": "https://live.swimrankings.net/49279/EntryStatistics.pdf"
+    },
+    {
+      "text": "Medal Statistics",
+      "url": "https://live.swimrankings.net/49279/Medals.pdf"
+    },
+    {
+      "text": "Medalists by Event",
+      "url": "https://live.swimrankings.net/49279/MedalsByEvent.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_14.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_14.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_15.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_15.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_16.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_16.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_17.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_17.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_18.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_18.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_19.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_19.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_20.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_20.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_21.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_21.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_22.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_22.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_23.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_23.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_24.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_24.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_25.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_25.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_26.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_26.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_27.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_27.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_28.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_28.pdf"
+    },
+    {
+      "text": "Startlist",
+      "url": "https://live.swimrankings.net/49279/StartList_29.pdf"
+    },
+    {
+      "text": "Results",
+      "url": "https://live.swimrankings.net/49279/ResultList_29.pdf"
+    }
+  ]
+}

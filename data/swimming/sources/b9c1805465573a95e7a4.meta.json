@@ -1,0 +1,524 @@
+{
+  "url": "https://www.canadiantransplant.com/standings",
+  "retrieved_at": "2026-10-02T09:38:07.295319+00:00",
+  "id": "b9c1805465573a95e7a4",
+  "status": "downloaded",
+  "final_url": "https://www.canadiantransplant.com/standings",
+  "file": "data/swimming/sources/b9c1805465573a95e7a4.html",
+  "sha256": "25658a7ca27f9bfac27b055caec36acae65d8a2eb5e99e512ef4fa4bd5a71b24",
+  "title": "Standing & Results — Canadian Transplant Association",
+  "links": [
+    {
+      "text": "Skip to Content",
+      "url": "https://www.canadiantransplant.com/standings#page"
+    },
+    {
+      "text": "",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "Our Sponsors",
+      "url": "https://www.canadiantransplant.com/sponsors"
+    },
+    {
+      "text": "About the Games",
+      "url": "https://www.canadiantransplant.com/2026-cta-games"
+    },
+    {
+      "text": "Sports",
+      "url": "https://www.canadiantransplant.com/sports"
+    },
+    {
+      "text": "Games Schedule",
+      "url": "https://www.canadiantransplant.com/schedule"
+    },
+    {
+      "text": "Pricing",
+      "url": "https://www.canadiantransplant.com/games-pricing"
+    },
+    {
+      "text": "Registration",
+      "url": "https://www.canadiantransplant.com/registration"
+    },
+    {
+      "text": "Standings & Results",
+      "url": "https://www.canadiantransplant.com/standings"
+    },
+    {
+      "text": "Volunteer at the Games",
+      "url": "https://www.canadiantransplant.com/volunteer-games"
+    },
+    {
+      "text": "Bursary Awards",
+      "url": "https://www.canadiantransplant.com/bursary"
+    },
+    {
+      "text": "Games FAQs",
+      "url": "https://www.canadiantransplant.com/2026faqs"
+    },
+    {
+      "text": "Games Merchandise",
+      "url": "https://www.canadiantransplant.com/merch"
+    },
+    {
+      "text": "2024 Games Gallery",
+      "url": "https://www.canadiantransplant.com/2024gallery"
+    },
+    {
+      "text": "Donate to the Games",
+      "url": "https://www.canadiantransplant.com/donate-to-the-games"
+    },
+    {
+      "text": "About Us",
+      "url": "https://www.canadiantransplant.com/about"
+    },
+    {
+      "text": "Our Board",
+      "url": "https://www.canadiantransplant.com/board"
+    },
+    {
+      "text": "News, Events, & Stories",
+      "url": "https://www.canadiantransplant.com/news"
+    },
+    {
+      "text": "Partners",
+      "url": "https://www.canadiantransplant.com/partners"
+    },
+    {
+      "text": "Join Our Community",
+      "url": "https://www.canadiantransplant.com/join-our-community"
+    },
+    {
+      "text": "Organ Donation",
+      "url": "https://www.canadiantransplant.com/organ-donation"
+    },
+    {
+      "text": "Volunteer at the Games",
+      "url": "https://www.canadiantransplant.com/volunteer-games"
+    },
+    {
+      "text": "Volunteer",
+      "url": "https://www.canadiantransplant.com/volunteer"
+    },
+    {
+      "text": "Donate",
+      "url": "https://www.canadiantransplant.com/donatetoday"
+    },
+    {
+      "text": "Resources",
+      "url": "https://www.canadiantransplant.com/resources"
+    },
+    {
+      "text": "Upcoming Events",
+      "url": "https://www.canadiantransplant.com/events"
+    },
+    {
+      "text": "World Transplant Games",
+      "url": "https://www.canadiantransplant.com/transplant-games-1"
+    },
+    {
+      "text": "Green Shirt Day",
+      "url": "https://www.canadiantransplant.com/green-shirt-day"
+    },
+    {
+      "text": "0",
+      "url": "https://www.canadiantransplant.com/cart"
+    },
+    {
+      "text": "0",
+      "url": "https://www.canadiantransplant.com/cart"
+    },
+    {
+      "text": "Donate Now",
+      "url": "https://www.canadiantransplant.com/donatetoday"
+    },
+    {
+      "text": "",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "Our Sponsors",
+      "url": "https://www.canadiantransplant.com/sponsors"
+    },
+    {
+      "text": "About the Games",
+      "url": "https://www.canadiantransplant.com/2026-cta-games"
+    },
+    {
+      "text": "Sports",
+      "url": "https://www.canadiantransplant.com/sports"
+    },
+    {
+      "text": "Games Schedule",
+      "url": "https://www.canadiantransplant.com/schedule"
+    },
+    {
+      "text": "Pricing",
+      "url": "https://www.canadiantransplant.com/games-pricing"
+    },
+    {
+      "text": "Registration",
+      "url": "https://www.canadiantransplant.com/registration"
+    },
+    {
+      "text": "Standings & Results",
+      "url": "https://www.canadiantransplant.com/standings"
+    },
+    {
+      "text": "Volunteer at the Games",
+      "url": "https://www.canadiantransplant.com/volunteer-games"
+    },
+    {
+      "text": "Bursary Awards",
+      "url": "https://www.canadiantransplant.com/bursary"
+    },
+    {
+      "text": "Games FAQs",
+      "url": "https://www.canadiantransplant.com/2026faqs"
+    },
+    {
+      "text": "Games Merchandise",
+      "url": "https://www.canadiantransplant.com/merch"
+    },
+    {
+      "text": "2024 Games Gallery",
+      "url": "https://www.canadiantransplant.com/2024gallery"
+    },
+    {
+      "text": "Donate to the Games",
+      "url": "https://www.canadiantransplant.com/donate-to-the-games"
+    },
+    {
+      "text": "About Us",
+      "url": "https://www.canadiantransplant.com/about"
+    },
+    {
+      "text": "Our Board",
+      "url": "https://www.canadiantransplant.com/board"
+    },
+    {
+      "text": "News, Events, & Stories",
+      "url": "https://www.canadiantransplant.com/news"
+    },
+    {
+      "text": "Partners",
+      "url": "https://www.canadiantransplant.com/partners"
+    },
+    {
+      "text": "Join Our Community",
+      "url": "https://www.canadiantransplant.com/join-our-community"
+    },
+    {
+      "text": "Organ Donation",
+      "url": "https://www.canadiantransplant.com/organ-donation"
+    },
+    {
+      "text": "Volunteer at the Games",
+      "url": "https://www.canadiantransplant.com/volunteer-games"
+    },
+    {
+      "text": "Volunteer",
+      "url": "https://www.canadiantransplant.com/volunteer"
+    },
+    {
+      "text": "Donate",
+      "url": "https://www.canadiantransplant.com/donatetoday"
+    },
+    {
+      "text": "Resources",
+      "url": "https://www.canadiantransplant.com/resources"
+    },
+    {
+      "text": "Upcoming Events",
+      "url": "https://www.canadiantransplant.com/events"
+    },
+    {
+      "text": "World Transplant Games",
+      "url": "https://www.canadiantransplant.com/transplant-games-1"
+    },
+    {
+      "text": "Green Shirt Day",
+      "url": "https://www.canadiantransplant.com/green-shirt-day"
+    },
+    {
+      "text": "0",
+      "url": "https://www.canadiantransplant.com/cart"
+    },
+    {
+      "text": "0",
+      "url": "https://www.canadiantransplant.com/cart"
+    },
+    {
+      "text": "Donate Now",
+      "url": "https://www.canadiantransplant.com/donatetoday"
+    },
+    {
+      "text": "Folder: 2026 Games",
+      "url": "https://www.canadiantransplant.com/2026-games"
+    },
+    {
+      "text": "Back",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "Our Sponsors",
+      "url": "https://www.canadiantransplant.com/sponsors"
+    },
+    {
+      "text": "About the Games",
+      "url": "https://www.canadiantransplant.com/2026-cta-games"
+    },
+    {
+      "text": "Sports",
+      "url": "https://www.canadiantransplant.com/sports"
+    },
+    {
+      "text": "Games Schedule",
+      "url": "https://www.canadiantransplant.com/schedule"
+    },
+    {
+      "text": "Pricing",
+      "url": "https://www.canadiantransplant.com/games-pricing"
+    },
+    {
+      "text": "Registration",
+      "url": "https://www.canadiantransplant.com/registration"
+    },
+    {
+      "text": "Standings & Results",
+      "url": "https://www.canadiantransplant.com/standings"
+    },
+    {
+      "text": "Volunteer at the Games",
+      "url": "https://www.canadiantransplant.com/volunteer-games"
+    },
+    {
+      "text": "Bursary Awards",
+      "url": "https://www.canadiantransplant.com/bursary"
+    },
+    {
+      "text": "Games FAQs",
+      "url": "https://www.canadiantransplant.com/2026faqs"
+    },
+    {
+      "text": "Games Merchandise",
+      "url": "https://www.canadiantransplant.com/merch"
+    },
+    {
+      "text": "2024 Games Gallery",
+      "url": "https://www.canadiantransplant.com/2024gallery"
+    },
+    {
+      "text": "Donate to the Games",
+      "url": "https://www.canadiantransplant.com/donate-to-the-games"
+    },
+    {
+      "text": "Folder: About Us",
+      "url": "https://www.canadiantransplant.com/about-us"
+    },
+    {
+      "text": "Back",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "About Us",
+      "url": "https://www.canadiantransplant.com/about"
+    },
+    {
+      "text": "Our Board",
+      "url": "https://www.canadiantransplant.com/board"
+    },
+    {
+      "text": "News, Events, & Stories",
+      "url": "https://www.canadiantransplant.com/news"
+    },
+    {
+      "text": "Partners",
+      "url": "https://www.canadiantransplant.com/partners"
+    },
+    {
+      "text": "Folder: Get Involved",
+      "url": "https://www.canadiantransplant.com/get-involved"
+    },
+    {
+      "text": "Back",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "Join Our Community",
+      "url": "https://www.canadiantransplant.com/join-our-community"
+    },
+    {
+      "text": "Organ Donation",
+      "url": "https://www.canadiantransplant.com/organ-donation"
+    },
+    {
+      "text": "Volunteer at the Games",
+      "url": "https://www.canadiantransplant.com/volunteer-games"
+    },
+    {
+      "text": "Volunteer",
+      "url": "https://www.canadiantransplant.com/volunteer"
+    },
+    {
+      "text": "Donate",
+      "url": "https://www.canadiantransplant.com/donatetoday"
+    },
+    {
+      "text": "Resources",
+      "url": "https://www.canadiantransplant.com/resources"
+    },
+    {
+      "text": "Folder: Events",
+      "url": "https://www.canadiantransplant.com/CTAevents"
+    },
+    {
+      "text": "Back",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "Upcoming Events",
+      "url": "https://www.canadiantransplant.com/events"
+    },
+    {
+      "text": "World Transplant Games",
+      "url": "https://www.canadiantransplant.com/transplant-games-1"
+    },
+    {
+      "text": "Green Shirt Day",
+      "url": "https://www.canadiantransplant.com/green-shirt-day"
+    },
+    {
+      "text": "English",
+      "url": "https://www.canadiantransplant.com/standings#"
+    },
+    {
+      "text": "Back",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "Donate Now",
+      "url": "https://www.canadiantransplant.com/donatetoday"
+    },
+    {
+      "text": "5km Cycling",
+      "url": "https://www.canadiantransplant.com/s/resultats-Cyclisme-5-km-CLM-2.pdf"
+    },
+    {
+      "text": "Golf",
+      "url": "https://www.canadiantransplant.com/s/resultats-Golf.pdf"
+    },
+    {
+      "text": "Pickleball",
+      "url": "https://www.canadiantransplant.com/s/Sherbrooke-Pickleball-Version-Finale.xlsx"
+    },
+    {
+      "text": "Badminton",
+      "url": "https://www.canadiantransplant.com/s/resultats-badminton-2.pdf"
+    },
+    {
+      "text": "Bowling",
+      "url": "https://www.canadiantransplant.com/s/resultats-bowling-1.pdf"
+    },
+    {
+      "text": "20km Cycling",
+      "url": "https://www.canadiantransplant.com/s/resultats-Cyclisme-20-km-1.pdf"
+    },
+    {
+      "text": "1km",
+      "url": "https://www.canadiantransplant.com/s/resultats-1-km.pdf"
+    },
+    {
+      "text": "5km",
+      "url": "https://www.canadiantransplant.com/s/resultats-5-km-2.pdf"
+    },
+    {
+      "text": "Youth - girls",
+      "url": "https://www.canadiantransplant.com/s/Nat_filles.pdf"
+    },
+    {
+      "text": "Youth - boys",
+      "url": "https://www.canadiantransplant.com/s/Nat_garcons.pdf"
+    },
+    {
+      "text": "50m - Women",
+      "url": "https://www.canadiantransplant.com/s/Nat_50-m-Femmes.pdf"
+    },
+    {
+      "text": "50m - Men",
+      "url": "https://www.canadiantransplant.com/s/Nat_50-m-Hommes.pdf"
+    },
+    {
+      "text": "100m - Women",
+      "url": "https://www.canadiantransplant.com/s/Nat_100-m-Femmes.pdf"
+    },
+    {
+      "text": "100m - Men",
+      "url": "https://www.canadiantransplant.com/s/Nat_100-m-Hommes.pdf"
+    },
+    {
+      "text": "200m, 500m - Men and Women",
+      "url": "https://www.canadiantransplant.com/s/Nat_200_500m-F_H.pdf"
+    },
+    {
+      "text": "Tennis",
+      "url": "https://www.canadiantransplant.com/s/resultats-tennis.pdf"
+    },
+    {
+      "text": "Petanque",
+      "url": "https://www.canadiantransplant.com/s/Petanque-Results-3.xlsx"
+    },
+    {
+      "text": "Virtual Triathlon",
+      "url": "https://www.canadiantransplant.com/s/Triathlon-Results-1.pdf"
+    },
+    {
+      "text": "Track and Field",
+      "url": "https://www.canadiantransplant.com/s/Jeux-canadiens-des-greffes-2026_AVS_Resultats-1.pdf"
+    },
+    {
+      "text": "Home",
+      "url": "https://www.canadiantransplant.com/"
+    },
+    {
+      "text": "News",
+      "url": "https://www.canadiantransplant.com/news"
+    },
+    {
+      "text": "Upcoming Events",
+      "url": "https://www.canadiantransplant.com/events"
+    },
+    {
+      "text": "Shop",
+      "url": "https://www.canadiantransplant.com/cta-store"
+    },
+    {
+      "text": "Contact us",
+      "url": "https://www.canadiantransplant.com/contact-us"
+    },
+    {
+      "text": "",
+      "url": "https://www.facebook.com/CanadianTransplantAssociationCTA"
+    },
+    {
+      "text": "",
+      "url": "https://twitter.com/CTACanada"
+    },
+    {
+      "text": "",
+      "url": "https://www.instagram.com/cta.connect"
+    },
+    {
+      "text": "",
+      "url": "https://www.linkedin.com/company/canadian-transplant-association/?viewAsMember=true"
+    },
+    {
+      "text": "Contact Us",
+      "url": "https://www.canadiantransplant.com/contact-us"
+    },
+    {
+      "text": "cta@cta-acg.ca",
+      "url": "mailto:cta@cta-acg.ca?"
+    }
+  ]
+}

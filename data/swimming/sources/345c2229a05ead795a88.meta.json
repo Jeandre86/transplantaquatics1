@@ -1,0 +1,7 @@
+{
+  "url": "https://etdsf.org/",
+  "retrieved_at": "2026-10-02T09:35:48.133239+00:00",
+  "id": "345c2229a05ead795a88",
+  "status": "unavailable",
+  "error": "HTTPSConnectionPool(host='etdsf.org', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1082)')))"
+}

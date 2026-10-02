@@ -40,7 +40,7 @@ export interface PublicSwimmerResult {
   time: string;
   age_group: string;
   points: number | null;
-  status: 'swimmer_submitted' | 'verified' | 'rejected';
+  status: 'swimmer_submitted' | 'imported_unverified' | 'verified' | 'rejected';
   created_at: string;
   meet_name: string | null;
   meet_date: string | null;
@@ -76,11 +76,12 @@ export interface SubmittedSwimmerResult {
   swimmer_id: string | null;
   event: string;
   time: string;
+  course?: string | null;
   age_group: string;
   points: number | null;
   record_candidate: boolean;
   record_candidate_status: 'not_candidate' | 'pending_verification' | 'verified' | 'rejected';
-  status: 'swimmer_submitted' | 'verified' | 'rejected';
+  status: 'swimmer_submitted' | 'imported_unverified' | 'verified' | 'rejected';
   created_at: string;
   meet_id: string | null;
   swimmer_name: string;
@@ -285,7 +286,7 @@ export async function findOrCreateSubmittedMeet(meet: SubmittedMeetDraft): Promi
 
 export async function loadMeetResults(meetId: string, swimmerId: string): Promise<SubmittedSwimmerResult[]> {
   const { data, error } = await client().from('swimmer_results')
-    .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name')
+    .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name')
     .eq('meet_id', meetId).eq('swimmer_id', swimmerId).order('event');
   if (error) throw error;
   return (data ?? []).map(row => normalizeSubmittedResult(row));
@@ -310,7 +311,7 @@ export async function saveSwimmerResult(result: SwimmerResultDraft): Promise<Sub
     record_candidate_status: result.recordCandidate ? 'pending_verification' : 'not_candidate',
     status: 'swimmer_submitted',
   }, { onConflict: 'meet_id,swimmer_id,event' })
-    .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name')
+    .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name')
     .single();
   if (error) throw error;
   return normalizeSubmittedResult(data);
@@ -337,7 +338,7 @@ export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> 
   if (userError) throw userError;
   if (!user) return [];
 
-  const resultFields = 'id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
+  const resultFields = 'id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
   const [profileResult, submittedResult] = await Promise.all([
     db.from('swimmer_profiles').select('id,date_of_birth'),
     db.from('swimmer_results').select(resultFields).eq('submitted_by', user.id).order('created_at', { ascending: false }),
@@ -370,7 +371,7 @@ export async function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResu
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await client().from('swimmer_results')
-      .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)')
+      .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)')
       .neq('status', 'rejected')
       .order('created_at', { ascending: false })
       .range(from, from + pageSize - 1);

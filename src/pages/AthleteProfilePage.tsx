@@ -17,6 +17,7 @@ import { getSavedAvatar } from '../lib/avatars';
 import { loadPublicSwimmerDirectory, loadPublicSwimmerResults, type PublicSwimmerProfile, type PublicSwimmerResult } from '../lib/swimmerSubmissions';
 import { describeSupabaseError, supabase } from '../lib/supabase';
 import type { AgeGroup, PersonalBest, Result } from '../types';
+import type { Medal } from '../types';
 import DatabaseResultsTable from '../components/DatabaseResultsTable';
 import PageLoading from '../components/PageLoading';
 import { SkeletonTable } from '../components/Skeleton';
@@ -37,6 +38,7 @@ export default function AthleteProfilePage() {
   const [resultPage, setResultPage]     = useState(1);
   const [registeredAthlete, setRegisteredAthlete] = useState<PublicSwimmerProfile | null>(null);
   const [registeredResults, setRegisteredResults] = useState<PublicSwimmerResult[]>([]);
+  const [databaseMedals, setDatabaseMedals] = useState<Medal[]>([]);
   const [wtgRecords,setWtgRecords]=useState<ConfirmedWtgRecord[]>([]);
   const [wtgRecordError,setWtgRecordError]=useState('');
   const [registeredLoading, setRegisteredLoading] = useState(false);
@@ -49,16 +51,20 @@ export default function AthleteProfilePage() {
     if (!id) {
       setRegisteredAthlete(null);
       setRegisteredResults([]);
+      setDatabaseMedals([]);
       return;
     }
     let active = true;
     setRegisteredLoading(true);
     setRegisteredError('');
     setRegisteredResults([]);
+    setDatabaseMedals([]);
     setWtgRecords([]);setWtgRecordError('');
     if(supabase){
       supabase.from('wtg_record_history').select('id,event,age_group,gender,competition_category,course,holder_name,time_ms,source_evidence,confirmed_at,superseded_at').eq('swimmer_id',id).order('confirmed_at',{ascending:false})
         .then(({data,error})=>{if(!active)return;if(error)setWtgRecordError(describeSupabaseError(error));else setWtgRecords((data??[]) as ConfirmedWtgRecord[]);});
+      supabase.from('transplant_medals').select('competition,year,medal,swimmer_results(event)').eq('swimmer_id',id).order('year',{ascending:false})
+        .then(({data})=>{if(!active)return;setDatabaseMedals((data??[]).map((row:Record<string,unknown>)=>{const linked=row.swimmer_results as {event?:string}|{event?:string}[]|null;const event=Array.isArray(linked)?linked[0]?.event:linked?.event;return {competition:String(row.competition),year:Number(row.year),color:String(row.medal) as Medal['color'],event:String(event??'Unknown event') as Medal['event']};}));});
     }
     if (athlete) {
       setRegisteredAthlete(null);
@@ -84,7 +90,7 @@ export default function AthleteProfilePage() {
 
   if (!athlete) {
     if (registeredLoading) return <PageLoading />;
-    if (registeredAthlete) return <RegisteredAthleteProfile athlete={registeredAthlete} results={registeredResults} loading={registeredLoading} error={registeredError} />;
+    if (registeredAthlete) return <RegisteredAthleteProfile athlete={registeredAthlete} results={registeredResults} medals={databaseMedals} loading={registeredLoading} error={registeredError} />;
     return (
       <div className="max-w-7xl mx-auto px-4 py-20">
         <EmptyState
@@ -117,20 +123,20 @@ export default function AthleteProfilePage() {
       event: result.event as PersonalBest['event'],
       course: result.course as PersonalBest['course'],
       time: result.time,
-      date: result.meet_date ?? result.created_at,
+      date: result.meet_date ?? '',
       meet: result.meet_name ?? 'Meet details unavailable',
-      verified: result.status === 'verified' ? 'Verified' : 'Pending',
+      verified: result.status === 'verified' ? 'Verified' : result.status === 'imported_unverified' ? 'Unverified' : 'Pending',
     }));
   const databaseResultsForTable: Result[] = registeredResults.map(result => ({
     id: result.id,
     event: result.event as Result['event'],
     course: (result.course ?? '') as Result['course'],
     time: result.time,
-    date: result.meet_date ?? result.created_at,
+    date: result.meet_date ?? '',
     meet: result.meet_name ?? 'Meet details unavailable',
     ageGroup: result.age_group as Result['ageGroup'],
     gender: athlete.gender,
-    verified: result.status === 'verified' ? 'Verified' : 'Pending',
+    verified: result.status === 'verified' ? 'Verified' : result.status === 'imported_unverified' ? 'Unverified' : 'Pending',
     isPB: databasePersonalBests.some(best => best.event === result.event && best.course === result.course && best.time === result.time),
     isSB: false,
     athleteId: athlete.id,
@@ -449,7 +455,7 @@ export default function AthleteProfilePage() {
   );
 }
 
-function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlete: PublicSwimmerProfile; results: PublicSwimmerResult[]; loading: boolean; error: string }) {
+function RegisteredAthleteProfile({ athlete, results, medals, loading, error }: { athlete: PublicSwimmerProfile; results: PublicSwimmerResult[]; medals: Medal[]; loading: boolean; error: string }) {
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState<'Overview' | 'Personal Bests' | 'Medals'>('Overview');
   const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
@@ -469,9 +475,9 @@ function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlet
       event: result.event as PersonalBest['event'],
       course: result.course as PersonalBest['course'],
       time: result.time,
-      date: result.meet_date ?? result.created_at,
+      date: result.meet_date ?? '',
       meet: result.meet_name ?? 'Meet details unavailable',
-      verified: result.status === 'verified' ? 'Verified' : 'Pending',
+      verified: result.status === 'verified' ? 'Verified' : result.status === 'imported_unverified' ? 'Unverified' : 'Pending',
     }));
   const tabs = ['Overview', 'Personal Bests', 'Medals'] as const;
 
@@ -534,7 +540,7 @@ function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlet
                 meet_id: null,
                 submitted_meets: {
                   name: result.meet_name ?? '',
-                  meet_date: result.meet_date ?? result.created_at,
+                  meet_date: result.meet_date ?? '',
                   location: result.location ?? '',
                   course: result.course ?? '',
                   is_world_transplant_games: result.is_world_transplant_games,
@@ -549,15 +555,7 @@ function RegisteredAthleteProfile({ athlete, results, loading, error }: { athlet
           </div>
             : <div>
                 <div className="mb-5 border-b border-[var(--border)] pb-4"><Eyebrow>Achievements</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Transplant Games medals</h2></div>
-                <div>
-                  <div className="ta-table-shell">
-                    <table className="w-full border-collapse">
-                      <thead><tr className="ta-table-header">{['Games', 'Gold', 'Silver', 'Bronze', 'Total'].map(label => <th key={label} className={`whitespace-nowrap px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Games' ? 'text-left' : 'text-center'}`}>{label}</th>)}</tr></thead>
-                      <tbody><tr className="ta-table-row"><td className="px-3 py-4 text-sm font-semibold text-[var(--ink)] sm:px-5">World Transplant Games</td>{['Gold', 'Silver', 'Bronze', 'Total'].map(label => <td key={label} className="px-3 py-4 text-center font-mono text-sm text-[var(--muted)] sm:px-5">—</td>)}</tr></tbody>
-                    </table>
-                  </div>
-                  <p className="mt-3 text-xs text-[var(--muted)]">Medal totals are unavailable until medal data is connected. A dash means unknown; zero will be shown when a confirmed total is zero.</p>
-                </div>
+                <MedalDisplay medals={medals} />
               </div>}
       </>}
     </section>
