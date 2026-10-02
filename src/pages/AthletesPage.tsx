@@ -83,12 +83,13 @@ export default function AthletesPage() {
                 <span className="font-mono text-xs uppercase tracking-widest text-neutral-500">{filtered.length ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} athletes` : '0 athletes'}</span>
               </div>
               {pageAthletes.length ? <div className="ta-table-shell">
-                <div className="ta-table-header grid grid-cols-[86px_minmax(0,1fr)_90px_100px_minmax(120px,1fr)_minmax(105px,auto)] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:gap-4 sm:px-5 sm:text-xs">
+                <div className="min-w-[900px]">
+                <div className="ta-table-header grid w-full grid-cols-[86px_minmax(180px,1fr)_90px_100px_minmax(150px,1fr)_130px] items-center gap-4 px-5 py-3 font-mono text-xs font-semibold uppercase tracking-widest">
                   <span>Country</span><span>Athlete</span><span>Gender</span><span>Age group</span><span>Transplant type</span><span className="text-right">Profile</span>
                 </div>
                 <div>{pageAthletes.map(athlete => {
                   const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
-                  return <Link key={athlete.id} to={`/athletes/${athlete.id}`} className="ta-table-row group grid grid-cols-[86px_minmax(0,1fr)_90px_100px_minmax(120px,1fr)_minmax(105px,auto)] items-center gap-3 px-3 py-4 sm:gap-4 sm:px-5">
+                  return <Link key={athlete.id} to={`/athletes/${athlete.id}`} className="ta-table-row group grid w-full grid-cols-[86px_minmax(180px,1fr)_90px_100px_minmax(150px,1fr)_130px] items-center gap-4 px-5 py-4">
                   <span className="flex min-w-0 items-center gap-1.5" title={athlete.country}><span className="ta-table-flag" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span><span className="font-mono text-[10px] font-semibold tracking-wider text-[var(--muted)]">{getCountryAlpha3(athlete.country_code ?? '')}</span></span>
                   <span className="flex min-w-0 items-center gap-3 text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">
                     <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--navy)] font-mono text-xs font-bold text-white" aria-hidden="true">
@@ -102,6 +103,7 @@ export default function AthletesPage() {
                   <span className="flex items-center justify-end gap-2 whitespace-nowrap text-xs font-semibold text-[var(--muted)] group-hover:text-[var(--accent-dark)]"><span>View profile</span><ArrowRight size={15} /></span>
                   </Link>;
                 })}</div>
+                </div>
               </div> : <EmptyState title="No athletes found" subtitle={athletes.length ? 'Try adjusting your search or filters.' : 'Swimmer profiles will appear here when swimmers join.'} action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear search and filters</Button> : undefined} />}
               {filtered.length > 0 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete pages" />}
             </>}
