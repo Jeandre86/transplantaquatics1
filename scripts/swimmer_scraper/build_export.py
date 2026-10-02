@@ -7,6 +7,7 @@ from collections import defaultdict, Counter
 from pathlib import Path
 from datetime import datetime, timezone
 from pypdf import PdfReader
+from consolidate_identities import consolidate as consolidate_identities
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / 'data/swimming'
@@ -323,6 +324,9 @@ def age_bounds(r):
     if m:return (r['year']-int(m[2])-1,r['year']-int(m[1]))
     return None
 
+def reference_key(ref):
+    return (str(ref.get('source_id') or ''), str(ref.get('page') or ''), str(ref.get('raw_row') or ''))
+
 def parse_dublin(m,s,pp):
     ctx=None
     for p,text in enumerate(pp,1):
@@ -504,8 +508,18 @@ def group_swimmers(observations):
             if not (same_country or same_team):continue
             if r['gender'] and sw['gender'] and r['gender']!=sw['gender']:continue
             b=sw['_bounds']
-            if b and bounds and max(b[0],bounds[0])>min(b[1],bounds[1]):continue
-            if not (b and bounds) and not any(x['meet_id']==r['meet_id'] for x in sw['results']):continue
+            if b and bounds:
+                # Age bands are event data. Convert them to possible birth-year
+                # ranges and merge across age progression only when those ranges
+                # still overlap.
+                if max(b[0],bounds[0])>min(b[1],bounds[1]):continue
+            elif not any(x['meet_id']==r['meet_id'] for x in sw['results']):
+                # An older source may omit age. Cross-meet matching is allowed
+                # only with the same exact country, gender and team, and only
+                # when exactly one prior identity satisfies these signals.
+                same_country=r['country_code'] and r['country_code']==sw['country_code']
+                same_team=key(r['team_original']) in sw['_team_keys'] and bool(r['team_original'])
+                if not (same_country and same_team and bounds != sw['_bounds'] and (bounds is None or sw['_bounds'] is None)):continue
             compatible.append(sw)
         if len(compatible)==1:sw=compatible[0]
         else:
@@ -618,6 +632,18 @@ def source_inventory():
     return result
 
 def main():
+    previous_path=DATA/'swimmers.json'
+    old_swimmer_by_ref=defaultdict(set)
+    if previous_path.exists():
+        try:
+            previous=json.loads(previous_path.read_text())
+            for old_swimmer in previous.get('swimmers',[]):
+                old_source_keys=[old_swimmer['id'], *old_swimmer.get('source_key_aliases',[])]
+                for old_result in old_swimmer.get('results',[]):
+                    for ref in old_result.get('source_references',[]):
+                        old_swimmer_by_ref[reference_key(ref)].update(old_source_keys)
+        except (OSError,ValueError,KeyError):
+            old_swimmer_by_ref=defaultdict(set)
     OBS.clear();RELAYS.clear();ISSUES.clear();COVERAGE.clear()
     sources=[];meets={}
     for p in sorted(CACHE.glob('*.meta.json')):
@@ -634,12 +660,38 @@ def main():
         print(m['id'],s['group'],s['year'],len(OBS)-before,len(RELAYS)-relay_before,flush=True)
     enrich_names(OBS)
     swimmers,reviews=group_swimmers(OBS)
+    # Preserve IDs from the previous export as aliases so an already-started
+    # database import can consolidate unclaimed profiles without orphaning
+    # their historical result rows.
+    new_swimmer_by_ref=defaultdict(set)
+    for swimmer in swimmers:
+        for result in swimmer['results']:
+            for ref in result.get('source_references',[]):
+                new_swimmer_by_ref[reference_key(ref)].add(swimmer['id'])
+        swimmer['source_key_aliases']=[]
+    old_to_new=defaultdict(set)
+    for ref,old_source_keys in old_swimmer_by_ref.items():
+        new_ids=new_swimmer_by_ref.get(ref,set())
+        if len(new_ids)==1:
+            new_id=next(iter(new_ids))
+            for old_id in old_source_keys:
+                if new_id!=old_id:old_to_new[old_id].add(new_id)
+    new_by_id={swimmer['id']:swimmer for swimmer in swimmers}
+    for old_id,new_ids in old_to_new.items():
+        if len(new_ids)==1:
+            new_id=next(iter(new_ids))
+            new_by_id[new_id]['source_key_aliases'].append(old_id)
+        elif len(new_ids)>1:
+            reviews.append({'type':'legacy_profile_split_review','name':next((s['display_name'] for s in swimmers if s['id'] in new_ids),None),'swimmer_ids':sorted(new_ids),'legacy_source_key':old_id})
+    for swimmer in swimmers:swimmer['source_key_aliases']=sorted(set(swimmer['source_key_aliases']))
+    swimmers,reviews,automatic_merges=consolidate_identities(swimmers)
     relays=finalise_relays(swimmers)
     inventory=source_inventory()
     source_groups=[{'group':group,'years_extracted':sorted({c['year'] for c in COVERAGE if c['group']==group and c['individual_observations']}),'coverage_status':'partial' if group!='South Africa' else 'blocked_no_results_extracted','notes':'Historical coverage is not exhaustive.' if group!='South Africa' else 'Official source returned a security page; no bypass attempted.'} for group in ['WTG','Australia','USA','Canada','Britain','South Africa','Europe']]
     out={'schema_version':1,'metadata':{'title':'Historical transplant swimming — review export','generated_at':datetime.now(timezone.utc).isoformat(),
         'scope':'All seven approved source groups, all discoverable historical results, all categories','coverage_status':'partial','ready_for_database_import':False,
-        'identity_policy':'Exact normalised name plus country/team and compatible age evidence. Uncertain identities remain separate and flagged.',
+        'identity_policy':'Exact normalised name, country, gender, matching team and compatible inferred birth-year ranges. Missing-age profiles may attach only to a unique known-age identity. Ambiguous and conflicting identities remain separate and flagged.',
+        'identity_consolidation':{'automatic_merges':automatic_merges,'review_required_profiles':sum(bool(swimmer.get('identity_review_required')) for swimmer in swimmers)},
         'notes':['No database writes have been made.','Unknown fields remain null; competition categories are not inferred medical histories.','A listed result is not an officially verified result or verified account owner.','Source pool length, time anomalies, and ambiguous identities require review.']},
         'summary':{'swimmers':len(swimmers),'individual_results':sum(s['result_count'] for s in swimmers),'relay_results':len(relays),'identity_reviews':len(reviews),'unparsed_rows':len(ISSUES)},
         'source_groups':source_groups,'source_inventory':inventory,'meets':list(meets.values()),'sources':sources,'coverage':COVERAGE,'swimmers':swimmers,'relay_results':relays,'identity_review':reviews,'unparsed_rows':ISSUES}

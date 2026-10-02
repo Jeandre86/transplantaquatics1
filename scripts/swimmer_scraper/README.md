@@ -10,17 +10,17 @@ Seven source groups are tracked: WTG, Australia, USA, Canada, Britain, South Afr
 
 ## Review structure
 
-- `swimmers`: provisional identities with original name variants, country when established, teams, years, categories and nested individual results. These are **not accounts or database profiles**.
+- `swimmers`: provisional identities with original name variants, country when established, teams, years, categories and nested individual results. Age group stays on each result, so one swimmer can have results in several age groups. These are **not accounts or database profiles**.
 - `relay_results`: team performances and source member names. Members are linked to a swimmer only when the same meet and country/team identify a unique match. Unlinked relay members remain here for identity review; they are not silently assigned to an athlete.
 - `identity_review`: possible same-name matches that could not safely be merged. Entries are review cases, not a count of distinct duplicated people.
 - `unparsed_rows`: source text that needs manual extraction.
 - Every extracted result retains source URL, PDF page and original row, along with the original time/status and interpreted milliseconds. Event details include stroke, distance/unit, gender, source age category and pool course when known. Additional source details such as splits, medals, points, competitor identifiers and birth year are retained when available.
 
-Exact normalized name plus country/team and compatible age evidence is the automatic merge rule. Conflicting ages/genders remain separate. Complete surname-first names can be reconciled when name tokens, country, gender and birth-year evidence agree. Partial names, changed surnames and spelling differences can still represent duplicate people and need review. IDs are deterministic for an unchanged input set; do not use them as permanent production identity keys before reconciliation.
+Automatic profile consolidation requires an exact normalized full name, country code, gender and matching team. When both profiles have age evidence, their inferred birth-year ranges must overlap. A profile with no age evidence can attach to only one unique known-age profile with the same team; two age-less profiles never auto-merge across meets. Conflicting ages, missing country/gender/team, or multiple possible matches stay separate with `identity_review_required` set. The import preserves prior source IDs as aliases so previously imported unclaimed profiles and their results can move to the consolidated profile. Claimed profiles and profiles with claim requests are protected from automatic merges. IDs are deterministic for an unchanged input set; do not use them as permanent production identity keys before reconciliation.
 
 Unknown information remains null or a flagged missing source value. Competition eligibility is not an inferred transplant type. Canadian category codes remain in `category_original` until their definitions are confirmed. The Canadian 500m triathlon swimming legs are explicitly categorized as `triathlon_swim_leg`. The 2019 WTG age column uses category placeholders and is retained as source text rather than an exact age. Pool course, OCR, source name order and suspicious time values have explicit flags. A source listing or record annotation is not independent verification.
 
-Review `identity_review`, `unparsed_rows` and `review_flags` before importing. In particular, the scanned 2013/2015 books require visual review. The export deliberately sets `ready_for_database_import` to false.
+Review `identity_review`, `unparsed_rows` and `review_flags` before importing. In particular, the scanned 2013/2015 books require visual review. The export deliberately sets `ready_for_database_import` to false. Run `python3 scripts/swimmer_scraper/consolidate_identities.py` to apply the conservative identity pass to an existing export without reparsing the source files.
 
 ## Reproduce
 
