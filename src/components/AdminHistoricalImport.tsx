@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { supabase } from '../lib/supabase';
+import { describeSupabaseError, supabase } from '../lib/supabase';
 
 type SourceMeet = { meet_id: string; group: string; year: number; location?: string | null; course?: string | null };
 type SourceResult = Record<string, unknown>;
@@ -80,22 +80,23 @@ export default function AdminHistoricalImport({ cardStyle, onNotice, onError, on
   const importAll = async () => {
     if (!supabase || !prepared) return;
     setBusy(true); onError(''); onNotice('');
+    let stage = 'Starting the historical import';
     try {
-      setProgress('Saving meet records…');
+      stage = 'Saving meet records'; setProgress(`${stage}…`);
       const meetResponse = await supabase.rpc('admin_import_historical_meets', { p_meets: prepared.meets });
       if (meetResponse.error) throw meetResponse.error;
       for (let start = 0; start < prepared.profiles.length; start += 60) {
-        const end = Math.min(start + 60, prepared.profiles.length); setProgress(`Saving swimmer profiles ${end.toLocaleString()} / ${prepared.profiles.length.toLocaleString()}…`);
+        const end = Math.min(start + 60, prepared.profiles.length); stage = `Saving swimmer profiles ${start + 1}–${end}`; setProgress(`${stage} / ${prepared.profiles.length.toLocaleString()}…`);
         const { error } = await supabase.rpc('admin_import_historical_swimmers', { p_swimmers: prepared.profiles.slice(start, end) }); if (error) throw error;
       }
       let imported = 0; let medalRows = 0;
       for (let start = 0; start < prepared.results.length; start += 80) {
-        const end = Math.min(start + 80, prepared.results.length); setProgress(`Saving results ${end.toLocaleString()} / ${prepared.results.length.toLocaleString()}…`);
+        const end = Math.min(start + 80, prepared.results.length); stage = `Saving results ${start + 1}–${end}`; setProgress(`${stage} / ${prepared.results.length.toLocaleString()}…`);
         const { data, error } = await supabase.rpc('admin_import_historical_results', { p_results: prepared.results.slice(start, end) }); if (error) throw error;
         imported += Number((data as { processed?: number } | null)?.processed ?? 0); medalRows += Number((data as { medals?: number } | null)?.medals ?? 0);
       }
       setProgress(''); onNotice(`Historical import completed. ${prepared.profiles.length.toLocaleString()} profiles processed; ${imported.toLocaleString()} unique results processed; ${medalRows.toLocaleString()} WTG medals recorded. ${prepared.duplicatesRemoved.toLocaleString()} duplicate rows excluded. Skips — ${summary}.`); setPrepared(null); setHistoryPage(0); await refreshHistory(0); onImported();
-    } catch (error) { setProgress(''); onError(error instanceof Error ? error.message : 'Historical import failed. You can safely retry; source IDs make the operation repeatable.'); }
+    } catch (error) { setProgress(''); onError(`Historical import failed while ${stage.toLowerCase()}: ${describeSupabaseError(error)}. You can safely retry; source IDs make the operation repeatable.`); }
     finally { setBusy(false); }
   };
   return <section className="border p-5 sm:p-6" style={cardStyle}>
