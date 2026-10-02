@@ -13,7 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { hasSupabaseConfig, supabase, describeSupabaseError } from '../lib/supabase';
 import { permissionsForRole } from '../lib/adminImports';
 
-type Tab = 'Overview' | 'Imports' | 'Swimmers' | 'Meets and results' | 'Profile claims' | 'Records' | 'Writers' | 'Write article' | 'Article library' | 'Articles' | 'Ads' | 'Roles and permissions' | 'Activity log';
+type Tab = 'Overview' | 'Imports' | 'Historical archive' | 'Swimmers' | 'Meets and results' | 'Profile claims' | 'Records' | 'Writers' | 'Write article' | 'Article library' | 'Articles' | 'Ads' | 'Roles and permissions' | 'Activity log';
 type Batch = { id: string; status: string; progress: string; error_message: string | null; stage_count: number; published_count: number; file_name: string | null; created_at: string; published_at: string | null; meet_catalog_id: string; source_url: string | null };
 type Meet = AdminMeet;
 type ImportResult = { id: string; swimmer_source_key: string | null; swimmer_name: string; country: string | null; event: string; age_group: string | null; gender: string | null; course: string | null; time_original: string | null; time_ms: number | null; race_status: string; is_relay: boolean; round_name: string | null; placing: string | null; validation_state: string; validation_issues: string[]; review_action: string; linked_swimmer_id: string | null; source_references: unknown[] };
@@ -23,6 +23,7 @@ const navigationGroups: { label: string; items: { tab: Tab; label: string; icon:
   { label: 'Workspace', items: [
     { tab: 'Overview', label: 'Overview', icon: LayoutDashboard },
     { tab: 'Imports', label: 'Results imports', icon: Upload },
+    { tab: 'Historical archive', label: 'Historical archive', icon: Upload },
     { tab: 'Swimmers', label: 'Swimmers', icon: UsersRound },
     { tab: 'Meets and results', label: 'Meets', icon: CalendarDays },
   ] },
@@ -361,6 +362,7 @@ export default function AdminPage() {
   const sectionDescriptions: Record<Tab, string> = {
     Overview: 'A live summary of swimmers, results, publishing and review activity.',
     Imports: 'Upload official meet files, resolve identities and publish reviewed results.',
+    'Historical archive': 'Import the full swimmers.json archive across all historical meets in one operation.',
     Swimmers: 'Review swimmer profiles and account connections.',
     'Meets and results': 'Manage meet editions and their published results.',
     'Profile claims': 'Review requests to connect public swimmer profiles to accounts.',
@@ -397,7 +399,7 @@ export default function AdminPage() {
         <nav aria-label="Admin dashboard sections" className="grid grid-cols-2 gap-1 px-3 pb-4 sm:grid-cols-3 lg:block lg:space-y-5 lg:px-3 lg:py-4">
           {navigationGroups.map(group=>{
             const visibleItems=group.items.filter(item=>{
-              if (['Imports','Meets and results'].includes(item.tab)) return canImportResults;
+              if (['Imports','Historical archive','Meets and results'].includes(item.tab)) return canImportResults;
               if (item.tab==='Profile claims') return canReviewClaims;
               if (item.tab==='Records') return true;
               if (item.tab==='Roles and permissions') return canManageRoles;
@@ -423,8 +425,15 @@ export default function AdminPage() {
             <div className="mt-7 grid gap-5 lg:grid-cols-2"><div className="border p-5" style={cardStyle}><p className="font-mono text-xs uppercase tracking-widest text-[var(--accent)]">World Transplant Games · 2027</p><h2 className="mt-2 text-xl font-bold text-white">{world2027?.name ?? 'Leuven World Transplant Games'}</h2><p className="mt-2 text-sm text-white/60">{world2027 ? `${world2027.host_city}, ${world2027.host_country} · ${world2027.meet_date} – ${world2027.end_date}` : 'Leuven, Belgium'}</p><p className="mt-5 border-l-2 border-[var(--accent)] pl-4 text-sm leading-6 text-white/75">Official swimming results are not available yet. The import, review and publication workspace is ready for the official files.</p>{canImportResults&&<button type="button" onClick={()=>setTab('Imports')} className="mt-4 text-sm font-bold text-[var(--accent)]">Open imports →</button>}</div>
             <div className="border p-5" style={cardStyle}><h2 className="font-bold text-white">Recent imports</h2>{batches.slice(0,5).length?batches.slice(0,5).map(batch=><button key={batch.id} onClick={()=>{setTab('Imports');void openBatch(batch);}} className="flex w-full items-center justify-between gap-4 border-b border-[var(--navy-light)] py-3 text-left last:border-0"><span className="truncate text-sm text-white">{batch.file_name||batch.source_url||'Meet import'}</span><span className="shrink-0 font-mono text-xs uppercase text-[var(--accent)]">{batch.status}</span></button>):<p className="mt-3 text-sm text-white/50">No imports have been started.</p>}</div></div>
         </>}
-        {tab==='Imports' && <div className="space-y-5">
+        {tab==='Historical archive' && <div className="space-y-5">
+          <div className="border p-5 sm:p-6" style={cardStyle}>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Bulk import · all meets</p>
+            <h1 className="mt-1 text-xl font-bold text-white">Historical swimmers archive</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">Import the complete historical dataset in one operation. This page has no meet selector; it creates all source meets, unclaimed swimmer profiles, and eligible historical results from the JSON archive.</p>
+          </div>
           <AdminHistoricalImport cardStyle={cardStyle} onNotice={setNotice} onError={setError} onImported={()=>void load()} />
+        </div>}
+        {tab==='Imports' && <div className="space-y-5">
           <div className="border p-5 sm:p-6" style={cardStyle}><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Official swimming results</p><h2 className="mt-1 text-xl font-bold text-white">Create an import</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Files enter private staging first. CSV and version 1 JSON can be parsed now; PDF, spreadsheet and arbitrary website extraction will be identified as unsupported until their parsers are configured.</p></div><span className="font-mono text-xs uppercase text-white/50">Never invent missing profile or medical details</span></div>
             <div className="mt-5 grid gap-4 md:grid-cols-2"><label className="text-xs uppercase tracking-widest text-white/60">Meet<select value={selectedMeetId} onChange={event=>setSelectedMeetId(event.target.value)} className={`${inputClass} mt-2 normal-case tracking-normal`}>{meets.map(meet=><option key={meet.id} value={meet.id}>{meet.name} · {meet.year}</option>)}</select></label><label className="text-xs uppercase tracking-widest text-white/60">Official results URL (coming soon)<input value={sourceUrl} onChange={event=>setSourceUrl(event.target.value)} placeholder="HTTPS source URL" className={`${inputClass} mt-2`} disabled /></label></div>
             <label className="mt-4 inline-flex cursor-pointer items-center gap-3 border border-[var(--navy-light)] px-4 py-3 text-sm font-semibold text-white hover:border-[var(--accent)]"><span>{busy?'Importing…':'Upload official source file'}</span><input type="file" accept=".csv,.json,.pdf,.xls,.xlsx,application/json,text/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" disabled={busy} onChange={(event:ChangeEvent<HTMLInputElement>)=>{const file=event.target.files?.[0];if(file)void startImport(file);event.target.value='';}} /></label>
