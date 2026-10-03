@@ -40,8 +40,8 @@ export default function AthletesPage() {
     return () => { active = false; };
   }, []);
 
-  const countries = useMemo(() => [...new Set(athletes.map(athlete => athlete.country))].sort(), [athletes]);
-  const ageGroups = useMemo(() => [...new Set([...AGE_GROUPS, 'Under 18', ...athletes.map(athlete => athlete.age_group)])].sort(), [athletes]);
+  const countries = useMemo(() => [...new Set(athletes.map(athlete => athlete.country).filter((value): value is string => Boolean(value)))].sort(), [athletes]);
+  const ageGroups = useMemo(() => [...new Set([...AGE_GROUPS, 'Under 18', ...athletes.map(athlete => athlete.age_group).filter(Boolean)])].sort(), [athletes]);
   const filtered = useMemo(() => athletes.filter(athlete => {
     const query = search.trim().toLowerCase();
     const searchable = `${athlete.first_name} ${athlete.last_name} ${athlete.country} ${athlete.club_name ?? ''}`.toLowerCase();
@@ -90,16 +90,16 @@ export default function AthletesPage() {
                 <div>{pageAthletes.map(athlete => {
                   const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
                   return <Link key={athlete.id} to={`/athletes/${athlete.id}`} className="ta-table-row group grid w-full grid-cols-[86px_minmax(180px,1fr)_90px_100px_minmax(150px,1fr)_130px] items-center gap-4 px-5 py-4">
-                  <span className="flex min-w-0 items-center gap-1.5" title={athlete.country}><span className="ta-table-flag" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span><span className="font-mono text-[10px] font-semibold tracking-wider text-[var(--muted)]">{getCountryAlpha3(athlete.country_code ?? '')}</span></span>
+                  <span className="flex min-w-0 items-center gap-1.5" title={athlete.country || 'Country not provided'}><span className="ta-table-flag" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span><span className="font-mono text-[10px] font-semibold tracking-wider text-[var(--muted)]">{getCountryAlpha3(athlete.country_code ?? '') || '—'}</span></span>
                   <span className="flex min-w-0 items-center gap-3 text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">
                     <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--navy)] font-mono text-xs font-bold text-white" aria-hidden="true">
-                      {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : `${athlete.first_name[0] ?? ''}${athlete.last_name[0] ?? ''}`}
+                      {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : `${athlete.first_name?.[0] ?? ''}${athlete.last_name?.[0] ?? ''}`}
                     </span>
                     <span className="min-w-0 truncate">{athlete.first_name} {athlete.last_name}</span>
                   </span>
-                  <span className="text-sm text-[var(--muted)]">{athlete.gender}</span>
-                  <span className="font-mono text-xs text-[var(--muted)]">{athlete.age_group}</span>
-                  <span className="truncate text-sm text-[var(--muted)]">{athlete.transplant_type}</span>
+                  <span className="text-sm text-[var(--muted)]">{athlete.gender || '—'}</span>
+                  <span className="font-mono text-xs text-[var(--muted)]">{athlete.age_group || 'Unknown'}</span>
+                  <span className="truncate text-sm text-[var(--muted)]">{athlete.transplant_type || '—'}</span>
                   <span className="flex items-center justify-end gap-2 whitespace-nowrap text-xs font-semibold text-[var(--muted)] group-hover:text-[var(--accent-dark)]"><span>View profile</span><ArrowRight size={15} /></span>
                   </Link>;
                 })}</div>

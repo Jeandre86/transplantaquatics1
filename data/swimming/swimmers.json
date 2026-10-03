@@ -438845,8 +438845,8 @@
       "name_variants": [
         "Zaria Devcich"
       ],
-      "country": null,
-      "country_code": null,
+      "country": "Australia",
+      "country_code": "AUS",
       "gender": "Women",
       "claim_status": "unclaimed",
       "database_athlete_id": null,
@@ -438870,8 +438870,8 @@
           "year": 2026,
           "swimmer_name_original": "Zaria Devcich",
           "team_original": "International Ch",
-          "country": null,
-          "country_code": null,
+          "country": "Australia",
+          "country_code": "AUS",
           "age_at_meet": null,
           "time_original": "40.44",
           "time_ms": 40440,

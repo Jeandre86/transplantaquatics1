@@ -388,5 +388,30 @@ export async function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResu
     rows.push(...pageRows);
     if (pageRows.length < pageSize) break;
   }
-  return rows;
+
+  // Older imported results can lack country fields even while the linked
+  // athlete profile has them. Enrich in bounded batches without changing the
+  // source result rows or relying on embedded PostgREST relationships.
+  const swimmerIds = [...new Set(rows.map(row => row.swimmer_id).filter((id): id is string => Boolean(id)))];
+  const countryBySwimmer = new Map<string, { country: string | null; country_code: string | null }>();
+  for (let offset = 0; offset < swimmerIds.length; offset += 500) {
+    const { data, error } = await client().from('athletes')
+      .select('id,country,country_code')
+      .in('id', swimmerIds.slice(offset, offset + 500));
+    if (error) continue;
+    for (const athlete of data ?? []) {
+      countryBySwimmer.set(String(athlete.id), {
+        country: typeof athlete.country === 'string' ? athlete.country : null,
+        country_code: typeof athlete.country_code === 'string' ? athlete.country_code : null,
+      });
+    }
+  }
+  return rows.map(result => {
+    const athlete = result.swimmer_id ? countryBySwimmer.get(result.swimmer_id) : undefined;
+    return {
+      ...result,
+      country: result.country?.trim() || athlete?.country?.trim() || '',
+      country_code: result.country_code?.trim() || athlete?.country_code || null,
+    };
+  });
 }

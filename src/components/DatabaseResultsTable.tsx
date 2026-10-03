@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
 import { formatDate, getCountryAlpha3, getFlagEmoji } from '../lib/utils';
 import VerificationBadge from './VerificationBadge';
+import { countries } from '../data/countries';
 
 export default function DatabaseResultsTable({ results, showAthlete = true }: { results: SubmittedSwimmerResult[]; showAthlete?: boolean }) {
   return (
@@ -20,6 +21,9 @@ export default function DatabaseResultsTable({ results, showAthlete = true }: { 
           {results.length ? results.map(result => {
             const swimmerId = result.athlete_id || result.swimmer_id;
             const meet = result.submitted_meets;
+            const countryCode = result.country_code?.trim()
+              || countries.find(country => country.name.toLocaleLowerCase() === result.country?.trim().toLocaleLowerCase())?.code
+              || '';
             const verifiedStatus = result.status === 'verified' ? 'Verified' : result.status === 'imported_unverified' ? 'Unverified' : 'Pending';
             return (
               <tr key={result.id} className="ta-table-row">
@@ -31,8 +35,8 @@ export default function DatabaseResultsTable({ results, showAthlete = true }: { 
                         : result.swimmer_name || '—'}
                     </div>
                     <span className="mt-1 flex items-center gap-1.5 font-mono text-xs text-[var(--muted)]" title={result.country || 'Country not supplied'}>
-                      <span className="ta-table-flag" aria-hidden="true">{result.country_code ? getFlagEmoji(result.country_code) : '—'}</span>
-                      <span className="font-semibold tracking-wider">{result.country_code ? getCountryAlpha3(result.country_code) : '—'}</span>
+                      <span className="ta-table-flag" aria-hidden="true">{countryCode ? getFlagEmoji(countryCode) : '—'}</span>
+                      <span className="font-semibold tracking-wider">{countryCode ? getCountryAlpha3(countryCode) : '—'}</span>
                     </span>
                   </div>
                 </td>}
