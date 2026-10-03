@@ -119,9 +119,17 @@ function normalizeSubmittedResult(row: Record<string, unknown>): SubmittedSwimme
 }
 
 export async function loadPublicSwimmerDirectory(): Promise<PublicSwimmerProfile[]> {
-  const { data, error } = await client().rpc('get_public_swimmer_directory');
-  if (error) throw error;
-  return (data ?? []) as PublicSwimmerProfile[];
+  const pageSize = 500;
+  const profiles: PublicSwimmerProfile[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await client()
+      .rpc('get_public_swimmer_directory')
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = (data ?? []) as PublicSwimmerProfile[];
+    profiles.push(...page);
+    if (page.length < pageSize) return profiles;
+  }
 }
 
 export async function loadPublicSwimmerResults(swimmerId: string): Promise<PublicSwimmerResult[]> {
