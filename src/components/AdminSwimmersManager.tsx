@@ -41,6 +41,9 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
   const [editing, setEditing] = useState<Swimmer | null>(null);
   const [draft, setDraft] = useState({ first_name: '', last_name: '', date_of_birth: '', country: '', country_code: '', gender: '', transplant_type: '' });
   const [deleting, setDeleting] = useState<Swimmer | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkConfirmation, setBulkConfirmation] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [confirmation, setConfirmation] = useState('');
   const [archive, setArchive] = useState<ArchiveFile | null>(null);
   const [archiveName, setArchiveName] = useState('');
@@ -65,6 +68,27 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
 
   const filtersActive = Boolean(query.trim()) || countryFilter !== 'All' || genderFilter !== 'All' || transplantFilter !== 'All' || accountFilter !== 'All';
   const clearFilters = () => { setQuery(''); setCountryFilter('All'); setGenderFilter('All'); setTransplantFilter('All'); setAccountFilter('All'); };
+  const selectedSwimmers = rows.filter(swimmer => selectedIds.has(swimmer.id));
+  const selectedDeletable = selectedSwimmers.filter(swimmer => !swimmer.account_id && !swimmer.is_claimed);
+  const visibleDeletable = filtered.filter(swimmer => !swimmer.account_id && !swimmer.is_claimed);
+  const allVisibleSelected = visibleDeletable.length > 0 && visibleDeletable.every(swimmer => selectedIds.has(swimmer.id));
+
+  const toggleVisibleSelection = (checked: boolean) => {
+    setSelectedIds(current => {
+      const next = new Set(current);
+      visibleDeletable.forEach(swimmer => checked ? next.add(swimmer.id) : next.delete(swimmer.id));
+      return next;
+    });
+  };
+
+  const toggleSwimmerSelection = (swimmerId: string, checked: boolean) => {
+    setSelectedIds(current => {
+      const next = new Set(current);
+      if (checked) next.add(swimmerId);
+      else next.delete(swimmerId);
+      return next;
+    });
+  };
 
   const openEdit = (swimmer: Swimmer) => {
     setEditing(swimmer);
@@ -139,6 +163,50 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
     finally { setBusyId(''); }
   };
 
+  const removeSelectedSwimmers = async () => {
+    if (!supabase || !selectedDeletable.length || bulkConfirmation.trim().toUpperCase() !== 'DELETE') return;
+    setBusyId('bulk'); setError('');
+    const deletedKeys: string[] = [];
+    const failures: string[] = [];
+    let deletedCount = 0;
+    try {
+      for (const swimmer of selectedDeletable) {
+        const fullName = `${swimmer.first_name} ${swimmer.last_name}`.trim();
+        const { data, error: deleteError } = await supabase.rpc('admin_delete_swimmer_profile', {
+          p_swimmer_id: swimmer.id,
+          p_confirmation_name: fullName,
+        });
+        if (deleteError) {
+          failures.push(`${fullName}: ${describeSupabaseError(deleteError)}`);
+          continue;
+        }
+        const sourceKeys = Array.isArray(data?.source_keys) ? data.source_keys.map(String) : [];
+        deletedKeys.push(...sourceKeys);
+        deletedCount += 1;
+      }
+
+      if (deletedCount > 0) {
+        if (archive && deletedKeys.length) downloadUpdatedArchive(archive, deletedKeys);
+        setSelectedIds(current => {
+          const next = new Set(current);
+          selectedDeletable.forEach(swimmer => next.delete(swimmer.id));
+          return next;
+        });
+        await onChanged();
+      }
+
+      setBulkDeleting(false);
+      setBulkConfirmation('');
+      if (failures.length) {
+        setError(`${deletedCount} profile${deletedCount === 1 ? '' : 's'} deleted. ${failures.join(' ')}`);
+      } else {
+        setError('');
+      }
+    } catch (reason) {
+      setError(deletedCount ? `${deletedCount} profile${deletedCount === 1 ? '' : 's'} deleted before the operation stopped. ${describeSupabaseError(reason)}` : describeSupabaseError(reason));
+    } finally { setBusyId(''); }
+  };
+
   return <section className="border p-5" style={{ border: '1px solid var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}>
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><h2 className="font-bold text-white">Swimmer and donor profiles</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">Search, correct, or remove unclaimed profiles. Age groups remain attached to each result.</p></div>
@@ -154,10 +222,12 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
       <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Profile status<select value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className={`${fieldClass} mt-1 block`}><option value="All">All profiles</option><option value="Claimed">Claimed</option><option value="Unclaimed">Unclaimed</option></select></label>
     </div>
     {filtersActive && <button type="button" onClick={clearFilters} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)] hover:underline"><X size={13} />Clear filters</button>}
+    {selectedIds.size > 0 && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-[var(--navy-light)] bg-[var(--navy)] px-3 py-3 sm:px-4"><p className="text-sm text-white"><strong>{selectedIds.size}</strong> selected{selectedDeletable.length !== selectedIds.size && <span className="ml-1 text-xs text-white/50">· {selectedDeletable.length} can be deleted</span>}</p><div className="flex flex-wrap items-center gap-3"><button type="button" onClick={() => setSelectedIds(new Set())} disabled={Boolean(busyId)} className="text-xs font-semibold text-white/60 hover:text-white disabled:opacity-40">Clear selection</button><button type="button" onClick={() => { setBulkDeleting(true); setBulkConfirmation(''); setError(''); }} disabled={!canManage || !selectedDeletable.length || Boolean(busyId)} className="inline-flex items-center gap-1.5 bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><Trash2 size={13} />Delete selected ({selectedDeletable.length})</button></div></div>}
     {error && <p role="alert" className="mt-4 border border-red-300/20 bg-red-950/20 p-3 text-sm text-red-200">{error}</p>}
     {!filtered.length ? <div className="mt-5"><EmptyState title={rows.length ? 'No swimmers match' : 'No swimmers yet'} subtitle={rows.length ? 'Try changing or clearing your search and filters.' : 'Swimmer and donor profiles will appear here.'} onDark /></div> : <>
       <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-white/40">{filtered.length.toLocaleString()} of {rows.length.toLocaleString()} profiles</p>
-      <div className="ta-table-scroll mt-2"><table className="w-full min-w-[950px] text-left text-sm"><thead><tr className="border-b border-[var(--navy-light)] text-[10px] uppercase tracking-widest text-white/50">{['Swimmer','Country','Gender','Transplant type','Date of birth','Account','Review','Actions'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead><tbody>{filtered.map(swimmer => <tr key={swimmer.id} className="border-b border-[var(--navy-light)] last:border-0">
+      <div className="ta-table-scroll mt-2"><table className="w-full min-w-[1000px] text-left text-sm"><thead><tr className="border-b border-[var(--navy-light)] text-[10px] uppercase tracking-widest text-white/50"><th className="w-10 px-3 py-3"><input type="checkbox" aria-label="Select all visible unclaimed swimmers" checked={allVisibleSelected} onChange={event => toggleVisibleSelection(event.target.checked)} disabled={!canManage || !visibleDeletable.length || Boolean(busyId)} className="accent-[var(--accent)]" /></th>{['Swimmer','Country','Gender','Transplant type','Date of birth','Account','Review','Actions'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead><tbody>{filtered.map(swimmer => <tr key={swimmer.id} className="border-b border-[var(--navy-light)] last:border-0">
+        <td className="px-3 py-3"><input type="checkbox" aria-label={`Select ${swimmer.first_name} ${swimmer.last_name}`} checked={selectedIds.has(swimmer.id)} onChange={event => toggleSwimmerSelection(swimmer.id, event.target.checked)} disabled={!canManage || Boolean(swimmer.account_id) || Boolean(swimmer.is_claimed) || Boolean(busyId)} className="accent-[var(--accent)]" /></td>
         <td className="px-3 py-3"><p className="font-semibold text-white">{swimmer.first_name} {swimmer.last_name}</p><p className="mt-1 max-w-56 truncate font-mono text-[9px] text-white/35" title={swimmer.source_key ?? ''}>{swimmer.source_key ?? 'Account profile'}</p></td>
         <td className="px-3 py-3 text-white/70">{swimmer.country || '—'}{swimmer.country_code ? <span className="ml-1 font-mono text-[10px] text-white/40">{swimmer.country_code}</span> : ''}</td>
         <td className="px-3 py-3 text-white/70">{swimmer.gender || '—'}</td><td className="px-3 py-3 text-white/70">{swimmer.transplant_type || '—'}</td><td className="px-3 py-3 text-white/70">{swimmer.date_of_birth || '—'}</td>
@@ -177,5 +247,6 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
     </div><div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => setEditing(null)} className="border border-[var(--navy-light)] px-4 py-2 text-sm text-white/70">Cancel</button><button type="button" disabled={Boolean(busyId) || !draft.first_name.trim() || !draft.last_name.trim()} onClick={() => void saveEdit()} className="bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--navy)] disabled:opacity-40">{busyId ? 'Saving…' : 'Save swimmer'}</button></div></div></div>}
 
     {deleting && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-swimmer-title"><div className="w-full max-w-lg border border-red-300/30 bg-[var(--navy-mid)] p-5 sm:p-6"><h3 id="delete-swimmer-title" className="text-lg font-bold text-white">Delete {deleting.first_name} {deleting.last_name}?</h3><p className="mt-2 text-sm leading-6 text-white/60">This removes the unclaimed profile from the athlete directory. Historical results remain in meet results without a profile link. The source keys will be excluded from future archive imports.</p>{archive && <p className="mt-2 flex items-center gap-2 text-xs text-[var(--accent)]"><Download size={13} />A cleaned swimmers.json download will start after deletion.</p>}<label className="mt-4 block text-xs text-white/60">Type <strong className="text-white">{deleting.first_name} {deleting.last_name}</strong> to confirm<input autoComplete="off" className={`${fieldClass} mt-2`} value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setDeleting(null)} className="border border-[var(--navy-light)] px-4 py-2 text-sm text-white/70">Cancel</button><button type="button" disabled={Boolean(busyId) || confirmation.trim().toLowerCase() !== `${deleting.first_name} ${deleting.last_name}`.trim().toLowerCase()} onClick={() => void removeSwimmer()} className="bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">{busyId ? 'Deleting…' : 'Delete swimmer'}</button></div></div></div>}
+    {bulkDeleting && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-delete-swimmers-title"><div className="max-h-[90vh] w-full max-w-xl overflow-auto border border-red-300/30 bg-[var(--navy-mid)] p-5 sm:p-6"><h3 id="bulk-delete-swimmers-title" className="text-lg font-bold text-white">Delete {selectedDeletable.length} selected profiles?</h3><p className="mt-2 text-sm leading-6 text-white/60">This removes the selected unclaimed profiles. Their historical results remain without a profile link, and their archive source keys are excluded from future imports. Claimed profiles are excluded.</p>{archive && <p className="mt-2 flex items-center gap-2 text-xs text-[var(--accent)]"><Download size={13} />A cleaned swimmers.json download will start after deletion.</p>}<div className="mt-4 max-h-40 overflow-auto border border-[var(--navy-light)] p-3 text-sm text-white/75">{selectedDeletable.map(swimmer => <p key={swimmer.id}>{swimmer.first_name} {swimmer.last_name}</p>)}</div><label className="mt-4 block text-xs text-white/60">Type <strong className="text-white">DELETE</strong> to confirm<input autoComplete="off" className={`${fieldClass} mt-2`} value={bulkConfirmation} onChange={event => setBulkConfirmation(event.target.value)} /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setBulkDeleting(false)} disabled={Boolean(busyId)} className="border border-[var(--navy-light)] px-4 py-2 text-sm text-white/70 disabled:opacity-40">Cancel</button><button type="button" disabled={Boolean(busyId) || bulkConfirmation.trim().toUpperCase() !== 'DELETE'} onClick={() => void removeSelectedSwimmers()} className="bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">{busyId === 'bulk' ? 'Deleting…' : `Delete ${selectedDeletable.length} profiles`}</button></div></div></div>}
   </section>;
 }
