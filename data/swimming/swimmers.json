@@ -14,16 +14,16 @@
       "Source pool length, time anomalies, and ambiguous identities require review."
     ],
     "identity_consolidation": {
-      "automatic_merges": 230,
-      "preserved_source_aliases": 230,
-      "review_required_profiles": 223
+      "automatic_merges": 232,
+      "preserved_source_aliases": 232,
+      "review_required_profiles": 221
     }
   },
   "summary": {
-    "swimmers": 2347,
-    "individual_results": 8723,
+    "swimmers": 2345,
+    "individual_results": 8722,
     "relay_results": 409,
-    "identity_reviews": 99,
+    "identity_reviews": 98,
     "unparsed_rows": 17
   },
   "source_groups": [
@@ -340828,196 +340828,10 @@
       "source_key_aliases": []
     },
     {
-      "id": "swimmer-c6d906efe99c47a8edeb8844",
-      "display_name": "PETER KREILKAMP",
-      "name_variants": [
-        "PETER KREILKAMP"
-      ],
-      "country": "Germany",
-      "country_code": "GER",
-      "gender": "Men",
-      "claim_status": "unclaimed",
-      "database_athlete_id": null,
-      "date_of_birth": null,
-      "transplant_type": null,
-      "results": [
-        {
-          "event": "100m Freestyle",
-          "distance": 100,
-          "distance_unit": "metres",
-          "stroke": "Freestyle",
-          "is_relay": false,
-          "course": null,
-          "gender": "Men",
-          "age_group": null,
-          "category_original": "100 m. Freestyle Individual, Male Super Seniors (WR = 01.05.42)",
-          "competition_category": "unspecified",
-          "round": null,
-          "meet_id": "wtg-2007",
-          "year": 2007,
-          "swimmer_name_original": "PETER KREILKAMP",
-          "team_original": "GERMANY",
-          "country": "Germany",
-          "country_code": "GER",
-          "age_at_meet": null,
-          "time_original": "01.11.60",
-          "time_ms": 71600,
-          "race_status": "OK",
-          "placing_original": "1",
-          "source_references": [
-            {
-              "source_id": "3922ffe957c2752ec3ec",
-              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
-              "page": 42,
-              "raw_row": "1 PETER KREILKAMP : GERMANY 01.11.60 Gold"
-            }
-          ],
-          "review_flags": [
-            "pool_length_not_confirmed"
-          ],
-          "medal_original": "Gold",
-          "record_annotation_original": null,
-          "date": null,
-          "id": "result-43867ac8abcb7c9163f1a365"
-        },
-        {
-          "event": "50m Breaststroke",
-          "distance": 50,
-          "distance_unit": "metres",
-          "stroke": "Breaststroke",
-          "is_relay": false,
-          "course": null,
-          "gender": "Men",
-          "age_group": null,
-          "category_original": "50 m. Breaststroke Individual, Male Super Seniors (WR = 00.36.99)",
-          "competition_category": "unspecified",
-          "round": null,
-          "meet_id": "wtg-2007",
-          "year": 2007,
-          "swimmer_name_original": "PETER KREILKAMP",
-          "team_original": "GERMANY",
-          "country": "Germany",
-          "country_code": "GER",
-          "age_at_meet": null,
-          "time_original": "00.39.54",
-          "time_ms": 39540,
-          "race_status": "OK",
-          "placing_original": "1",
-          "source_references": [
-            {
-              "source_id": "3922ffe957c2752ec3ec",
-              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
-              "page": 57,
-              "raw_row": "1 PETER KREILKAMP : GERMANY 00.39.54 Gold"
-            }
-          ],
-          "review_flags": [
-            "pool_length_not_confirmed"
-          ],
-          "medal_original": "Gold",
-          "record_annotation_original": null,
-          "date": null,
-          "id": "result-a728f2c6fde8df915a62934e"
-        },
-        {
-          "event": "50m Butterfly",
-          "distance": 50,
-          "distance_unit": "metres",
-          "stroke": "Butterfly",
-          "is_relay": false,
-          "course": null,
-          "gender": "Men",
-          "age_group": null,
-          "category_original": "50 m. Butterfly Individual, Male Super Seniors (WR = 00.37.18)",
-          "competition_category": "unspecified",
-          "round": null,
-          "meet_id": "wtg-2007",
-          "year": 2007,
-          "swimmer_name_original": "PETER KREILKAMP",
-          "team_original": "GERMANY",
-          "country": "Germany",
-          "country_code": "GER",
-          "age_at_meet": null,
-          "time_original": "00.34.78",
-          "time_ms": 34780,
-          "race_status": "OK",
-          "placing_original": "1",
-          "source_references": [
-            {
-              "source_id": "3922ffe957c2752ec3ec",
-              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
-              "page": 60,
-              "raw_row": "1 PETER KREILKAMP : GERMANY 00.34.78 ** Gold"
-            }
-          ],
-          "review_flags": [
-            "pool_length_not_confirmed"
-          ],
-          "medal_original": "Gold",
-          "record_annotation_original": "**",
-          "date": null,
-          "id": "result-94bbcf89bc91bc24db37007c"
-        },
-        {
-          "event": "50m Freestyle",
-          "distance": 50,
-          "distance_unit": "metres",
-          "stroke": "Freestyle",
-          "is_relay": false,
-          "course": null,
-          "gender": "Men",
-          "age_group": null,
-          "category_original": "50 m. Freestyle Individual, Male Super Seniors (WR = 00.29.59)",
-          "competition_category": "unspecified",
-          "round": null,
-          "meet_id": "wtg-2007",
-          "year": 2007,
-          "swimmer_name_original": "PETER KREILKAMP",
-          "team_original": "GERMANY",
-          "country": "Germany",
-          "country_code": "GER",
-          "age_at_meet": null,
-          "time_original": "00.30.38",
-          "time_ms": 30380,
-          "race_status": "OK",
-          "placing_original": "1",
-          "source_references": [
-            {
-              "source_id": "3922ffe957c2752ec3ec",
-              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
-              "page": 63,
-              "raw_row": "1 PETER KREILKAMP : GERMANY 00.30.38 Gold"
-            }
-          ],
-          "review_flags": [
-            "pool_length_not_confirmed"
-          ],
-          "medal_original": "Gold",
-          "record_annotation_original": null,
-          "date": null,
-          "id": "result-3d2a6c39429fef6bc2e3b433"
-        }
-      ],
-      "identity_review_required": true,
-      "categories": [
-        "unspecified"
-      ],
-      "teams": [
-        "GERMANY"
-      ],
-      "years": [
-        2007
-      ],
-      "result_count": 4,
-      "source_ids": [
-        "3922ffe957c2752ec3ec"
-      ],
-      "source_key_aliases": []
-    },
-    {
       "id": "swimmer-e16d2a26667aea10728bad7b",
       "display_name": "Peter Kreilkamp",
       "name_variants": [
+        "PETER KREILKAMP",
         "Peter Kreilkamp"
       ],
       "country": "Germany",
@@ -341673,9 +341487,165 @@
             "165"
           ],
           "id": "result-ee791090d6a631f2d5db30aa"
+        },
+        {
+          "event": "100m Freestyle",
+          "distance": 100,
+          "distance_unit": "metres",
+          "stroke": "Freestyle",
+          "is_relay": false,
+          "course": null,
+          "gender": "Men",
+          "age_group": null,
+          "category_original": "100 m. Freestyle Individual, Male Super Seniors (WR = 01.05.42)",
+          "competition_category": "unspecified",
+          "round": null,
+          "meet_id": "wtg-2007",
+          "year": 2007,
+          "swimmer_name_original": "PETER KREILKAMP",
+          "team_original": "GERMANY",
+          "country": "Germany",
+          "country_code": "GER",
+          "age_at_meet": null,
+          "time_original": "01.11.60",
+          "time_ms": 71600,
+          "race_status": "OK",
+          "placing_original": "1",
+          "source_references": [
+            {
+              "source_id": "3922ffe957c2752ec3ec",
+              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
+              "page": 42,
+              "raw_row": "1 PETER KREILKAMP : GERMANY 01.11.60 Gold"
+            }
+          ],
+          "review_flags": [
+            "pool_length_not_confirmed"
+          ],
+          "medal_original": "Gold",
+          "record_annotation_original": null,
+          "date": null,
+          "id": "result-43867ac8abcb7c9163f1a365"
+        },
+        {
+          "event": "50m Breaststroke",
+          "distance": 50,
+          "distance_unit": "metres",
+          "stroke": "Breaststroke",
+          "is_relay": false,
+          "course": null,
+          "gender": "Men",
+          "age_group": null,
+          "category_original": "50 m. Breaststroke Individual, Male Super Seniors (WR = 00.36.99)",
+          "competition_category": "unspecified",
+          "round": null,
+          "meet_id": "wtg-2007",
+          "year": 2007,
+          "swimmer_name_original": "PETER KREILKAMP",
+          "team_original": "GERMANY",
+          "country": "Germany",
+          "country_code": "GER",
+          "age_at_meet": null,
+          "time_original": "00.39.54",
+          "time_ms": 39540,
+          "race_status": "OK",
+          "placing_original": "1",
+          "source_references": [
+            {
+              "source_id": "3922ffe957c2752ec3ec",
+              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
+              "page": 57,
+              "raw_row": "1 PETER KREILKAMP : GERMANY 00.39.54 Gold"
+            }
+          ],
+          "review_flags": [
+            "pool_length_not_confirmed"
+          ],
+          "medal_original": "Gold",
+          "record_annotation_original": null,
+          "date": null,
+          "id": "result-a728f2c6fde8df915a62934e"
+        },
+        {
+          "event": "50m Butterfly",
+          "distance": 50,
+          "distance_unit": "metres",
+          "stroke": "Butterfly",
+          "is_relay": false,
+          "course": null,
+          "gender": "Men",
+          "age_group": null,
+          "category_original": "50 m. Butterfly Individual, Male Super Seniors (WR = 00.37.18)",
+          "competition_category": "unspecified",
+          "round": null,
+          "meet_id": "wtg-2007",
+          "year": 2007,
+          "swimmer_name_original": "PETER KREILKAMP",
+          "team_original": "GERMANY",
+          "country": "Germany",
+          "country_code": "GER",
+          "age_at_meet": null,
+          "time_original": "00.34.78",
+          "time_ms": 34780,
+          "race_status": "OK",
+          "placing_original": "1",
+          "source_references": [
+            {
+              "source_id": "3922ffe957c2752ec3ec",
+              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
+              "page": 60,
+              "raw_row": "1 PETER KREILKAMP : GERMANY 00.34.78 ** Gold"
+            }
+          ],
+          "review_flags": [
+            "pool_length_not_confirmed"
+          ],
+          "medal_original": "Gold",
+          "record_annotation_original": "**",
+          "date": null,
+          "id": "result-94bbcf89bc91bc24db37007c"
+        },
+        {
+          "event": "50m Freestyle",
+          "distance": 50,
+          "distance_unit": "metres",
+          "stroke": "Freestyle",
+          "is_relay": false,
+          "course": null,
+          "gender": "Men",
+          "age_group": null,
+          "category_original": "50 m. Freestyle Individual, Male Super Seniors (WR = 00.29.59)",
+          "competition_category": "unspecified",
+          "round": null,
+          "meet_id": "wtg-2007",
+          "year": 2007,
+          "swimmer_name_original": "PETER KREILKAMP",
+          "team_original": "GERMANY",
+          "country": "Germany",
+          "country_code": "GER",
+          "age_at_meet": null,
+          "time_original": "00.30.38",
+          "time_ms": 30380,
+          "race_status": "OK",
+          "placing_original": "1",
+          "source_references": [
+            {
+              "source_id": "3922ffe957c2752ec3ec",
+              "url": "https://transdiaev.de/sportveranstaltungen/sportergebnisse/weltmeisterschaften?download=11:world-transplant-games-2007",
+              "page": 63,
+              "raw_row": "1 PETER KREILKAMP : GERMANY 00.30.38 Gold"
+            }
+          ],
+          "review_flags": [
+            "pool_length_not_confirmed"
+          ],
+          "medal_original": "Gold",
+          "record_annotation_original": null,
+          "date": null,
+          "id": "result-3d2a6c39429fef6bc2e3b433"
         }
       ],
-      "identity_review_required": true,
+      "identity_review_required": false,
       "categories": [
         "dialysis",
         "transplant_recipient",
@@ -341683,18 +341653,21 @@
       ],
       "teams": [
         "Ger",
-        "Germany"
+        "Germany",
+        "GERMANY"
       ],
       "years": [
         2005,
+        2007,
         2009,
         2010,
         2024,
         2025,
         2026
       ],
-      "result_count": 17,
+      "result_count": 21,
       "source_ids": [
+        "3922ffe957c2752ec3ec",
         "484e24b0b8c5e5122872",
         "4dcb73d43a919bc67d03",
         "59d72f1169bc93f0ba83",
@@ -341712,6 +341685,7 @@
         "swimmer-76b7d884a16a84718909d1ce",
         "swimmer-7ca2ca9d2f2ead0d972b65b5",
         "swimmer-9311a0298e2f82f208c174b9",
+        "swimmer-c6d906efe99c47a8edeb8844",
         "swimmer-cb90cbb19ff9153f32a2f644",
         "swimmer-ddf4aacaf52757b4a8d90a83"
       ]
@@ -409512,82 +409486,10 @@
       "source_key_aliases": []
     },
     {
-      "id": "swimmer-77f93824b325543ceb2581e9",
-      "display_name": "Terie Aarsand",
-      "name_variants": [
-        "Terie Aarsand"
-      ],
-      "country": "Norway",
-      "country_code": "NOR",
-      "gender": "Men",
-      "claim_status": "unclaimed",
-      "database_athlete_id": null,
-      "date_of_birth": null,
-      "transplant_type": null,
-      "results": [
-        {
-          "event": "50m Breaststroke",
-          "distance": 50,
-          "distance_unit": "metres",
-          "stroke": "Breaststroke",
-          "is_relay": false,
-          "course": null,
-          "gender": "Men",
-          "age_group": "50-59",
-          "competition_category": "unspecified",
-          "category_original": "Male 50m Breaststroke",
-          "round": "heat",
-          "meet_id": "wtg-2013",
-          "year": 2013,
-          "swimmer_name_original": "Terie Aarsand",
-          "team_original": "Norway",
-          "country": "Norway",
-          "country_code": "NOR",
-          "age_at_meet": null,
-          "time_original": "DQ",
-          "time_ms": null,
-          "race_status": "DQ",
-          "placing_original": "10",
-          "source_references": [
-            {
-              "source_id": "fc4cd487226f9d06b70f",
-              "url": "https://wtgf.org/wp-content/uploads/2016/06/WTG2013_Results_compressed.pdf",
-              "page": 81,
-              "raw_row": "10 | Heat | Terie Aarsand | Norway | DQ",
-              "extraction_method": "macOS Vision OCR",
-              "ocr_min_confidence": 1
-            }
-          ],
-          "review_flags": [
-            "pool_length_not_confirmed",
-            "ocr_requires_visual_review"
-          ],
-          "medal_original": null,
-          "record_annotation_original": null,
-          "date": null,
-          "id": "result-84a29b98fe2679777583616d"
-        }
-      ],
-      "identity_review_required": false,
-      "categories": [
-        "unspecified"
-      ],
-      "teams": [
-        "Norway"
-      ],
-      "years": [
-        2013
-      ],
-      "result_count": 1,
-      "source_ids": [
-        "fc4cd487226f9d06b70f"
-      ],
-      "source_key_aliases": []
-    },
-    {
       "id": "swimmer-e2f1c64b137252eab477d624",
       "display_name": "Terje Aarsand",
       "name_variants": [
+        "Terie Aarsand",
         "Terje Aarsand"
       ],
       "country": "Norway",
@@ -409598,48 +409500,6 @@
       "date_of_birth": null,
       "transplant_type": null,
       "results": [
-        {
-          "event": "50m Freestyle",
-          "distance": 50,
-          "distance_unit": "metres",
-          "stroke": "Freestyle",
-          "is_relay": false,
-          "course": null,
-          "gender": "Men",
-          "age_group": "50-59",
-          "competition_category": "unspecified",
-          "category_original": "Male 50m Freestyle",
-          "round": "heat",
-          "meet_id": "wtg-2013",
-          "year": 2013,
-          "swimmer_name_original": "Terje Aarsand",
-          "team_original": "Norway",
-          "country": "Norway",
-          "country_code": "NOR",
-          "age_at_meet": null,
-          "time_original": "39.89",
-          "time_ms": 39890,
-          "race_status": "OK",
-          "placing_original": "7",
-          "source_references": [
-            {
-              "source_id": "fc4cd487226f9d06b70f",
-              "url": "https://wtgf.org/wp-content/uploads/2016/06/WTG2013_Results_compressed.pdf",
-              "page": 86,
-              "raw_row": "7 | Heat | Terje Aarsand | Norway | 39.89",
-              "extraction_method": "macOS Vision OCR",
-              "ocr_min_confidence": 1
-            }
-          ],
-          "review_flags": [
-            "pool_length_not_confirmed",
-            "ocr_requires_visual_review"
-          ],
-          "medal_original": null,
-          "record_annotation_original": null,
-          "date": null,
-          "id": "result-6f0fed227bcaf5d537304043"
-        },
         {
           "event": "50m Freestyle",
           "distance": 50,
@@ -409721,6 +409581,48 @@
           "round": null,
           "date": null,
           "id": "result-c3af35c86b04a62f9e6e282d"
+        },
+        {
+          "event": "50m Breaststroke",
+          "distance": 50,
+          "distance_unit": "metres",
+          "stroke": "Breaststroke",
+          "is_relay": false,
+          "course": null,
+          "gender": "Men",
+          "age_group": "50-59",
+          "competition_category": "unspecified",
+          "category_original": "Male 50m Breaststroke",
+          "round": "heat",
+          "meet_id": "wtg-2013",
+          "year": 2013,
+          "swimmer_name_original": "Terie Aarsand",
+          "team_original": "Norway",
+          "country": "Norway",
+          "country_code": "NOR",
+          "age_at_meet": null,
+          "time_original": "DQ",
+          "time_ms": null,
+          "race_status": "DQ",
+          "placing_original": "10",
+          "source_references": [
+            {
+              "source_id": "fc4cd487226f9d06b70f",
+              "url": "https://wtgf.org/wp-content/uploads/2016/06/WTG2013_Results_compressed.pdf",
+              "page": 81,
+              "raw_row": "10 | Heat | Terie Aarsand | Norway | DQ",
+              "extraction_method": "macOS Vision OCR",
+              "ocr_min_confidence": 1
+            }
+          ],
+          "review_flags": [
+            "pool_length_not_confirmed",
+            "ocr_requires_visual_review"
+          ],
+          "medal_original": null,
+          "record_annotation_original": null,
+          "date": null,
+          "id": "result-84a29b98fe2679777583616d"
         }
       ],
       "identity_review_required": false,
@@ -409739,7 +409641,9 @@
         "8c6331b411ba0062051b",
         "fc4cd487226f9d06b70f"
       ],
-      "source_key_aliases": []
+      "source_key_aliases": [
+        "swimmer-77f93824b325543ceb2581e9"
+      ]
     },
     {
       "id": "swimmer-40464dc32598d03dc08aa48b",
@@ -467258,17 +467162,6 @@
       "swimmer_ids": [
         "swimmer-643afb1bf10703ef621fee59",
         "swimmer-ecbee16f510f6ad638bf10fd"
-      ],
-      "reason": "Same normalized name, country and gender; age/team evidence does not identify a unique match."
-    },
-    {
-      "type": "same_name_uncertain_identity",
-      "name": "Peter Kreilkamp",
-      "country_key": "GER",
-      "gender": "Men",
-      "swimmer_ids": [
-        "swimmer-e16d2a26667aea10728bad7b",
-        "swimmer-c6d906efe99c47a8edeb8844"
       ],
       "reason": "Same normalized name, country and gender; age/team evidence does not identify a unique match."
     },

@@ -189,13 +189,17 @@ def consolidate(swimmers):
     # or used a club team instead of the national team without weakening the
     # automatic matching rules for everyone else.
     for override in load_overrides():
-        name_key = override.get('name_key')
-        gender = override.get('gender')
-        allowed_countries = set(override.get('country_codes', []))
-        matches = [item for item in result
-                   if norm(item.get('display_name')) == name_key
-                   and item.get('gender') == gender
-                   and item.get('country_code') in allowed_countries]
+        confirmed_ids = set(override.get('source_profile_ids', []))
+        if confirmed_ids:
+            matches = [item for item in result if item.get('id') in confirmed_ids]
+        else:
+            name_key = override.get('name_key')
+            gender = override.get('gender')
+            allowed_countries = set(override.get('country_codes', []))
+            matches = [item for item in result
+                       if norm(item.get('display_name')) == name_key
+                       and item.get('gender') == gender
+                       and item.get('country_code') in allowed_countries]
         if len(matches) < 2:
             continue
         matches.sort(key=lambda item: (-len(item.get('results', [])), item['id']))
@@ -206,6 +210,8 @@ def consolidate(swimmers):
         canonical_code = override.get('canonical_country_code')
         if canonical_code:
             primary['country_code'] = canonical_code
+        if override.get('canonical_display_name'):
+            primary['display_name'] = override['canonical_display_name']
         primary['identity_review_required'] = False
 
     # Rebuild review groups from the consolidated output. Profiles with a known

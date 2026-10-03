@@ -9,6 +9,15 @@
       ],
       "canonical_country_code": "GBR",
       "reason": "The user confirmed the historical Liam Barnett entries refer to one swimmer; age group belongs to each result."
+    },
+    {
+      "source_profile_ids": [
+        "swimmer-77f93824b325543ceb2581e9",
+        "swimmer-e2f1c64b137252eab477d624"
+      ],
+      "canonical_display_name": "Terje Aarsand",
+      "canonical_country_code": "NOR",
+      "reason": "The user requested that the same Norwegian swimmer be represented once; the Terie spelling has only a disqualified 2013 row and matches Terje's country, gender, team, age group, year and source document."
     }
   ]
 }

@@ -13,16 +13,16 @@
       "Source pool length, time anomalies, and ambiguous identities require review."
     ],
     "identity_consolidation": {
-      "automatic_merges": 230,
-      "preserved_source_aliases": 230,
-      "review_required_profiles": 223
+      "automatic_merges": 232,
+      "preserved_source_aliases": 232,
+      "review_required_profiles": 221
     }
   },
   "summary": {
-    "swimmers": 2347,
-    "individual_results": 8723,
+    "swimmers": 2345,
+    "individual_results": 8722,
     "relay_results": 409,
-    "identity_reviews": 99,
+    "identity_reviews": 98,
     "unparsed_rows": 17
   },
   "source_groups": [

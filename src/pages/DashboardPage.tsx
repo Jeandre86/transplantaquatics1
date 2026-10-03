@@ -9,9 +9,43 @@ import { loadMyAccountResults, loadPublicSubmittedResults, type SubmittedSwimmer
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
 import DatabaseResultsTable from '../components/DatabaseResultsTable';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
+import { loadMeetCatalog, type MeetCatalogEdition } from '../lib/meetCatalog';
 import type { Ranking } from '../types';
 
 const RANKING_PREVIEW_SIZE = 4;
+
+function GamesCountdown({ meet }: { meet: MeetCatalogEdition }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  if (!meet.meet_date) {
+    return <p className="mt-2 text-sm text-white/65">Event dates will be added when confirmed.</p>;
+  }
+
+  const start = new Date(`${meet.meet_date}T00:00:00`).getTime();
+  const end = meet.end_date ? new Date(`${meet.end_date}T23:59:59`).getTime() : start;
+  const dateLabel = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'long', ...(!meet.end_date ? { year: 'numeric' as const } : {}) });
+  const startLabel = dateLabel.format(new Date(`${meet.meet_date}T00:00:00`));
+  const endLabel = meet.end_date ? new Intl.DateTimeFormat('en', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${meet.end_date}T00:00:00`)) : '';
+  const remainingSeconds = Math.max(0, Math.floor((start - now) / 1000));
+  const days = Math.floor(remainingSeconds / 86400);
+  const hours = Math.floor((remainingSeconds % 86400) / 3600);
+  const minutes = Math.floor((remainingSeconds % 3600) / 60);
+  const seconds = remainingSeconds % 60;
+
+  return <>
+    <p className="mt-2 text-xs text-white/65">{startLabel}{endLabel ? ` – ${endLabel}` : ''}</p>
+    {now > end ? <p className="mt-4 text-xl font-bold text-[var(--accent)]">Games completed</p> : now >= start ? <p className="mt-4 text-xl font-bold text-[var(--accent)]">The Games are underway</p> : <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Countdown to the World Transplant Games">
+      {[['Days', days], ['Hours', hours], ['Minutes', minutes], ['Seconds', seconds]].map(([label, value]) => <div key={label} className="min-w-0 text-center">
+        <p className="font-mono text-2xl font-bold tabular-nums text-[var(--accent)] sm:text-3xl">{String(value).padStart(2, '0')}</p>
+        <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-white/55">{label}</p>
+      </div>)}
+    </div>}
+  </>;
+}
 
 function buildOwnEventRankings(results: SubmittedSwimmerResult[], rankings: Ranking[]) {
   const personalBests = new Map<string, SubmittedSwimmerResult>();
@@ -83,6 +117,21 @@ export default function DashboardPage() {
   const [worldResults, setWorldResults] = useState<SubmittedSwimmerResult[]>([]);
   const [worldResultsLoaded, setWorldResultsLoaded] = useState(false);
   const [worldResultsLoadFailed, setWorldResultsLoadFailed] = useState(false);
+  const [worldGamesMeet, setWorldGamesMeet] = useState<MeetCatalogEdition | null>(null);
+  const [worldGamesLoaded, setWorldGamesLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadMeetCatalog().then(meets => {
+      const edition = meets.find(meet => meet.category === 'World Transplant Games' && meet.year === 2027);
+      if (!cancelled) setWorldGamesMeet(edition ?? null);
+    }).catch(() => {
+      if (!cancelled) setWorldGamesMeet(null);
+    }).finally(() => {
+      if (!cancelled) setWorldGamesLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!auth.isLoading && !auth.isLoggedIn) navigate('/login', { replace: true });
@@ -222,8 +271,8 @@ export default function DashboardPage() {
               </div>
               <div className="flex w-full shrink-0 flex-col justify-center border-l-4 border-[var(--accent)] bg-[var(--navy)] px-4 py-5 text-white sm:w-1/2">
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">Next World Transplant Games</p>
-                <p className="mt-3 text-2xl font-bold text-[var(--accent)]">Leuven · 2027</p>
-                <p className="mt-2 text-xs text-white/65">Event dates will be added when confirmed.</p>
+                <p className="mt-3 text-2xl font-bold text-[var(--accent)]">{worldGamesMeet ? `${worldGamesMeet.host_city || 'Leuven'} · ${worldGamesMeet.year}` : 'Leuven · 2027'}</p>
+                {worldGamesMeet ? <GamesCountdown meet={worldGamesMeet} /> : <p className="mt-2 text-xs text-white/65">{worldGamesLoaded ? 'Event dates are not available yet.' : 'Loading event dates…'}</p>}
               </div>
             </div>
           </DashboardCard>
