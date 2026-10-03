@@ -47,19 +47,19 @@ export default function CountryPage() {
     const requestedCode = getCountryIso2(code);
     const swimmerCode = getCountryIso2(swimmer.country_code ?? '');
     const byCode = requestedCode.length === 2 && swimmerCode === requestedCode;
-    const byName = swimmer.country.toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase();
+    const byName = (swimmer.country ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase();
     return byCode || byName;
   }).sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name)), [swimmers, code]);
   const sample = countrySwimmers[0];
   const requestedCode = getCountryIso2(code);
   const recordSample = records.find(record => (requestedCode.length === 2 && getCountryIso2(record.countryCode ?? '') === requestedCode)
-    || record.country.toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase());
+    || (record.country ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase());
   const countryMeta = countryReference.find(country => country.code.toLowerCase() === requestedCode.toLowerCase())
     ?? countryReference.find(country => country.name.toLowerCase() === (sample?.country ?? recordSample?.country)?.toLowerCase());
   const countryName = countryMeta?.name ?? sample?.country ?? recordSample?.country ?? '';
   const countryFlag = getFlagEmoji(sample?.country_code ?? recordSample?.countryCode ?? countryMeta?.code ?? requestedCode);
   const countryRecords = records.filter(record => (requestedCode.length === 2 && getCountryIso2(record.countryCode ?? '') === requestedCode)
-    || record.country.toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase());
+    || (record.country ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase());
   const swimmerRecords = countryRecords.filter(record => record.category?.trim().toLowerCase() !== 'donor');
   const donorRecords = countryRecords.filter(record => record.category?.trim().toLowerCase() === 'donor');
   const pageCount = Math.ceil(countrySwimmers.length / PAGE_SIZE);

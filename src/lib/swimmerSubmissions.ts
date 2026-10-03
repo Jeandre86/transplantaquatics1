@@ -25,7 +25,7 @@ export interface PublicSwimmerProfile {
   id: string;
   first_name: string;
   last_name: string;
-  country: string;
+  country: string | null;
   country_code: string | null;
   gender: Gender;
   transplant_type: TransplantType;
