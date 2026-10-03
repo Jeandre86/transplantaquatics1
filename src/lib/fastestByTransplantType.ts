@@ -26,6 +26,12 @@ interface ResultRow {
   submitted_meets: { course: string } | { course: string }[] | null;
 }
 
+function compareText(left: unknown, right: unknown): number {
+  const a = typeof left === 'string' ? left : '';
+  const b = typeof right === 'string' ? right : '';
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 export async function loadFastestByTransplantType(): Promise<FastestTransplantSwim[]> {
   if (!supabase) throw new Error('Supabase is not configured. Add the project URL and publishable key to .env.local.');
 
@@ -46,30 +52,42 @@ export async function loadFastestByTransplantType(): Promise<FastestTransplantSw
     const profile = profileById.get(row.swimmer_id);
     if (!profile || !Number.isFinite(timeToSeconds(row.time))) continue;
 
+    // Historical imports can leave profile fields blank. A swim without a
+    // transplant type cannot be placed in this category-specific summary.
+    const transplantType = typeof profile.transplant_type === 'string' ? profile.transplant_type.trim() : '';
+    if (!transplantType) continue;
+    const event = typeof row.event === 'string' ? row.event.trim() : '';
+    if (!event) continue;
+    const gender = typeof profile.gender === 'string' ? profile.gender.trim() : '';
+
     const meet = Array.isArray(row.submitted_meets) ? row.submitted_meets[0] : row.submitted_meets;
-    const categoryKey = [profile.transplant_type, row.event, profile.gender, meet?.course ?? ''].join('|');
+    const course = typeof meet?.course === 'string' ? meet.course.trim() : '';
+    const categoryKey = [transplantType, event, gender, course].join('|');
     const current = fastestByEventCategory.get(categoryKey);
     if (current && timeToSeconds(current.time) <= timeToSeconds(row.time)) continue;
 
     fastestByEventCategory.set(categoryKey, {
       athleteId: profile.id,
-      athleteName: `${profile.first_name} ${profile.last_name}`,
-      country: profile.country,
-      countryCode: profile.country_code ?? '',
-      transplantType: profile.transplant_type,
-      gender: profile.gender,
+      athleteName: [profile.first_name, profile.last_name].filter(value => typeof value === 'string' && value.trim()).join(' '),
+      country: typeof profile.country === 'string' ? profile.country : '',
+      countryCode: typeof profile.country_code === 'string' ? profile.country_code : '',
+      transplantType,
+      gender,
       ageGroup: row.age_group ?? '',
-      event: row.event,
+      event,
       time: row.time,
-      course: meet?.course ?? null,
+      course: course || null,
       status: row.status as FastestTransplantSwim['status'],
     });
   }
 
+  // Keep each type's fastest event first. This also avoids calling string
+  // methods on nullable fields returned by older/imported database rows.
   return [...fastestByEventCategory.values()].sort((a, b) =>
-    a.transplantType.localeCompare(b.transplantType)
-      || a.event.localeCompare(b.event)
-      || a.gender.localeCompare(b.gender)
-      || (a.course ?? '').localeCompare(b.course ?? '')
+    compareText(a.transplantType, b.transplantType)
+      || timeToSeconds(a.time) - timeToSeconds(b.time)
+      || compareText(a.event, b.event)
+      || compareText(a.gender, b.gender)
+      || compareText(a.course, b.course)
   );
 }
