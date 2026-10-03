@@ -34,6 +34,10 @@ const fieldClass = 'w-full border border-[var(--navy-light)] bg-[var(--navy)] px
 
 export default function AdminSwimmersManager({ swimmers, canManage, onChanged }: { swimmers: Record<string, unknown>[]; canManage: boolean; onChanged: () => Promise<void> }) {
   const [query, setQuery] = useState('');
+  const [countryFilter, setCountryFilter] = useState('All');
+  const [genderFilter, setGenderFilter] = useState('All');
+  const [transplantFilter, setTransplantFilter] = useState('All');
+  const [accountFilter, setAccountFilter] = useState('All');
   const [editing, setEditing] = useState<Swimmer | null>(null);
   const [draft, setDraft] = useState({ first_name: '', last_name: '', date_of_birth: '', country: '', country_code: '', gender: '', transplant_type: '' });
   const [deleting, setDeleting] = useState<Swimmer | null>(null);
@@ -44,11 +48,23 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
   const [error, setError] = useState('');
 
   const rows = swimmers as unknown as Swimmer[];
+  const countriesInList = useMemo(() => [...new Set(rows.map(swimmer => swimmer.country?.trim()).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b)), [rows]);
+  const transplantTypesInList = useMemo(() => [...new Set(rows.map(swimmer => swimmer.transplant_type?.trim()).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b)), [rows]);
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return rows;
-    return rows.filter(swimmer => [swimmer.first_name, swimmer.last_name, swimmer.country, swimmer.country_code, swimmer.gender, swimmer.transplant_type, swimmer.club_name, swimmer.source_key, ...(swimmer.source_keys ?? [])].some(value => String(value ?? '').toLowerCase().includes(needle)));
-  }, [rows, query]);
+    return rows.filter(swimmer => {
+      const matchesSearch = !needle || [swimmer.first_name, swimmer.last_name, swimmer.country, swimmer.country_code, swimmer.gender, swimmer.transplant_type, swimmer.club_name, swimmer.source_key, ...(swimmer.source_keys ?? [])].some(value => String(value ?? '').toLowerCase().includes(needle));
+      const isClaimed = Boolean(swimmer.account_id || swimmer.is_claimed);
+      return matchesSearch
+        && (countryFilter === 'All' || (countryFilter === '' ? !swimmer.country?.trim() : swimmer.country === countryFilter))
+        && (genderFilter === 'All' || (genderFilter === '' ? !swimmer.gender : swimmer.gender === genderFilter))
+        && (transplantFilter === 'All' || (transplantFilter === '' ? !swimmer.transplant_type : swimmer.transplant_type === transplantFilter))
+        && (accountFilter === 'All' || (accountFilter === 'Claimed' ? isClaimed : !isClaimed));
+    });
+  }, [rows, query, countryFilter, genderFilter, transplantFilter, accountFilter]);
+
+  const filtersActive = Boolean(query.trim()) || countryFilter !== 'All' || genderFilter !== 'All' || transplantFilter !== 'All' || accountFilter !== 'All';
+  const clearFilters = () => { setQuery(''); setCountryFilter('All'); setGenderFilter('All'); setTransplantFilter('All'); setAccountFilter('All'); };
 
   const openEdit = (swimmer: Swimmer) => {
     setEditing(swimmer);
@@ -130,9 +146,16 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
     </div>
     <p className="mt-3 text-xs text-white/45">{archive ? `${archiveName} loaded. Deleting a profile will download an updated JSON for you to replace in the project.` : 'Load swimmers.json to download a cleaned copy whenever a profile is deleted. Database exclusions also prevent deleted archive profiles from returning on future imports.'}</p>
     {!canManage && <p className="mt-2 text-xs text-amber-200/80">This account has view-only access here, or the swimmer management migration is not available yet.</p>}
-    <label className="relative mt-5 block max-w-xl"><span className="sr-only">Search swimmers</span><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search name, country, club, or source key" className={`${fieldClass} pl-9`} /></label>
+    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <label className="relative sm:col-span-2 lg:col-span-1"><span className="sr-only">Search swimmers</span><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search swimmers…" className={`${fieldClass} pl-9`} /></label>
+      <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Country<select value={countryFilter} onChange={event => setCountryFilter(event.target.value)} className={`${fieldClass} mt-1 block`}><option value="All">All countries</option>{countriesInList.map(country => <option key={country} value={country}>{country}</option>)}<option value="">Not recorded</option></select></label>
+      <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Gender<select value={genderFilter} onChange={event => setGenderFilter(event.target.value)} className={`${fieldClass} mt-1 block`}><option value="All">All genders</option><option value="Men">Men</option><option value="Women">Women</option><option value="">Not recorded</option></select></label>
+      <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Transplant type<select value={transplantFilter} onChange={event => setTransplantFilter(event.target.value)} className={`${fieldClass} mt-1 block`}><option value="All">All types</option>{transplantTypesInList.map(type => <option key={type} value={type}>{type}</option>)}<option value="">Not recorded</option></select></label>
+      <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Profile status<select value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className={`${fieldClass} mt-1 block`}><option value="All">All profiles</option><option value="Claimed">Claimed</option><option value="Unclaimed">Unclaimed</option></select></label>
+    </div>
+    {filtersActive && <button type="button" onClick={clearFilters} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)] hover:underline"><X size={13} />Clear filters</button>}
     {error && <p role="alert" className="mt-4 border border-red-300/20 bg-red-950/20 p-3 text-sm text-red-200">{error}</p>}
-    {!filtered.length ? <div className="mt-5"><EmptyState title={rows.length ? 'No swimmers match' : 'No swimmers yet'} subtitle={rows.length ? 'Try another name, country, or source key.' : 'Swimmer and donor profiles will appear here.'} onDark /></div> : <>
+    {!filtered.length ? <div className="mt-5"><EmptyState title={rows.length ? 'No swimmers match' : 'No swimmers yet'} subtitle={rows.length ? 'Try changing or clearing your search and filters.' : 'Swimmer and donor profiles will appear here.'} onDark /></div> : <>
       <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-white/40">{filtered.length.toLocaleString()} of {rows.length.toLocaleString()} profiles</p>
       <div className="ta-table-scroll mt-2"><table className="w-full min-w-[950px] text-left text-sm"><thead><tr className="border-b border-[var(--navy-light)] text-[10px] uppercase tracking-widest text-white/50">{['Swimmer','Country','Gender','Transplant type','Date of birth','Account','Review','Actions'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead><tbody>{filtered.map(swimmer => <tr key={swimmer.id} className="border-b border-[var(--navy-light)] last:border-0">
         <td className="px-3 py-3"><p className="font-semibold text-white">{swimmer.first_name} {swimmer.last_name}</p><p className="mt-1 max-w-56 truncate font-mono text-[9px] text-white/35" title={swimmer.source_key ?? ''}>{swimmer.source_key ?? 'Account profile'}</p></td>
