@@ -6,7 +6,7 @@ import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/sw
 import { loadWorldRecords } from '../lib/worldRecords';
 import type { Record as WorldRecord } from '../types';
 import { describeSupabaseError } from '../lib/supabase';
-import { getFlagEmoji } from '../lib/utils';
+import { getCountryIso2, getFlagEmoji } from '../lib/utils';
 import SearchInput from '../components/SearchInput';
 import Pagination from '../components/Pagination';
 import PageHeading from '../components/PageHeading';
@@ -24,11 +24,12 @@ function toListedCountries(swimmers: PublicSwimmerProfile[], records: WorldRecor
   swimmers.forEach(swimmer => {
     const name = swimmer.country.trim();
     if (!name) return;
+    const normalizedCode = getCountryIso2(swimmer.country_code ?? '');
     const reference = countryReference.find(country =>
-      (swimmer.country_code && country.code.toLowerCase() === swimmer.country_code.toLowerCase())
+      (normalizedCode && country.code.toLowerCase() === normalizedCode.toLowerCase())
       || country.name.toLowerCase() === name.toLowerCase(),
     );
-    const code = swimmer.country_code?.trim().toUpperCase() || reference?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const code = reference?.code || (normalizedCode.length === 2 ? normalizedCode : name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
     const key = code.toLowerCase();
     const current = grouped.get(key);
     if (current) {
@@ -38,16 +39,17 @@ function toListedCountries(swimmers: PublicSwimmerProfile[], records: WorldRecor
     grouped.set(key, {
       code,
       name: reference?.name ?? name,
-      flag: getFlagEmoji(swimmer.country_code || reference?.code || ''),
+      flag: getFlagEmoji(normalizedCode || reference?.code || ''),
       swimmerCount: 1,
       recordCount: recordsAvailable ? 0 : null,
     });
   });
 
   records.forEach(record => {
-    const reference = countryReference.find(country => country.code.toLowerCase() === record.countryCode?.toLowerCase())
+    const normalizedCode = getCountryIso2(record.countryCode ?? '');
+    const reference = countryReference.find(country => country.code.toLowerCase() === normalizedCode.toLowerCase())
       ?? countryReference.find(country => country.name.toLowerCase() === record.country.toLowerCase());
-    const code = record.countryCode?.trim().toUpperCase() || reference?.code || record.country.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const code = reference?.code || (normalizedCode.length === 2 ? normalizedCode : record.country.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
     const key = code.toLowerCase();
     const current = grouped.get(key);
     if (current) {
@@ -57,7 +59,7 @@ function toListedCountries(swimmers: PublicSwimmerProfile[], records: WorldRecor
     grouped.set(key, {
       code,
       name: reference?.name ?? record.country,
-      flag: getFlagEmoji(record.countryCode ?? reference?.code ?? ''),
+      flag: getFlagEmoji(normalizedCode || reference?.code || ''),
       swimmerCount: 0,
       recordCount: recordsAvailable ? 1 : null,
     });

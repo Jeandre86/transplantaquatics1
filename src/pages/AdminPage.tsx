@@ -9,6 +9,7 @@ import AdminArticleLibrary from '../components/AdminArticleLibrary';
 import AdminAdCampaigns from '../components/AdminAdCampaigns';
 import AdminMeetsManager, { type AdminMeet } from '../components/AdminMeetsManager';
 import AdminHistoricalImport from '../components/AdminHistoricalImport';
+import AdminSwimmersManager from '../components/AdminSwimmersManager';
 import { useAuth } from '../contexts/AuthContext';
 import { hasSupabaseConfig, supabase, describeSupabaseError } from '../lib/supabase';
 import { permissionsForRole } from '../lib/adminImports';
@@ -70,6 +71,7 @@ export default function AdminPage() {
   const [recordRows, setRecordRows] = useState<Record<string, unknown>[]>([]);
   const [activityRows, setActivityRows] = useState<Record<string, unknown>[]>([]);
   const [swimmerRows, setSwimmerRows] = useState<Record<string, unknown>[]>([]);
+  const [swimmerAdminRpcAvailable, setSwimmerAdminRpcAvailable] = useState(false);
   const [memberRows,setMemberRows]=useState<Record<string,unknown>[]>([]);
   const [memberOverrides,setMemberOverrides]=useState<Record<string,Record<string,boolean>>>({});
   const [accountQuery,setAccountQuery]=useState('');
@@ -82,6 +84,7 @@ export default function AdminPage() {
   const [canReviewClaims,setCanReviewClaims]=useState(false);
   const [canConfirmRecords,setCanConfirmRecords]=useState(false);
   const [canManageRoles,setCanManageRoles]=useState(false);
+  const [canManageSwimmers,setCanManageSwimmers]=useState(false);
   const [selectedArticleId,setSelectedArticleId]=useState('');
   const [writerRows,setWriterRows]=useState<Record<string,unknown>[]>([]);
   const [submittedArticles,setSubmittedArticles]=useState<Record<string,unknown>[]>([]);
@@ -99,15 +102,16 @@ export default function AdminPage() {
     const {data:{user:currentUser}}=await supabase.auth.getUser();
     setCurrentUserId(currentUser?.id??'');
     if (!hasAccess) return;
-    const [writerPermission,articlePermission,importPermission,claimPermission,recordPermission,rolePermission]=await Promise.all([
+    const [writerPermission,articlePermission,importPermission,claimPermission,recordPermission,rolePermission,swimmerPermission]=await Promise.all([
       supabase.rpc('has_admin_permission',{p_permission:'manage_writers'}),
       supabase.rpc('has_admin_permission',{p_permission:'manage_articles'}),
       supabase.rpc('has_admin_permission',{p_permission:'import_results'}),
       supabase.rpc('has_admin_permission',{p_permission:'review_claims'}),
       supabase.rpc('has_admin_permission',{p_permission:'confirm_records'}),
       supabase.rpc('has_admin_permission',{p_permission:'manage_roles'}),
+      supabase.rpc('has_admin_permission',{p_permission:'merge_swimmers'}),
     ]);
-    for (const permissionResult of [writerPermission,articlePermission,importPermission,claimPermission,recordPermission,rolePermission]) {
+    for (const permissionResult of [writerPermission,articlePermission,importPermission,claimPermission,recordPermission,rolePermission,swimmerPermission]) {
       if (permissionResult.error) throw permissionResult.error;
     }
     setCanManageWriters(Boolean(writerPermission.data));
@@ -116,6 +120,7 @@ export default function AdminPage() {
     setCanReviewClaims(Boolean(claimPermission.data));
     setCanConfirmRecords(Boolean(recordPermission.data));
     setCanManageRoles(Boolean(rolePermission.data));
+    setCanManageSwimmers(Boolean(swimmerPermission.data));
     const { data: membership } = await supabase.from('admin_memberships').select('role').eq('user_id', currentUser?.id ?? '').maybeSingle();
     setIsOwner(membership?.role === 'owner');
     const { data: countsData, error: countError } = await supabase.rpc('admin_dashboard_counts');
@@ -256,11 +261,13 @@ export default function AdminPage() {
         // account and club fields, which remain available through the admin RPC.
         const { data: publicRows, error: publicError } = await supabase.rpc('get_public_swimmer_directory');
         if (publicError) throw queryError;
+        setSwimmerAdminRpcAvailable(false);
         setSwimmerRows((publicRows ?? []).map((row: Record<string, unknown>) => ({ ...row, club_name: null, account_id: null })) as Record<string, unknown>[]);
         setNotice('Showing the public swimmer details while the admin directory database function is unavailable. Apply the admin swimmer directory migration to restore account and club details.');
         return;
       }
       if (queryError) throw queryError;
+      setSwimmerAdminRpcAvailable(true);
       setSwimmerRows((data ?? []) as Record<string, unknown>[]);
       return;
     }
@@ -429,7 +436,7 @@ export default function AdminPage() {
           <div className="border p-5 sm:p-6" style={cardStyle}>
             <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Bulk import · all meets</p>
             <h1 className="mt-1 text-xl font-bold text-white">Historical swimmers archive</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">Import the complete historical dataset in one operation. This page has no meet selector; it creates all source meets, unclaimed swimmer profiles, and eligible historical results from the JSON archive.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">Import the complete historical dataset in one operation. This page has no meet selector; it creates or refreshes archive-imported swimmer profiles and eligible historical results. Profiles created through Join or Profile are kept separate from archive updates.</p>
           </div>
           <AdminHistoricalImport cardStyle={cardStyle} onNotice={setNotice} onError={setError} onImported={()=>void load()} />
         </div>}
@@ -443,7 +450,7 @@ export default function AdminPage() {
             <input className={`${inputClass} mt-4 max-w-sm`} placeholder="Filter staged swimmers or events" value={search} onChange={event=>setSearch(event.target.value)} />
             {rows.length===0?<div className="mt-4"><EmptyState title="No rows staged" subtitle="This import contains no parseable result rows yet." onDark /></div>:<div className="mt-4 space-y-3">{filteredRows.map(row=><article key={row.id} className="border border-[var(--navy-light)] bg-[var(--navy)] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="font-semibold text-white">{row.swimmer_name} <span className="font-normal text-white/55">· {row.country||'Country not supplied'}</span></div><p className="mt-1 text-sm text-[var(--accent)]">{row.event} · {row.gender||'Gender unknown'} · {row.age_group||'Age group unknown'} · {row.course||'Course unknown'}</p><p className="mt-1 font-mono text-sm text-white">{row.time_original||row.race_status} <span className="text-white/45">{row.round_name||''} {row.placing?`· ${row.placing}`:''}</span></p>{row.validation_issues?.length>0&&<p className="mt-2 text-xs text-amber-200">{row.validation_issues.join(' · ')}</p>}<p className="mt-2 font-mono text-[10px] uppercase text-white/45">{row.validation_state} · {row.is_relay?'Relay':'Individual'} · {row.review_action}</p></div><div className="flex flex-wrap gap-2">{row.race_status!=='OK'||row.is_relay?<button disabled={busyRow===row.id} onClick={()=>void reviewRow(row,'publish')} className="border border-[var(--accent)]/50 px-3 py-2 text-xs font-semibold text-[var(--accent)]">Approve official row</button>:<button disabled={busyRow===row.id} onClick={()=>void findMatches(row)} className="border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white">Find profile</button>}<button disabled={busyRow===row.id} onClick={()=>void reviewRow(row,'skip')} className="px-3 py-2 text-xs text-white/55">Skip</button></div></div>{swimmerMatches[row.id]&&<div className="mt-3 border-t border-[var(--navy-light)] pt-3"><p className="mb-2 text-xs text-white/55">Profile suggestions are advisory only; a name match alone never confirms identity.</p>{swimmerMatches[row.id].length?swimmerMatches[row.id].map(match=><div key={match.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span className="text-sm text-white">{match.first_name} {match.last_name} · {match.country}</span><input aria-label={`Identity evidence for ${match.first_name} ${match.last_name}`} value={identityEvidence[row.id]??''} onChange={event=>setIdentityEvidence(current=>({...current,[row.id]:event.target.value}))} placeholder="Source evidence confirming identity" className="min-w-48 border border-[var(--navy-light)] bg-[var(--navy-mid)] px-2 py-1.5 text-xs text-white placeholder:text-white/40" /><button disabled={(identityEvidence[row.id]??'').trim().length<12} onClick={()=>void linkExistingAndApprove(row,match.id,identityEvidence[row.id]??'')} className="text-xs font-bold text-[var(--accent)] disabled:opacity-40">Verify, link and approve →</button></div>):stagedSwimmers.some(item=>item.source_key===row.swimmer_source_key&&item.country)?<button disabled={busyRow===row.id} onClick={()=>void createUnclaimedAndApprove(row)} className="mt-2 text-xs font-bold text-[var(--accent)]">Create unclaimed profile and approve →</button>:<p className="text-sm text-white/50">No possible profile match. A country is needed before an unclaimed profile can be created.</p>}</div>}</article>)}</div>}</div>}
         </div>}
-        {tab==='Swimmers' && <div className="border p-5" style={cardStyle}><h2 className="mb-2 font-bold text-white">Swimmer and donor profiles</h2><p className="mb-4 text-sm text-white/55">Imported historical profiles stay visible here with their claim state. Profiles marked for identity review need an admin to resolve a possible same-name match before combining them. Age group is stored on each result, not the swimmer profile.</p>{renderRows(swimmerRows,['first_name','last_name','country','gender','transplant_type','club_name','account_id','is_claimed','identity_review_required','source_key'])}</div>}
+        {tab==='Swimmers' && <AdminSwimmersManager swimmers={swimmerRows} canManage={canManageSwimmers && swimmerAdminRpcAvailable} onChanged={()=>loadTabData('Swimmers')} />}
         {tab==='Meets and results' && <AdminMeetsManager meets={meets} cardStyle={cardStyle} inputClass={inputClass} onError={setError} onNotice={setNotice} onRefresh={() => void load().catch(reason => setError(describeSupabaseError(reason)))} onAddResults={meetId => { setSelectedMeetId(meetId); setSelectedBatch(null); setTab('Imports'); }} onOpenBatch={batchId => { const batch = batches.find(item => item.id === batchId); if (batch) { setTab('Imports'); void openBatch(batch); } }} />}
         {tab==='Profile claims' && <div className="border p-5" style={cardStyle}><h2 className="mb-4 font-bold text-white">Profile claim queue</h2>{claimRows.length?claimRows.map(claim=><article key={String(claim.id)} className="mb-3 border border-[var(--navy-light)] bg-[var(--navy)] p-4"><p className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">{String(claim.status)} · swimmer {String(claim.swimmer_profile_id).slice(0,8)}</p><p className="mt-2 text-sm text-white">Claimant {String(claim.claimant_id)}</p><p className="mt-2 text-sm leading-6 text-white/70">{String(claim.evidence)}</p><p className="mt-2 text-xs text-white/40">{String(claim.created_at)}</p>{claim.status==='pending'&&<div className="mt-3 flex flex-wrap gap-2"><button disabled={busyRow===claim.id} onClick={()=>void decideClaim(String(claim.id),'approved')} className="bg-[var(--accent)] px-3 py-2 text-xs font-bold text-[var(--navy)]">Approve and link account</button><button disabled={busyRow===claim.id} onClick={()=>void decideClaim(String(claim.id),'rejected')} className="border border-[var(--navy-light)] px-3 py-2 text-xs text-white/70">Reject</button><button disabled={busyRow===claim.id} onClick={()=>void decideClaim(String(claim.id),'disputed')} className="border border-amber-300/40 px-3 py-2 text-xs text-amber-200">Dispute</button><button disabled={busyRow===claim.id} onClick={()=>void decideClaim(String(claim.id),'correction_requested')} className="border border-[var(--navy-light)] px-3 py-2 text-xs text-white/70">Request correction</button><button disabled={busyRow===claim.id} onClick={()=>void decideClaim(String(claim.id),'removal_requested')} className="border border-[var(--navy-light)] px-3 py-2 text-xs text-white/70">Request removal</button></div>}</article>):<EmptyState title="No pending claims" subtitle="Verified users can submit an identity claim for a published swimmer profile." onDark />}</div>}
         {tab==='Records' && <div className="border p-5" style={cardStyle}><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-white">WTG record candidates</h2><p className="mt-2 text-sm text-white/55">Candidates compare event, age, gender, category and course against the sourced WTG baseline. Missing eligibility or baseline data needs manual review.</p></div><button disabled={!canConfirmRecords||busy||selectedMeet?.status!=='completed'} onClick={()=>void checkWTGRecords()} title={!canConfirmRecords?'Your admin role can view candidates but cannot run record checks.':undefined} className="border border-[var(--accent)] px-3 py-2 text-xs font-bold text-[var(--accent)] disabled:opacity-40">{canConfirmRecords?'Check for WTG records':'Record checker access required'}</button></div>{selectedMeet?.status!=='completed'&&<p className="mt-3 text-xs text-white/45">Record checks are enabled after the selected Games edition is marked completed. The 2027 Leuven Games are still upcoming.</p>}{recordRows.length?recordRows.map(item=>{const performance=item.imported_official_performances as Record<string,unknown>|null;return <article key={String(item.id)} className="mt-4 border border-[var(--navy-light)] bg-[var(--navy)] p-4"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">{String(item.status).replaceAll('_',' ')}</p><h3 className="mt-1 font-semibold text-white">{String(performance?.swimmer_name??'Swimmer/team needs review')} · {String(performance?.event??'Unknown event')}</h3><p className="mt-1 text-xs text-white/55">{String(performance?.age_group??'Age unknown')} · {String(performance?.gender??'Gender unknown')} · {String(performance?.course??'Course unknown')} · new {String(performance?.time_original??'—')}</p><p className="mt-1 text-xs text-white/50">Baseline {String(item.baseline_record_id??'not found')} · {item.old_time_ms==null?'time unavailable':`${Number(item.old_time_ms)/1000}s`} · improvement {item.improvement_ms==null?'—':`${Number(item.improvement_ms)/1000}s`}</p></div></div>{['potential_record','equalled'].includes(String(item.status))&&canConfirmRecords&&<div className="mt-4 flex flex-wrap gap-2"><input value={recordEvidence[String(item.id)]??''} onChange={event=>setRecordEvidence(current=>({...current,[String(item.id)]:event.target.value}))} className="min-w-64 flex-1 border border-[var(--navy-light)] bg-[var(--navy-mid)] px-3 py-2 text-xs text-white placeholder:text-white/40" placeholder="Official WTG confirmation evidence URL or reference" /><button disabled={busyRow===item.id||(recordEvidence[String(item.id)]??'').trim().length<12} onClick={()=>void confirmWTGRecord(String(item.id))} className="bg-[var(--accent)] px-3 py-2 text-xs font-bold text-[var(--navy)] disabled:opacity-40">Confirm official record</button></div>}</article>}):<div className="mt-5"><EmptyState title="No record candidates" subtitle="After a completed WTG meet has published official swimming results, run the record checker here." onDark /></div>}</div>}

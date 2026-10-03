@@ -5,7 +5,7 @@
     "scope": "All seven approved source groups, all discoverable historical results, all categories",
     "coverage_status": "partial",
     "ready_for_database_import": false,
-    "identity_policy": "Exact normalized name, country, gender, matching team and compatible birth-year ranges. Missing-age profiles may attach only to a unique known-age identity. Ambiguous and conflicting identities stay separate for admin review.",
+    "identity_policy": "One swimmer profile owns results across age groups; age group is stored on each result. Automatic merges use normalized name, country, gender, recognized national-team aliases and compatible birth-year ranges. Explicit user-confirmed identity overrides are also applied; remaining ambiguous identities stay separate for admin review.",
     "notes": [
       "No database writes have been made.",
       "Unknown fields remain null; competition categories are not inferred medical histories.",
@@ -13,16 +13,16 @@
       "Source pool length, time anomalies, and ambiguous identities require review."
     ],
     "identity_consolidation": {
-      "automatic_merges": 123,
-      "preserved_source_aliases": 123,
-      "review_required_profiles": 373
+      "automatic_merges": 230,
+      "preserved_source_aliases": 230,
+      "review_required_profiles": 223
     }
   },
   "summary": {
-    "swimmers": 2454,
-    "individual_results": 8758,
+    "swimmers": 2347,
+    "individual_results": 8723,
     "relay_results": 409,
-    "identity_reviews": 143,
+    "identity_reviews": 99,
     "unparsed_rows": 17
   },
   "source_groups": [

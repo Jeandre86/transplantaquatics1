@@ -1,0 +1,14 @@
+{
+  "confirmed_person_groups": [
+    {
+      "name_key": "liambarnett",
+      "gender": "Men",
+      "country_codes": [
+        "GBR",
+        null
+      ],
+      "canonical_country_code": "GBR",
+      "reason": "The user confirmed the historical Liam Barnett entries refer to one swimmer; age group belongs to each result."
+    }
+  ]
+}

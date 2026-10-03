@@ -8,6 +8,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPORT = ROOT / 'data/swimming/swimmers.json'
+OVERRIDES = ROOT / 'data/swimming/identity-overrides.json'
+
+def load_overrides():
+    try:
+        return json.loads(OVERRIDES.read_text()).get('confirmed_person_groups', [])
+    except (OSError, ValueError):
+        return []
 
 def norm(value):
     return re.sub(r'[^\w]+', '', unicodedata.normalize('NFKD', value or '').encode('ascii', 'ignore').decode().casefold())
@@ -31,8 +38,33 @@ def identity_bounds(swimmer):
     low, high = max(item[0] for item in ranges), min(item[1] for item in ranges)
     return (low, high) if low <= high else 'conflict'
 
+TEAM_ALIASES = {
+    # Historical results use several spellings for the same national teams.
+    'GBR': {'greatbrit', 'greatbritain', 'greatbritainni', 'greatbritainnorthireland', 'greatbrittanni', 'greatbrittan', 'gbni', 'uk', 'unitedkingdom'},
+    'AUS': {'australia', 'aus'},
+    'USA': {'usa', 'unitedstates', 'unitedstatesofamerica'},
+    'NZL': {'newzealand', 'nzl'},
+    'IRL': {'ireland', 'ire'},
+    'HUN': {'hungary', 'hun'},
+    'GER': {'germany', 'ger'},
+    'FRA': {'france', 'fra'},
+    'ITA': {'italy', 'ita'},
+    'NED': {'netherlands', 'thenetherlands', 'ned'},
+    'CZE': {'czechrepublic', 'czechia', 'cze'},
+    'AUT': {'austria', 'aut'},
+    'CAN': {'canada', 'can'},
+    'RSA': {'southafrica', 'rsa'},
+}
+
 def team_keys(swimmer):
-    return {norm(team) for team in swimmer.get('teams', []) if norm(team)}
+    country_code = swimmer.get('country_code')
+    aliases = TEAM_ALIASES.get(country_code, set())
+    keys = {norm(team) for team in swimmer.get('teams', []) if norm(team)}
+    # Normalize explicit country/team spellings only. Regional teams remain
+    # distinct, so a shared country alone cannot create a match.
+    if keys & aliases:
+        keys.add(f'country:{country_code}')
+    return keys
 
 def meets(swimmer):
     return {result.get('meet_id') for result in swimmer.get('results', []) if result.get('meet_id')}
@@ -44,13 +76,23 @@ def compatible(left, right):
         return False
     if not (team_keys(left) & team_keys(right)):
         return False
-    if meets(left) & meets(right):
-        return False
     left_age, right_age = identity_bounds(left), identity_bounds(right)
     if left_age == 'conflict' or right_age == 'conflict':
         return False
     if left_age and right_age:
-        return max(left_age[0], right_age[0]) <= min(left_age[1], right_age[1])
+        if max(left_age[0], right_age[0]) > min(left_age[1], right_age[1]):
+            return False
+        # Same-meet entries can be separate event rows for one swimmer. A
+        # conflicting duplicate event is evidence of a possible namesake.
+        def result_key(result):
+            return tuple(norm(str(result.get(field) or '')) for field in ('meet_id','event','gender','age_group','course'))
+        left_results = {result_key(row): row for row in left.get('results', [])}
+        right_results = {result_key(row): row for row in right.get('results', [])}
+        for key in left_results.keys() & right_results.keys():
+            a, b = left_results[key], right_results[key]
+            if (a.get('time_ms') and b.get('time_ms') and a.get('time_ms') != b.get('time_ms')) or (place_key(a) != place_key(b) and place_key(a) != float('inf') and place_key(b) != float('inf')):
+                return False
+        return True
     # One age-less historical profile can attach to one known-age profile with
     # matching full name, country, gender and team. Two age-less profiles never
     # merge automatically across meets.
@@ -117,16 +159,20 @@ def consolidate(swimmers):
             for j in range(i + 1, len(group)):
                 if compatible(group[i], group[j]):
                     edges.append((i, j)); degree[i] += 1; degree[j] += 1
-        # Auto-merge only isolated one-to-one matches. If a source identity
-        # could point to multiple swimmers, leave the whole ambiguity for review.
+        # Merge an unambiguous connected identity cluster when every pair is
+        # compatible. This handles one-result-per-event source rows and age
+        # progression across meets, while keeping incompatible homonyms apart.
+        edge_set = {tuple(sorted(edge)) for edge in edges}
         for i, j in edges:
-            if degree[i] != 1 or degree[j] != 1:
-                continue
             a, b = find(i), find(j)
             if a == b:
                 continue
-            parent[b] = a
-            merged_count += 1
+            members_a = [n for n in range(len(group)) if find(n) == a]
+            members_b = [n for n in range(len(group)) if find(n) == b]
+            combined = members_a + members_b
+            if all(tuple(sorted((x, y))) in edge_set for pos, x in enumerate(combined) for y in combined[pos + 1:]):
+                parent[b] = a
+                merged_count += 1
         clusters = defaultdict(list)
         for i, swimmer in enumerate(group):
             clusters[find(i)].append(swimmer)
@@ -137,6 +183,30 @@ def consolidate(swimmers):
             for extra in cluster[1:]:
                 merge_profiles(primary, extra)
             result.append(primary)
+
+    # Apply only explicit, user-confirmed identity decisions after the
+    # evidence-based pass. This supports records whose source omitted country
+    # or used a club team instead of the national team without weakening the
+    # automatic matching rules for everyone else.
+    for override in load_overrides():
+        name_key = override.get('name_key')
+        gender = override.get('gender')
+        allowed_countries = set(override.get('country_codes', []))
+        matches = [item for item in result
+                   if norm(item.get('display_name')) == name_key
+                   and item.get('gender') == gender
+                   and item.get('country_code') in allowed_countries]
+        if len(matches) < 2:
+            continue
+        matches.sort(key=lambda item: (-len(item.get('results', [])), item['id']))
+        primary = matches[0]
+        for extra in matches[1:]:
+            merge_profiles(primary, extra)
+            result.remove(extra)
+        canonical_code = override.get('canonical_country_code')
+        if canonical_code:
+            primary['country_code'] = canonical_code
+        primary['identity_review_required'] = False
 
     # Rebuild review groups from the consolidated output. Profiles with a known
     # country are compared by country code or normalized country name; absent
@@ -164,7 +234,7 @@ def main():
     data['summary']['swimmers'] = len(data['swimmers'])
     data['summary']['individual_results'] = sum(item['result_count'] for item in data['swimmers'])
     data['summary']['identity_reviews'] = len(data['identity_review'])
-    data['metadata']['identity_policy'] = 'Exact normalized name, country, gender, matching team and compatible birth-year ranges. Missing-age profiles may attach only to a unique known-age identity. Ambiguous and conflicting identities stay separate for admin review.'
+    data['metadata']['identity_policy'] = 'One swimmer profile owns results across age groups; age group is stored on each result. Automatic merges use normalized name, country, gender, recognized national-team aliases and compatible birth-year ranges. Explicit user-confirmed identity overrides are also applied; remaining ambiguous identities stay separate for admin review.'
     data['metadata']['identity_consolidation'] = {'automatic_merges': max(merges, preserved_aliases), 'preserved_source_aliases': preserved_aliases, 'review_required_profiles': sum(bool(item.get('identity_review_required')) for item in data['swimmers'])}
     EXPORT.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
     summary_path = EXPORT.with_name('review-summary.json')

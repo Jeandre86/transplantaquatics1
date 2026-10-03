@@ -3,7 +3,9 @@ export function formatTime(time: string): string {
 }
 
 export function getFlagEmoji(countryCode: string): string {
-  const codePoints = countryCode.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0));
+  const code = getCountryIso2(countryCode);
+  if (!/^[A-Z]{2}$/.test(code)) return '🏳️';
+  const codePoints = code.split('').map(c => 127397 + c.charCodeAt(0));
   return String.fromCodePoint(...codePoints);
 }
 
@@ -11,11 +13,34 @@ const COUNTRY_ALPHA3: Record<string, string> = {
   AU: 'AUS', BR: 'BRA', CA: 'CAN', DE: 'DEU', ES: 'ESP', FI: 'FIN', FR: 'FRA',
   GB: 'GBR', GR: 'GRC', HU: 'HUN', IE: 'IRL', IL: 'ISR', IT: 'ITA', JP: 'JPN',
   MX: 'MEX', NL: 'NLD', NO: 'NOR', NZ: 'NZL', PL: 'POL', PT: 'PRT', SE: 'SWE',
-  US: 'USA', ZA: 'ZAF',
+  US: 'USA', ZA: 'RSA',
 };
 
+const COUNTRY_ISO2: Record<string, string> = Object.fromEntries(
+  Object.entries(COUNTRY_ALPHA3).map(([iso2, iso3]) => [iso3, iso2]),
+);
+Object.assign(COUNTRY_ISO2, {
+  // Historical swimming archives use a mix of ISO and sporting federation
+  // codes. Convert those aliases to alpha-2 before constructing flag emoji.
+  ARG: 'AR', AUT: 'AT', BEL: 'BE', BUL: 'BG', CHN: 'CN', CRO: 'HR', CZE: 'CZ',
+  ECU: 'EC', GER: 'DE', GRE: 'GR', HKG: 'HK', IRN: 'IR', KEN: 'KE', NED: 'NL',
+  NIR: 'GB', POR: 'PT', ROU: 'RO', SGP: 'SG', SUI: 'CH', TUR: 'TR', URU: 'UY',
+  RSA: 'ZA', ZAF: 'ZA', GB_AND_NI: 'GB', 'GB&NI': 'GB', UK: 'GB',
+});
+
+/** Normalize two- and three-letter country identifiers to ISO alpha-2. */
+export function getCountryIso2(countryCode: string): string {
+  const code = countryCode.trim().toUpperCase();
+  if (code.length === 2) return code;
+  return COUNTRY_ISO2[code] ?? code;
+}
+
 export function getCountryAlpha3(countryCode: string): string {
-  const code = countryCode.toUpperCase();
+  const rawCode = countryCode.trim().toUpperCase();
+  if (rawCode === 'RSA' || rawCode === 'ZAF') return 'RSA';
+  if (rawCode === 'GB&NI' || rawCode === 'GB_AND_NI' || rawCode === 'UK') return 'GBR';
+  if (/^[A-Z]{3}$/.test(rawCode)) return rawCode;
+  const code = getCountryIso2(rawCode);
   return COUNTRY_ALPHA3[code] ?? code;
 }
 

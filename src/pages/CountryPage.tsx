@@ -5,7 +5,7 @@ import { countries as countryReference } from '../data/countries';
 import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
 import { loadWorldRecords } from '../lib/worldRecords';
 import type { Record as WorldRecord } from '../types';
-import { getFlagEmoji } from '../lib/utils';
+import { getCountryIso2, getFlagEmoji } from '../lib/utils';
 import { describeSupabaseError } from '../lib/supabase';
 import EmptyState from '../components/EmptyState';
 import Eyebrow from '../components/Eyebrow';
@@ -44,18 +44,21 @@ export default function CountryPage() {
   }, [code]);
 
   const countrySwimmers = useMemo(() => swimmers.filter(swimmer => {
-    const byCode = swimmer.country_code?.toLowerCase() === code.toLowerCase();
+    const requestedCode = getCountryIso2(code);
+    const swimmerCode = getCountryIso2(swimmer.country_code ?? '');
+    const byCode = requestedCode.length === 2 && swimmerCode === requestedCode;
     const byName = swimmer.country.toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase();
     return byCode || byName;
   }).sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name)), [swimmers, code]);
   const sample = countrySwimmers[0];
-  const recordSample = records.find(record => record.countryCode?.toLowerCase() === code.toLowerCase()
+  const requestedCode = getCountryIso2(code);
+  const recordSample = records.find(record => (requestedCode.length === 2 && getCountryIso2(record.countryCode ?? '') === requestedCode)
     || record.country.toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase());
-  const countryMeta = countryReference.find(country => country.code.toLowerCase() === code.toLowerCase())
+  const countryMeta = countryReference.find(country => country.code.toLowerCase() === requestedCode.toLowerCase())
     ?? countryReference.find(country => country.name.toLowerCase() === (sample?.country ?? recordSample?.country)?.toLowerCase());
   const countryName = countryMeta?.name ?? sample?.country ?? recordSample?.country ?? '';
-  const countryFlag = getFlagEmoji(sample?.country_code ?? recordSample?.countryCode ?? countryMeta?.code ?? '');
-  const countryRecords = records.filter(record => record.countryCode?.toLowerCase() === code.toLowerCase()
+  const countryFlag = getFlagEmoji(sample?.country_code ?? recordSample?.countryCode ?? countryMeta?.code ?? requestedCode);
+  const countryRecords = records.filter(record => (requestedCode.length === 2 && getCountryIso2(record.countryCode ?? '') === requestedCode)
     || record.country.toLowerCase().replace(/[^a-z0-9]+/g, '-') === code.toLowerCase());
   const swimmerRecords = countryRecords.filter(record => record.category?.trim().toLowerCase() !== 'donor');
   const donorRecords = countryRecords.filter(record => record.category?.trim().toLowerCase() === 'donor');
