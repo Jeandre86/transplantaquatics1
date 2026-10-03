@@ -18,7 +18,7 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
     const swim: Omit<Ranking, 'rank'> = {
       athleteId: profile.id,
       athleteName: `${profile.first_name} ${profile.last_name}`,
-      country: profile.country,
+      country: profile.country ?? '',
       countryCode: profile.country_code ?? '',
       ageGroup: result.age_group as Ranking['ageGroup'],
       gender: profile.gender,

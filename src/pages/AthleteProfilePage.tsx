@@ -531,7 +531,7 @@ function RegisteredAthleteProfile({ athlete, results, medals, loading, error }: 
                 athlete_id: athlete.id,
                 swimmer_id: athlete.id,
                 swimmer_name: `${athlete.first_name} ${athlete.last_name}`,
-                country: athlete.country,
+                country: athlete.country ?? '',
                 country_code: athlete.country_code,
                 gender: athlete.gender,
                 transplant_type: athlete.transplant_type,
