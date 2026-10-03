@@ -19,6 +19,7 @@ export interface FastestTransplantSwim {
 interface ResultRow {
   id: string;
   swimmer_id: string | null;
+  athlete_id: string | null;
   event: string;
   age_group: string | null;
   time: string;
@@ -35,21 +36,18 @@ function compareText(left: unknown, right: unknown): number {
 export async function loadFastestByTransplantType(): Promise<FastestTransplantSwim[]> {
   if (!supabase) throw new Error('Supabase is not configured. Add the project URL and publishable key to .env.local.');
 
-  const [profiles, resultsResponse] = await Promise.all([
+  const [profiles, resultRows] = await Promise.all([
     loadPublicSwimmerDirectory(),
-    supabase
-      .from('swimmer_results')
-      .select('id, swimmer_id, event, time, age_group, status, submitted_meets(course)')
-      .neq('status', 'rejected'),
+    loadAllRankingResults(),
   ]);
-  if (resultsResponse.error) throw resultsResponse.error;
 
   const profileById = new Map<string, PublicSwimmerProfile>(profiles.map(profile => [profile.id, profile]));
   const fastestByEventCategory = new Map<string, FastestTransplantSwim>();
 
-  for (const row of (resultsResponse.data ?? []) as unknown as ResultRow[]) {
-    if (!row.swimmer_id || !row.time || !row.event || !['verified', 'swimmer_submitted', 'imported_unverified'].includes(row.status)) continue;
-    const profile = profileById.get(row.swimmer_id);
+  for (const row of resultRows) {
+    const swimmerId = row.swimmer_id ?? row.athlete_id;
+    if (!swimmerId || !row.time || !row.event || !['verified', 'swimmer_submitted', 'imported_unverified'].includes(row.status)) continue;
+    const profile = profileById.get(swimmerId);
     if (!profile || !Number.isFinite(timeToSeconds(row.time))) continue;
 
     // Historical imports can leave profile fields blank. A swim without a
@@ -90,4 +88,23 @@ export async function loadFastestByTransplantType(): Promise<FastestTransplantSw
       || compareText(a.gender, b.gender)
       || compareText(a.course, b.course)
   );
+}
+
+async function loadAllRankingResults(): Promise<ResultRow[]> {
+  const pageSize = 1000;
+  const rows: ResultRow[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase!
+      .from('swimmer_results')
+      .select('id, swimmer_id, athlete_id, event, time, age_group, status, submitted_meets(course)')
+      .neq('status', 'rejected')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw error;
+    const page = (data ?? []) as unknown as ResultRow[];
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
+  }
 }
