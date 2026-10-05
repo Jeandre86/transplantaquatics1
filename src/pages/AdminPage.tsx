@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Award, CalendarDays, FileCheck2, FilePlus2, LayoutDashboard, Megaphone, Newspaper, PenSquare, RefreshCw, ShieldCheck, Upload, UsersRound } from 'lucide-react';
+import { Activity, AlertCircle, ArrowRight, Award, CalendarDays, CheckCircle2, Clock3, FileCheck2, FilePlus2, LayoutDashboard, Megaphone, Newspaper, PenSquare, RefreshCw, ShieldCheck, Upload, UsersRound } from 'lucide-react';
 import PageHeading from '../components/PageHeading';
 import EmptyState from '../components/EmptyState';
 import Logo from '../components/Logo';
@@ -72,6 +72,7 @@ export default function AdminPage() {
   const [claimRows, setClaimRows] = useState<Record<string, unknown>[]>([]);
   const [recordRows, setRecordRows] = useState<Record<string, unknown>[]>([]);
   const [activityRows, setActivityRows] = useState<Record<string, unknown>[]>([]);
+  const [recentActivityRows, setRecentActivityRows] = useState<Record<string, unknown>[]>([]);
   const [swimmerRows, setSwimmerRows] = useState<Record<string, unknown>[]>([]);
   const [swimmerAdminRpcAvailable, setSwimmerAdminRpcAvailable] = useState(false);
   const [memberRows,setMemberRows]=useState<Record<string,unknown>[]>([]);
@@ -136,6 +137,8 @@ export default function AdminPage() {
       if (batchError) throw batchError;
       setBatches(batchRows ?? []);
     } else setBatches([]);
+    const { data: recentActivities } = await supabase.from('admin_activity_log').select('id,action,target_type,target_id,details,created_at').order('created_at', { ascending: false }).limit(6);
+    setRecentActivityRows((recentActivities ?? []) as Record<string, unknown>[]);
     setSelectedMeetId(current => current || meetResponse.data?.find(meet => meet.year === 2027)?.id || '');
   }, []);
 
@@ -389,9 +392,22 @@ export default function AdminPage() {
   const filteredRows = useMemo(() => rows.filter(row => `${row.swimmer_name} ${row.country ?? ''} ${row.event}`.toLowerCase().includes(search.toLowerCase())),[rows,search]);
   const world2027 = meets.find(meet => meet.year === 2027 && meet.category === 'World Transplant Games');
   const selectedMeet = meets.find(meet => meet.id === selectedMeetId);
-  const countsItems = [
-    ['Swimmer profiles','swimmer_profiles'],['Registered accounts','registered_accounts'],['Claimed profiles','claimed_profiles'],['Unclaimed profiles','unclaimed_profiles'],['Pending claims','pending_claims'],['Published results','published_results'],['Record candidates','record_candidates'],['Active writers','writers'],['Article drafts','article_drafts'],['Articles in review','articles_in_review'],['Published articles','published_articles'],['Feature articles','feature_articles'],
+  const totalProfiles = Number(counts.swimmer_profiles ?? 0);
+  const claimedProfiles = Number(counts.claimed_profiles ?? 0);
+  const unclaimedProfiles = Number(counts.unclaimed_profiles ?? 0);
+  const claimedPercent = totalProfiles ? Math.round((claimedProfiles / totalProfiles) * 100) : 0;
+  const primaryStats = [
+    { label: 'Athlete profiles', key: 'swimmer_profiles', detail: `${claimedProfiles.toLocaleString()} claimed · ${unclaimedProfiles.toLocaleString()} unclaimed`, icon: UsersRound, tab: 'Swimmers' as Tab, tone: 'text-[var(--accent)]' },
+    { label: 'Verified results', key: 'published_results', detail: `${Number(counts.record_candidates ?? 0).toLocaleString()} record candidates to review`, icon: CheckCircle2, tab: 'Meets and results' as Tab, tone: 'text-emerald-300' },
+    { label: 'Registered accounts', key: 'registered_accounts', detail: `${Number(counts.writers ?? 0).toLocaleString()} active writers`, icon: Activity, tab: 'Roles and permissions' as Tab, tone: 'text-sky-300' },
+    { label: 'Published articles', key: 'published_articles', detail: `${Number(counts.feature_articles ?? 0).toLocaleString()} featured · ${Number(counts.articles_in_review ?? 0).toLocaleString()} in review`, icon: Newspaper, tab: 'Article library' as Tab, tone: 'text-amber-300' },
   ];
+  const reviewQueues = [
+    { label: 'Profile claims', value: Number(counts.pending_claims ?? 0), detail: 'Waiting for a decision', icon: UsersRound, tab: 'Profile claims' as Tab, available: canReviewClaims },
+    { label: 'Record candidates', value: Number(counts.record_candidates ?? 0), detail: 'Potential WTG records', icon: Award, tab: 'Records' as Tab, available: canConfirmRecords },
+    { label: 'Articles for review', value: Number(counts.articles_in_review ?? 0), detail: 'Submitted by writers', icon: Newspaper, tab: 'Articles' as Tab, available: canManageArticles },
+    { label: 'Draft articles', value: Number(counts.article_drafts ?? 0), detail: 'Ready to continue editing', icon: FilePlus2, tab: 'Article library' as Tab, available: canManageArticles },
+  ].filter(queue => queue.available);
 
   const renderRows = (items: Record<string,unknown>[], columns: string[]) => items.length ? <div className="ta-table-scroll"><table className="w-full text-left text-sm"><thead><tr className="border-b border-[var(--navy-light)] text-[10px] uppercase tracking-widest text-white/50">{columns.map(column=><th key={column} className="px-3 py-3">{column.replaceAll('_',' ')}</th>)}</tr></thead><tbody>{items.map((item,index)=><tr key={String(item.id ?? index)} className="border-b border-[var(--navy-light)] last:border-0">{columns.map(column=><td key={column} className="px-3 py-3 text-white/80">{item[column] == null || item[column] === '' ? '—' : String(item[column])}</td>)}</tr>)}</tbody></table></div> : <EmptyState title="No entries yet" subtitle="Approved source data and account activity will appear here." onDark />;
 
@@ -458,9 +474,67 @@ export default function AdminPage() {
         {tab==='Article library' && <AdminArticleLibrary onEdit={id=>{setSelectedArticleId(id);setTab('Write article');}} onError={setError} onNotice={setNotice} />}
         {tab==='Ads' && <AdminAdCampaigns cardStyle={cardStyle} inputClass={inputClass} onError={setError} onNotice={setNotice} />}
         {tab==='Overview' && <>
-          <div className="grid gap-px border border-[var(--navy-light)] bg-[var(--navy-light)] sm:grid-cols-2 lg:grid-cols-4">{countsItems.map(([label,key])=><div key={key} className="bg-[var(--navy-mid)] p-5"><p className="font-mono text-[10px] uppercase tracking-widest text-white/55">{label}</p><p className="mt-2 font-mono text-3xl font-black text-white">{counts[key] ?? 0}</p></div>)}</div>
-            <div className="mt-7 grid gap-5 lg:grid-cols-2"><div className="border p-5" style={cardStyle}><p className="font-mono text-xs uppercase tracking-widest text-[var(--accent)]">World Transplant Games · 2027</p><h2 className="mt-2 text-xl font-bold text-white">{world2027?.name ?? 'Leuven World Transplant Games'}</h2><p className="mt-2 text-sm text-white/60">{world2027 ? `${world2027.host_city}, ${world2027.host_country} · ${world2027.meet_date} – ${world2027.end_date}` : 'Leuven, Belgium'}</p><p className="mt-5 border-l-2 border-[var(--accent)] pl-4 text-sm leading-6 text-white/75">Official swimming results are not available yet. The import, review and publication workspace is ready for the official files.</p>{canImportResults&&<button type="button" onClick={()=>setTab('Imports')} className="mt-4 text-sm font-bold text-[var(--accent)]">Open imports →</button>}</div>
-            <div className="border p-5" style={cardStyle}><h2 className="font-bold text-white">Recent imports</h2>{batches.slice(0,5).length?batches.slice(0,5).map(batch=><button key={batch.id} onClick={()=>{setTab('Imports');void openBatch(batch);}} className="flex w-full items-center justify-between gap-4 border-b border-[var(--navy-light)] py-3 text-left last:border-0"><span className="truncate text-sm text-white">{batch.file_name||batch.source_url||'Meet import'}</span><span className="shrink-0 font-mono text-xs uppercase text-[var(--accent)]">{batch.status}</span></button>):<p className="mt-3 text-sm text-white/50">No imports have been started.</p>}</div></div>
+          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+            {primaryStats.map(stat => {
+              const Icon = stat.icon;
+              return <button key={stat.key} type="button" onClick={() => setTab(stat.tab)} className="group min-w-0 border p-5 text-left transition-colors hover:border-[var(--accent)]" style={cardStyle}>
+                <div className="flex items-start justify-between gap-3"><span className="font-mono text-[10px] uppercase tracking-widest text-white/50">{stat.label}</span><Icon size={18} className={`${stat.tone} opacity-80`} /></div>
+                <p className="mt-5 font-mono text-3xl font-black tracking-tight text-white">{Number(counts[stat.key] ?? 0).toLocaleString()}</p>
+                <span className="mt-2 flex items-center justify-between gap-2 text-xs text-white/50"><span className="truncate">{stat.detail}</span><ArrowRight size={14} className="shrink-0 text-white/25 transition group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" /></span>
+              </button>;
+            })}
+          </div>
+
+          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.85fr)]">
+            <section className="border p-5 sm:p-6" style={cardStyle}>
+              <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Needs attention</p><h2 className="mt-1 text-lg font-bold text-white">Review queues</h2><p className="mt-1 text-xs text-white/45">Items waiting for an admin decision.</p></div><AlertCircle size={18} className="text-amber-300" /></div>
+              {reviewQueues.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{reviewQueues.map(queue => { const Icon = queue.icon; return <button key={queue.label} type="button" onClick={() => setTab(queue.tab)} className="flex min-w-0 items-center gap-3 border border-[var(--navy-light)] bg-[var(--navy)] p-4 text-left transition-colors hover:border-[var(--accent)]"><span className="flex size-9 shrink-0 items-center justify-center bg-white/5 text-[var(--accent)]"><Icon size={16} /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-white">{queue.label}</span><span className="mt-1 block truncate text-[10px] text-white/45">{queue.detail}</span></span><span className="font-mono text-xl font-bold text-white">{queue.value.toLocaleString()}</span></button>; })}</div> : <p className="mt-5 text-sm text-white/50">There are no review queues assigned to this account.</p>}
+            </section>
+
+            <section className="border p-5 sm:p-6" style={cardStyle}>
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Directory</p><h2 className="mt-1 text-lg font-bold text-white">Profile coverage</h2><p className="mt-1 text-xs text-white/45">{totalProfiles.toLocaleString()} swimmer and donor profiles</p></div><UsersRound size={18} className="text-sky-300" /></div>
+              <div className="mt-6 flex items-center gap-5"><div className="relative flex size-28 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(var(--accent) ${claimedPercent}%, rgba(255,255,255,0.12) ${claimedPercent}% 100%)` }} role="img" aria-label={`${claimedPercent}% of profiles are claimed`}><div className="flex size-[5.25rem] flex-col items-center justify-center rounded-full bg-[var(--navy-mid)]"><span className="font-mono text-xl font-bold text-white">{claimedPercent}%</span><span className="font-mono text-[8px] uppercase tracking-wider text-white/45">claimed</span></div></div>
+                <div className="min-w-0 flex-1 space-y-4"><div><div className="flex justify-between gap-2 text-xs"><span className="text-white/70">Claimed profiles</span><strong className="font-mono text-white">{claimedProfiles.toLocaleString()}</strong></div><div className="mt-2 h-1.5 overflow-hidden bg-white/10"><div className="h-full bg-[var(--accent)]" style={{ width: `${claimedPercent}%` }} /></div></div><div><div className="flex justify-between gap-2 text-xs"><span className="text-white/70">Unclaimed profiles</span><strong className="font-mono text-white">{unclaimedProfiles.toLocaleString()}</strong></div><div className="mt-2 h-1.5 overflow-hidden bg-white/10"><div className="h-full bg-sky-300" style={{ width: `${totalProfiles ? Math.round((unclaimedProfiles / totalProfiles) * 100) : 0}%` }} /></div></div></div>
+              </div>
+              <button type="button" onClick={() => setTab('Swimmers')} className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-[var(--accent)]">Manage swimmer profiles <ArrowRight size={14} /></button>
+            </section>
+          </div>
+
+          <div className="mt-5 grid gap-5 xl:grid-cols-3">
+            <section className="border p-5 sm:p-6" style={cardStyle}>
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Publishing</p><h2 className="mt-1 text-lg font-bold text-white">Article pipeline</h2></div><Newspaper size={18} className="text-amber-300" /></div>
+              <div className="mt-5 space-y-3">{[['Published', 'published_articles'], ['In review', 'articles_in_review'], ['Drafts', 'article_drafts'], ['Featured', 'feature_articles']].map(([label, key]) => <div key={key} className="flex items-center justify-between border-b border-[var(--navy-light)] pb-3 last:border-0 last:pb-0"><span className="text-sm text-white/65">{label}</span><strong className="font-mono text-lg text-white">{Number(counts[key] ?? 0).toLocaleString()}</strong></div>)}</div>
+              {canManageArticles && <button type="button" onClick={() => setTab('Article library')} className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-[var(--accent)]">Open article library <ArrowRight size={14} /></button>}
+            </section>
+
+            <section className="border p-5 sm:p-6" style={cardStyle}>
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">2027 · Leuven, Belgium</p><h2 className="mt-1 text-lg font-bold text-white">World Transplant Games</h2></div><CalendarDays size={18} className="text-sky-300" /></div>
+              <p className="mt-4 text-sm leading-6 text-white/65">{world2027?.name ?? 'Leuven World Transplant Games'}{world2027?.meet_date ? ` · ${world2027.meet_date}${world2027.end_date ? ` – ${world2027.end_date}` : ''}` : ''}</p>
+              <div className="mt-4 border-l-2 border-[var(--accent)] pl-3 text-xs leading-5 text-white/55">Results are not available yet. Import and review tools are ready for official files.</div>
+              {canImportResults && <button type="button" onClick={() => setTab('Imports')} className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-[var(--accent)]">Open results imports <ArrowRight size={14} /></button>}
+            </section>
+
+            <section className="border p-5 sm:p-6" style={cardStyle}>
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Quick access</p><h2 className="mt-1 text-lg font-bold text-white">Admin workspace</h2></div><Clock3 size={18} className="text-emerald-300" /></div>
+              <div className="mt-4 grid gap-2">{[
+                ...(canImportResults ? [{ label: 'Import meet results', tab: 'Imports' as Tab, icon: Upload }] : []),
+                { label: 'Manage swimmers', tab: 'Swimmers' as Tab, icon: UsersRound },
+                ...(canImportResults ? [{ label: 'Manage meets', tab: 'Meets and results' as Tab, icon: CalendarDays }] : []),
+                ...(canManageArticles ? [{ label: 'Write an article', tab: 'Write article' as Tab, icon: FilePlus2 }] : []),
+              ].map(action => { const Icon = action.icon; return <button key={action.label} type="button" onClick={() => setTab(action.tab)} className="flex items-center gap-3 border border-[var(--navy-light)] px-3 py-2.5 text-left text-xs font-semibold text-white/75 transition-colors hover:border-[var(--accent)] hover:text-white"><Icon size={14} className="text-[var(--accent)]" /><span className="flex-1">{action.label}</span><ArrowRight size={13} className="text-white/35" /></button>; })}</div>
+            </section>
+          </div>
+
+          <div className="mt-5 grid gap-5 xl:grid-cols-2">
+            <section className="border p-5 sm:p-6" style={cardStyle}>
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Operations</p><h2 className="mt-1 text-lg font-bold text-white">Recent imports</h2></div><Upload size={18} className="text-white/45" /></div>
+              {batches.slice(0, 5).length ? <div className="mt-3">{batches.slice(0, 5).map(batch => <button key={batch.id} type="button" onClick={() => { setTab('Imports'); void openBatch(batch); }} className="flex w-full items-center justify-between gap-4 border-b border-[var(--navy-light)] py-3 text-left last:border-0"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-white">{batch.file_name || batch.source_url || 'Meet import'}</span><span className="mt-1 block font-mono text-[9px] text-white/40">{new Date(batch.created_at).toLocaleDateString()}</span></span><span className="shrink-0 font-mono text-[9px] uppercase tracking-wider text-[var(--accent)]">{batch.status}</span></button>)}</div> : <p className="mt-4 text-sm text-white/50">No imports have been started.</p>}
+            </section>
+            <section className="border p-5 sm:p-6" style={cardStyle}>
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Audit trail</p><h2 className="mt-1 text-lg font-bold text-white">Recent admin activity</h2></div><Activity size={18} className="text-white/45" /></div>
+              {recentActivityRows.length ? <div className="mt-3">{recentActivityRows.map((item, index) => <div key={String(item.id ?? index)} className="flex items-start gap-3 border-b border-[var(--navy-light)] py-3 last:border-0"><span className="mt-0.5 flex size-7 shrink-0 items-center justify-center bg-white/5 text-[var(--accent)]"><Activity size={13} /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold capitalize text-white">{String(item.action ?? 'Admin update').replaceAll('_', ' ')}</span><span className="mt-1 block truncate text-[10px] text-white/45">{String(item.target_type ?? 'Platform')} · {item.created_at ? new Date(String(item.created_at)).toLocaleString() : 'Time unavailable'}</span></span></div>)}</div> : <p className="mt-4 text-sm text-white/50">Admin actions will appear here as the team works.</p>}
+            </section>
+          </div>
         </>}
         {tab==='Historical archive' && <div className="space-y-5">
           <div className="border p-5 sm:p-6" style={cardStyle}>
