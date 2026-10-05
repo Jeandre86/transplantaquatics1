@@ -37,9 +37,15 @@ Deno.serve(async (req: Request) => {
     const displayName = String(payload.displayName ?? "").trim();
     if (!/^\S+@\S+\.\S+$/.test(email) || displayName.length < 2) return response(400, { error: "Enter a valid email address and writer name." });
     const origin = req.headers.get("Origin") ?? "";
-    const allowedOrigins = (Deno.env.get("APP_ORIGINS") ?? "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5174,https://transplantaquatics.org")
-      .split(",").map(value => value.trim()).filter(Boolean);
-    if (!allowedOrigins.includes(origin)) return response(400, { error: "This site origin is not approved for writer invitations." });
+    const defaultOrigins = [
+      "http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5174",
+      "https://transplantaquatics.org", "https://www.transplantaquatics.org",
+      "https://transplantaquatics.vercel.app",
+    ];
+    const configuredOrigins = (Deno.env.get("APP_ORIGINS") ?? "")
+      .split(",").map(value => value.trim().replace(/\/$/, "")).filter(Boolean);
+    const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
+    if (!allowedOrigins.has(origin.replace(/\/$/, ""))) return response(400, { error: `This site origin (${origin || "missing"}) is not approved for writer invitations. Add it to the APP_ORIGINS Edge Function secret.` });
     const { data: inviteData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(email, {
       data: { first_name: displayName.split(/\s+/)[0], last_name: displayName.split(/\s+/).slice(1).join(" "), site_role: "writer" },
       redirectTo: `${origin}/writer`,

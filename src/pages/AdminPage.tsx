@@ -308,7 +308,17 @@ export default function AdminPage() {
     if(!supabase)return;setBusy(true);setError('');setNotice('');
     try{
       const {data,error:inviteError}=await supabase.functions.invoke('writer-workflow',{body:{action:'invite_writer',email:writerEmail,displayName:writerDisplayName}});
-      if(inviteError)throw inviteError;setNotice(data?.message??'Writer invitation sent.');setWriterEmail('');setWriterDisplayName('');await loadTabData('Writers');
+      if(inviteError){
+        const context='context' in inviteError ? inviteError.context : null;
+        if(context instanceof Response){
+          let message='';
+          try{const body=await context.clone().json();message=typeof body?.error==='string'?body.error:'';}catch{/* Keep the SDK error when the function did not return JSON. */}
+          if(message)throw new Error(message);
+        }
+        throw inviteError;
+      }
+      if(data?.error)throw new Error(String(data.error));
+      setNotice(data?.message??'Writer invitation sent.');setWriterEmail('');setWriterDisplayName('');await loadTabData('Writers');
     }catch(reason){setError(describeSupabaseError(reason));}finally{setBusy(false);}
   };
 
