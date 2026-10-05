@@ -35,6 +35,14 @@ export function getCountryIso2(countryCode: string): string {
   return COUNTRY_ISO2[code] ?? code;
 }
 
+/** Store and display South Africa with the platform's RSA identifier. */
+export function normalizeCountryCode(country: string | null | undefined, countryCode: string | null | undefined): string {
+  const name = country?.trim().toUpperCase() ?? '';
+  const code = countryCode?.trim().toUpperCase() ?? '';
+  if (['SOUTH AFRICA', 'RSA'].includes(name) || ['ZA', 'ZAF', 'RSA'].includes(code)) return 'RSA';
+  return code;
+}
+
 export function getCountryAlpha3(countryCode: string): string {
   const rawCode = countryCode.trim().toUpperCase();
   if (rawCode === 'RSA' || rawCode === 'ZAF') return 'RSA';

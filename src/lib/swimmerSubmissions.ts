@@ -1,6 +1,7 @@
 import type { Gender, TransplantType } from '../types';
 import { getCompetitionAgeGroup } from './competitionAge';
 import { supabase } from './supabase';
+import { normalizeCountryCode } from './utils';
 
 export interface SwimmerProfile {
   id: string;
@@ -111,6 +112,7 @@ function normalizeSubmittedResult(row: Record<string, unknown>): SubmittedSwimme
   return {
     ...row,
     swimmer_id: swimmerId,
+    country_code: normalizeCountryCode(String(row.country ?? ''), String(row.country_code ?? '')) || null,
     // Athlete directory rows share the canonical swimmer profile UUID. This
     // fallback also supports databases where the optional athlete_id migration
     // has not been applied yet.
@@ -196,7 +198,7 @@ function mapSwimmer(row: Record<string, unknown>): SwimmerProfile {
     gender: row.gender as Gender,
     transplantType: row.transplant_type as TransplantType,
     country: String(row.country),
-    countryCode: String(row.country_code ?? ''),
+    countryCode: normalizeCountryCode(String(row.country ?? ''), String(row.country_code ?? '')),
     clubId: row.club_id ? String(row.club_id) : undefined,
     clubName: row.club_name ? String(row.club_name) : undefined,
     isAccountHolder: Boolean(row.is_account_holder),
@@ -231,7 +233,7 @@ export async function saveManagedSwimmer(profile: SwimmerProfileDraft): Promise<
     gender: profile.gender,
     transplant_type: profile.transplantType,
     country: profile.country,
-    country_code: profile.countryCode || null,
+    country_code: normalizeCountryCode(profile.country, profile.countryCode) || null,
     club_id: profile.clubId || null,
     club_name: profile.clubName || null,
     is_account_holder: profile.isAccountHolder,
@@ -306,7 +308,7 @@ export async function saveSwimmerResult(result: SwimmerResultDraft): Promise<Sub
     swimmer_id: result.swimmer.id,
     swimmer_name: `${result.swimmer.firstName} ${result.swimmer.lastName}`.trim(),
     country: result.swimmer.country,
-    country_code: result.swimmer.countryCode || null,
+    country_code: normalizeCountryCode(result.swimmer.country, result.swimmer.countryCode) || null,
     gender: result.swimmer.gender,
     transplant_type: result.swimmer.transplantType,
     represented_club_id: result.swimmer.clubId || null,

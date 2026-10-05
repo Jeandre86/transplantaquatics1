@@ -1,3 +1,5 @@
+import { normalizeCountryCode } from './utils';
+
 export type RaceStatus = 'OK' | 'DNS' | 'DNF' | 'DQ' | 'SCR' | 'NS';
 
 export interface StagedImportRow {
@@ -146,7 +148,7 @@ export function normalizeImportRows(rows: Record<string, unknown>[], sourceLabel
       first_name: nameParts[0] ?? '',
       last_name: nameParts.slice(1).join(' '),
       country,
-      country_code: getField(raw, 'country_code') || null,
+      country_code: normalizeCountryCode(country, getField(raw, 'country_code')) || null,
       gender,
       event: event || 'Unknown event',
       distance_m: distanceStroke ? Number(distanceStroke[1]) : null,

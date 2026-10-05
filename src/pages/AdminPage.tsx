@@ -256,21 +256,38 @@ export default function AdminPage() {
   const loadTabData = async (target: Tab) => {
     if (!supabase || !authorized) return;
     if (target === 'Swimmers') {
-      const { data, error: queryError } = await supabase.rpc('admin_list_swimmer_profiles');
+      const pageSize = 500;
+      const data: Record<string, unknown>[] = [];
+      let offset = 0;
+      let queryError: { code?: string; message: string } | null = null;
+      while (true) {
+        const page = await supabase.rpc('admin_list_swimmer_profiles').order('id', { ascending: true }).range(offset, offset + pageSize - 1);
+        if (page.error) { queryError = page.error; break; }
+        const rows = (page.data ?? []) as Record<string, unknown>[];
+        data.push(...rows);
+        if (rows.length < pageSize) break;
+        offset += pageSize;
+      }
       if (queryError?.code === 'PGRST202') {
         // Keep the admin list usable while the privileged directory migration
         // is being applied. The public directory intentionally omits private
         // account and club fields, which remain available through the admin RPC.
-        const { data: publicRows, error: publicError } = await supabase.rpc('get_public_swimmer_directory');
-        if (publicError) throw queryError;
+        const publicRows: Record<string, unknown>[] = [];
+        for (let publicOffset = 0; ; publicOffset += pageSize) {
+          const { data: pageRows, error: publicError } = await supabase.rpc('get_public_swimmer_directory').range(publicOffset, publicOffset + pageSize - 1);
+          if (publicError) throw queryError;
+          const page = (pageRows ?? []) as Record<string, unknown>[];
+          publicRows.push(...page);
+          if (page.length < pageSize) break;
+        }
         setSwimmerAdminRpcAvailable(false);
-        setSwimmerRows((publicRows ?? []).map((row: Record<string, unknown>) => ({ ...row, club_name: null, account_id: null })) as Record<string, unknown>[]);
+        setSwimmerRows(publicRows.map((row: Record<string, unknown>) => ({ ...row, club_name: row.club_name ?? null, account_id: null })));
         setNotice('Showing the public swimmer details while the admin directory database function is unavailable. Apply the admin swimmer directory migration to restore account and club details.');
         return;
       }
       if (queryError) throw queryError;
       setSwimmerAdminRpcAvailable(true);
-      setSwimmerRows((data ?? []) as Record<string, unknown>[]);
+      setSwimmerRows(data);
       return;
     }
     const query = target === 'Profile claims'

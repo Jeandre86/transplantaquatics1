@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { describeSupabaseError, supabase } from '../lib/supabase';
+import { normalizeCountryCode } from '../lib/utils';
 
-type SourceMeet = { meet_id: string; group: string; year: number; location?: string | null; course?: string | null };
+type SourceMeet = { meet_id: string; group: string; year: number; location?: string | null; course?: string | null; name?: string | null; database_only?: boolean };
 type SourceResult = Record<string, unknown>;
-type SourceSwimmer = { id: string; source_key_aliases?: string[]; identity_review_required?: boolean; display_name: string; country?: string | null; country_code?: string | null; gender?: string | null; date_of_birth?: string | null; transplant_type?: string | null; results?: SourceResult[] };
+type SourceSwimmer = { id: string; source_key_aliases?: string[]; identity_review_required?: boolean; display_name: string; country?: string | null; country_code?: string | null; gender?: string | null; date_of_birth?: string | null; transplant_type?: string | null; database_athlete_id?: string | null; archive_imported?: boolean; results?: SourceResult[] };
 type ExportData = { metadata?: Record<string, unknown>; swimmers?: SourceSwimmer[]; meets?: SourceMeet[]; relay_results?: unknown[]; summary?: Record<string, number> };
 type Prepared = { profiles: Record<string, unknown>[]; meets: Record<string, unknown>[]; results: Record<string, unknown>[]; skipped: Record<string, number>; duplicatesRemoved: number; missing: Record<string, number>; medalCandidates: number; unparsedRows: number; identityAliases: number; identityReviewProfiles: number };
 const clean = (value: unknown) => typeof value === 'string' ? value.trim() : '';
@@ -11,19 +12,24 @@ const placing = (value: unknown) => { const match = clean(value).match(/^\s*(\d+
 const validTime = (value: unknown, ms: unknown) => typeof ms === 'number' && Number.isFinite(ms) && ms > 0 && /^\d+(?::[0-5]\d)?(?:\.\d{1,2})?$/.test(clean(value));
 const isFinal = (value: unknown) => /final/i.test(clean(value));
 function prepare(data: ExportData): Prepared {
-  const meets = (data.meets ?? []).map(meet => ({ source_meet_key: meet.meet_id, name: `${meet.group === 'WTG' ? 'World Transplant Games' : `${meet.group} Transplant Games`} ${meet.year}`, meet_year: meet.year, location: clean(meet.location) || null, course: clean(meet.course) || 'LCM', meet_date: null, is_world_transplant_games: meet.group === 'WTG' }));
+  const meets = (data.meets ?? []).filter(meet => !meet.database_only).map(meet => ({ source_meet_key: meet.meet_id, name: clean(meet.name) || `${meet.group === 'WTG' ? 'World Transplant Games' : `${meet.group} Transplant Games`} ${meet.year}`, meet_year: meet.year, location: clean(meet.location) || null, course: clean(meet.course) || 'LCM', meet_date: null, is_world_transplant_games: meet.group === 'WTG' }));
   const profiles: Record<string, unknown>[] = [];
   const missing = { country: 0, gender: 0, transplant_type: 0 };
   const all: (SourceResult & { swimmer: SourceSwimmer })[] = [];
   const skipped = { non_ok: 0, relay: (data.relay_results ?? []).length, missing_time: 0, unsupported_meet: 0 };
-  const knownMeets = new Map((data.meets ?? []).map(meet => [meet.meet_id, meet]));
+  const knownMeets = new Map((data.meets ?? []).filter(meet => !meet.database_only).map(meet => [meet.meet_id, meet]));
   for (const swimmer of data.swimmers ?? []) {
+    // Database exports carry all live profiles for backup, but only archive
+    // profiles should be sent through the historical importer. This keeps
+    // account-created profiles safe when the export replaces swimmers.json.
+    if (swimmer.database_athlete_id && swimmer.archive_imported === false) continue;
     if (!clean(swimmer.country)) missing.country++;
     if (!clean(swimmer.gender)) missing.gender++;
     if (!clean(swimmer.transplant_type)) missing.transplant_type++;
     const parts = clean(swimmer.display_name).split(/\s+/).filter(Boolean);
-    profiles.push({ source_key: swimmer.id, source_keys: [...new Set([swimmer.id, ...(swimmer.source_key_aliases ?? [])])], identity_review_required: Boolean(swimmer.identity_review_required), first_name: parts.slice(0, -1).join(' ') || parts[0] || 'Unknown', last_name: parts.length > 1 ? parts.at(-1) : 'Swimmer', country: clean(swimmer.country) || null, country_code: clean(swimmer.country_code) || null, gender: ['Men', 'Women'].includes(clean(swimmer.gender)) ? clean(swimmer.gender) : null, date_of_birth: clean(swimmer.date_of_birth) || null, transplant_type: clean(swimmer.transplant_type) || null });
+    profiles.push({ source_key: swimmer.id, source_keys: [...new Set([swimmer.id, ...(swimmer.source_key_aliases ?? [])])], identity_review_required: Boolean(swimmer.identity_review_required), first_name: parts.slice(0, -1).join(' ') || parts[0] || 'Unknown', last_name: parts.length > 1 ? parts.at(-1) : 'Swimmer', country: clean(swimmer.country) || null, country_code: normalizeCountryCode(clean(swimmer.country), clean(swimmer.country_code)) || null, gender: ['Men', 'Women'].includes(clean(swimmer.gender)) ? clean(swimmer.gender) : null, date_of_birth: clean(swimmer.date_of_birth) || null, transplant_type: clean(swimmer.transplant_type) || null });
     for (const result of swimmer.results ?? []) {
+      if (result.database_only === true) continue;
       if (result.is_relay) { skipped.relay++; continue; }
       if (clean(result.race_status) !== 'OK') { skipped.non_ok++; continue; }
       if (!validTime(result.time_original, result.time_ms)) { skipped.missing_time++; continue; }
@@ -45,7 +51,8 @@ function prepare(data: ExportData): Prepared {
     const meet = knownMeets.get(clean(row.meet_id))!;
     const swimmer = row.swimmer;
     const pointsValue=clean(row.points_original);
-    results.push({ swimmer_source_key: swimmer.id, meet_source_key: clean(row.meet_id), source_result_key: clean(row.id), swimmer_name: clean(row.swimmer_name_original) || clean(swimmer.display_name), country: clean(row.country) || clean(swimmer.country) || null, country_code: clean(row.country_code) || clean(swimmer.country_code) || null, gender: clean(row.gender) || clean(swimmer.gender) || null, transplant_type: clean(swimmer.transplant_type) || null, event: clean(row.event), time_original: clean(row.time_original), age_group: clean(row.age_group) || null, course: clean(row.course) || clean(meet.course) || 'LCM', placing: placing(row.placing_original), round_name: clean(row.round) || null, points: /^\d+$/.test(pointsValue) ? Number(pointsValue) : null, source_data: { source_references: row.source_references ?? [], source_event_category: row.category_original ?? null, time_ms: row.time_ms, points_original: row.points_original ?? null, imported_source_group: meet.group } });
+    const resultCountry = clean(row.country) || clean(swimmer.country);
+    results.push({ swimmer_source_key: swimmer.id, meet_source_key: clean(row.meet_id), source_result_key: clean(row.id), swimmer_name: clean(row.swimmer_name_original) || clean(swimmer.display_name), country: resultCountry || null, country_code: normalizeCountryCode(resultCountry, clean(row.country_code) || clean(swimmer.country_code)) || null, gender: clean(row.gender) || clean(swimmer.gender) || null, transplant_type: clean(swimmer.transplant_type) || null, event: clean(row.event), time_original: clean(row.time_original), age_group: clean(row.age_group) || null, course: clean(row.course) || clean(meet.course) || 'LCM', placing: placing(row.placing_original), round_name: clean(row.round) || null, points: /^\d+$/.test(pointsValue) ? Number(pointsValue) : null, source_data: { source_references: row.source_references ?? [], source_event_category: row.category_original ?? null, time_ms: row.time_ms, points_original: row.points_original ?? null, imported_source_group: meet.group } });
   }
   const medalCandidates=results.filter(row=>row.source_data && (row.source_data as Record<string,unknown>).imported_source_group==='WTG' && Number(row.placing)>=1 && Number(row.placing)<=3).length;
   return { profiles, meets, results, skipped, duplicatesRemoved: all.length - results.length, missing, medalCandidates, unparsedRows: Array.isArray((data as Record<string,unknown>).unparsed_rows) ? ((data as Record<string,unknown>).unparsed_rows as unknown[]).length : 0, identityAliases: profiles.reduce((count, profile) => count + Math.max(0, (profile.source_keys as string[]).length - 1), 0), identityReviewProfiles: profiles.filter(profile => profile.identity_review_required).length };

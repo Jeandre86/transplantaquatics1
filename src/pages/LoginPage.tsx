@@ -27,7 +27,7 @@ const COUNTRIES = [
   { code: 'FR', name: 'France' }, { code: 'GB', name: 'United Kingdom' }, { code: 'IN', name: 'India' },
   { code: 'IT', name: 'Italy' }, { code: 'JP', name: 'Japan' }, { code: 'MX', name: 'Mexico' },
   { code: 'NL', name: 'Netherlands' }, { code: 'NZ', name: 'New Zealand' }, { code: 'PL', name: 'Poland' },
-  { code: 'PT', name: 'Portugal' }, { code: 'US', name: 'United States' }, { code: 'ZA', name: 'South Africa' },
+  { code: 'PT', name: 'Portugal' }, { code: 'US', name: 'United States' }, { code: 'RSA', name: 'South Africa' },
   { code: 'SE', name: 'Sweden' }, { code: 'NO', name: 'Norway' },
 ];
 

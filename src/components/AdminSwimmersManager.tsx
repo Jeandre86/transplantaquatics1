@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Download, Pencil, Search, Trash2, Upload, X } from 'lucide-react';
 import { describeSupabaseError, supabase } from '../lib/supabase';
 import { countries } from '../data/countries';
+import { normalizeCountryCode } from '../lib/utils';
 import EmptyState from './EmptyState';
 
 type Swimmer = {
@@ -30,6 +31,31 @@ type ArchiveFile = {
   [key: string]: unknown;
 };
 
+type DatabaseProfile = Swimmer & { archive_imported?: boolean };
+type DatabaseMeet = { id: string; name: string; meet_date: string | null; location: string | null; course: string | null; is_world_transplant_games: boolean; source_meet_key: string | null; meet_year: number | null };
+type DatabaseResult = { id: string; meet_id: string | null; swimmer_id: string | null; swimmer_name: string; country: string | null; country_code: string | null; gender: string | null; transplant_type: string | null; event: string; time: string; age_group: string | null; points: number | null; status: string; course: string | null; placing: number | null; round_name: string | null; source_result_key: string | null; source_data: Record<string, unknown> | null };
+
+async function fetchAllRows<T>(fetchPage: (from: number, to: number) => Promise<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const pageSize = 500;
+  const all: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await fetchPage(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = data ?? [];
+    all.push(...page);
+    if (page.length < pageSize) return all;
+  }
+}
+
+function timeToMilliseconds(value: string): number | null {
+  const parts = value.trim().split(':');
+  const seconds = Number(parts.pop());
+  const minutes = parts.length ? Number(parts.pop()) : 0;
+  const hours = parts.length ? Number(parts.pop()) : 0;
+  if (![seconds, minutes, hours].every(Number.isFinite)) return null;
+  return Math.round(((hours * 3600 + minutes * 60 + seconds) * 1000));
+}
+
 const fieldClass = 'w-full border border-[var(--navy-light)] bg-[var(--navy)] px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]';
 
 export default function AdminSwimmersManager({ swimmers, canManage, onChanged }: { swimmers: Record<string, unknown>[]; canManage: boolean; onChanged: () => Promise<void> }) {
@@ -50,6 +76,8 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
   const [confirmation, setConfirmation] = useState('');
   const [archive, setArchive] = useState<ArchiveFile | null>(null);
   const [archiveName, setArchiveName] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportNotice, setExportNotice] = useState('');
   const [busyId, setBusyId] = useState('');
   const [error, setError] = useState('');
 
@@ -98,7 +126,7 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
 
   const openEdit = (swimmer: Swimmer) => {
     setEditing(swimmer);
-    setDraft({ first_name: swimmer.first_name ?? '', last_name: swimmer.last_name ?? '', date_of_birth: swimmer.date_of_birth ?? '', country: swimmer.country ?? '', country_code: swimmer.country_code ?? '', gender: swimmer.gender ?? '', transplant_type: swimmer.transplant_type ?? '' });
+    setDraft({ first_name: swimmer.first_name ?? '', last_name: swimmer.last_name ?? '', date_of_birth: swimmer.date_of_birth ?? '', country: swimmer.country ?? '', country_code: normalizeCountryCode(swimmer.country, swimmer.country_code), gender: swimmer.gender ?? '', transplant_type: swimmer.transplant_type ?? '' });
     setError('');
   };
 
@@ -112,7 +140,7 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
         p_last_name: draft.last_name.trim(),
         p_date_of_birth: draft.date_of_birth || null,
         p_country: draft.country.trim() || null,
-        p_country_code: draft.country_code.trim().toUpperCase() || null,
+        p_country_code: normalizeCountryCode(draft.country, draft.country_code) || null,
         p_gender: draft.gender || null,
         p_transplant_type: draft.transplant_type.trim() || null,
       });
@@ -131,6 +159,133 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
       if (!Array.isArray(parsed.swimmers)) throw new Error('This file does not contain a swimmers array.');
       setArchive(parsed); setArchiveName(file.name);
     } catch (reason) { setError(reason instanceof Error ? reason.message : describeSupabaseError(reason)); setArchive(null); setArchiveName(''); }
+  };
+
+  const exportDatabaseArchive = async () => {
+    if (!supabase || !canManage || exporting) return;
+    const client = supabase;
+    setExporting(true); setError(''); setExportNotice('');
+    try {
+      const profiles = await fetchAllRows<DatabaseProfile>(async (from, to) => {
+        const { data, error } = await client.rpc('admin_list_swimmer_profiles').order('id', { ascending: true }).range(from, to);
+        return { data: data as DatabaseProfile[] | null, error };
+      });
+      const meets = await fetchAllRows<DatabaseMeet>(async (from, to) => {
+        const { data, error } = await client.from('submitted_meets').select('id,name,meet_date,location,course,is_world_transplant_games,source_meet_key,meet_year').order('id', { ascending: true }).range(from, to);
+        return { data: data as DatabaseMeet[] | null, error };
+      });
+      const results = await fetchAllRows<DatabaseResult>(async (from, to) => {
+        const { data, error } = await client.from('swimmer_results').select('id,meet_id,swimmer_id,swimmer_name,country,country_code,gender,transplant_type,event,time,age_group,points,status,course,placing,round_name,source_result_key,source_data').order('id', { ascending: true }).range(from, to);
+        return { data: data as DatabaseResult[] | null, error };
+      });
+      const profileById = new Map(profiles.map(profile => [profile.id, profile]));
+      const meetById = new Map(meets.map(meet => [meet.id, meet]));
+      const resultsByProfile = new Map<string, DatabaseResult[]>();
+      const unlinkedResults: DatabaseResult[] = [];
+      for (const result of results) {
+        if (!result.swimmer_id || !profileById.has(result.swimmer_id)) { unlinkedResults.push(result); continue; }
+        resultsByProfile.set(result.swimmer_id, [...(resultsByProfile.get(result.swimmer_id) ?? []), result]);
+      }
+      const exportedSwimmers = profiles.map(profile => {
+        const aliases = (profile.source_keys ?? []).filter(key => key && key !== profile.source_key);
+        const sourceKey = profile.source_key || `database-profile-${profile.id}`;
+        const isArchiveProfile = Boolean(profile.source_key || aliases.length || profile.archive_imported);
+        const displayName = `${profile.first_name} ${profile.last_name}`.trim();
+        const swimmerResults = (resultsByProfile.get(profile.id) ?? []).map(result => {
+          const meet = result.meet_id ? meetById.get(result.meet_id) : undefined;
+          const sourceData = result.source_data ?? {};
+          const isArchiveResult = Boolean(result.source_result_key && meet?.source_meet_key);
+          const sourceGroup = typeof sourceData.imported_source_group === 'string'
+            ? sourceData.imported_source_group
+            : meet?.is_world_transplant_games ? 'WTG' : 'Database';
+          return {
+            event: result.event,
+            distance: Number(result.event.match(/^\s*(\d+)/)?.[1]) || null,
+            distance_unit: 'metres',
+            stroke: result.event.replace(/^\s*\d+\s*m(?:etres?)?\s*/i, '').trim() || null,
+            is_relay: /relay|\b4x\b/i.test(result.event),
+            course: result.course || meet?.course || null,
+            gender: result.gender,
+            age_group: result.age_group,
+            competition_category: 'unspecified',
+            category_original: sourceData.source_event_category ?? null,
+            round: result.round_name,
+            meet_id: meet?.source_meet_key || `database-meet-${meet?.id ?? result.meet_id ?? 'unknown'}`,
+            year: meet?.meet_year || (meet?.meet_date ? Number(meet.meet_date.slice(0, 4)) : null),
+            swimmer_name_original: result.swimmer_name || displayName,
+            country: result.country || profile.country,
+            country_code: normalizeCountryCode(result.country || profile.country, result.country_code || profile.country_code) || null,
+            time_original: result.time,
+            time_ms: typeof sourceData.time_ms === 'number' ? sourceData.time_ms : timeToMilliseconds(result.time),
+            race_status: result.status === 'rejected' ? 'DQ' : 'OK',
+            placing_original: result.placing == null ? null : String(result.placing),
+            source_references: Array.isArray(sourceData.source_references) ? sourceData.source_references : [],
+            points_original: sourceData.points_original ?? result.points,
+            id: result.source_result_key || `database-result-${result.id}`,
+            database_only: !isArchiveResult,
+            database_result_id: result.id,
+            imported_source_group: sourceGroup,
+          };
+        });
+        return {
+          id: sourceKey,
+          source_key_aliases: aliases,
+          display_name: displayName,
+          name_variants: [displayName],
+          country: profile.country,
+          country_code: normalizeCountryCode(profile.country, profile.country_code) || null,
+          gender: profile.gender,
+          claim_status: profile.account_id || profile.is_claimed ? 'claimed' : 'unclaimed',
+          database_athlete_id: profile.id,
+          archive_imported: isArchiveProfile,
+          date_of_birth: profile.date_of_birth,
+          transplant_type: profile.transplant_type,
+          identity_review_required: profile.identity_review_required,
+          results: swimmerResults,
+          result_count: swimmerResults.length,
+          years: [...new Set(swimmerResults.map(row => row.year).filter((year): year is number => typeof year === 'number'))].sort((a, b) => a - b),
+          teams: [...new Set(swimmerResults.map(row => row.country).filter((country): country is string => typeof country === 'string' && country.length > 0))],
+        };
+      });
+      const archiveMeets = meets.filter(meet => meet.source_meet_key).map(meet => ({
+        group: meet.is_world_transplant_games ? 'WTG' : 'Database',
+        year: meet.meet_year || (meet.meet_date ? Number(meet.meet_date.slice(0, 4)) : 0),
+        location: meet.location,
+        course: meet.course,
+        meet_id: meet.source_meet_key!,
+        name: meet.name,
+      }));
+      const sourceGroups = [...new Set(archiveMeets.map(meet => meet.group))].map(group => ({ group, years_extracted: [...new Set(archiveMeets.filter(meet => meet.group === group).map(meet => meet.year).filter(Boolean))].sort((a, b) => a - b), coverage_status: 'database_export' }));
+      const payload: ArchiveFile = {
+        schema_version: 1,
+        metadata: {
+          title: 'Swimmer database export',
+          generated_at: new Date().toISOString(),
+          scope: 'All swimmer profiles and linked results in the database, including account profiles and submitted results.',
+          ready_for_database_import: true,
+          notes: ['Account-created profiles are included for backup but are marked archive_imported:false and are ignored by the historical importer.', 'User-submitted results are included for backup and marked database_only:true so they are not re-imported as historical archive results.'],
+        },
+        database_export: { profile_count: profiles.length, linked_result_count: results.length - unlinkedResults.length, unlinked_result_count: unlinkedResults.length, meet_count: meets.length },
+        summary: { swimmers: exportedSwimmers.length, individual_results: results.length - unlinkedResults.length, meets: meets.length, unlinked_results: unlinkedResults.length },
+        source_groups: sourceGroups,
+        source_inventory: [],
+        meets: archiveMeets,
+        sources: [],
+        coverage: { origin: 'Supabase database export', exported_profiles: profiles.length, exported_results: results.length },
+        swimmers: exportedSwimmers,
+        relay_results: [],
+        identity_review: [],
+        unparsed_rows: [],
+        unlinked_database_results: unlinkedResults,
+      };
+      const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'swimmers.json'; anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setArchive(payload); setArchiveName('swimmers.json');
+      setExportNotice(`Exported ${profiles.length.toLocaleString()} profiles and ${(results.length - unlinkedResults.length).toLocaleString()} linked results. Move the downloaded swimmers.json into data/swimming/swimmers.json to replace the project copy.`);
+    } catch (reason) { setError(describeSupabaseError(reason)); }
+    finally { setExporting(false); }
   };
 
   const downloadUpdatedArchive = (source: ArchiveFile, deletedKeys: string[]) => {
@@ -235,9 +390,13 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
   return <section className="border p-5" style={{ border: '1px solid var(--navy-light)', backgroundColor: 'var(--navy-mid)' }}>
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><h2 className="font-bold text-white">Swimmer and donor profiles</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">Search, correct, or remove unclaimed profiles. Age groups remain attached to each result.</p></div>
-      <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white hover:border-[var(--accent)]"><Upload size={14} />Load archive JSON<input type="file" accept="application/json,.json" className="sr-only" onChange={event => void readArchive(event.target.files?.[0])} /></label>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => void exportDatabaseArchive()} disabled={!canManage || exporting} className="inline-flex items-center gap-2 border border-[var(--accent)] px-3 py-2 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/10 disabled:opacity-40"><Download size={14} />{exporting ? 'Exporting database…' : 'Export all as JSON'}</button>
+        <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white hover:border-[var(--accent)]"><Upload size={14} />Load archive JSON<input type="file" accept="application/json,.json" className="sr-only" onChange={event => void readArchive(event.target.files?.[0])} /></label>
+      </div>
     </div>
-    <p className="mt-3 text-xs text-white/45">{archive ? `${archiveName} loaded. Deleting a profile will download an updated JSON for you to replace in the project.` : 'Load swimmers.json to download a cleaned copy whenever a profile is deleted. Database exclusions also prevent deleted archive profiles from returning on future imports.'}</p>
+    <p className="mt-3 text-xs text-white/45">{archive ? `${archiveName} loaded. Deleting or merging archive profiles will download an updated JSON for you to replace at data/swimming/swimmers.json.` : 'Export all profiles and linked results from the database as swimmers.json, or load the current archive to keep it synchronized after deletes and merges.'}</p>
+    {exportNotice && <p className="mt-2 text-xs text-emerald-200" role="status">{exportNotice}</p>}
     {!canManage && <p className="mt-2 text-xs text-amber-200/80">This account has view-only access here, or the swimmer management migration is not available yet.</p>}
     <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <label className="flex items-end sm:col-span-2 lg:col-span-1"><span className="sr-only">Search swimmers</span><span className="relative block w-full"><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search swimmers…" className={`${fieldClass} pl-9`} /></span></label>
@@ -254,7 +413,7 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
       <div className="ta-table-scroll mt-2"><table className="w-full min-w-[1000px] text-left text-sm"><thead><tr className="border-b border-[var(--navy-light)] text-[10px] uppercase tracking-widest text-white/50"><th className="w-10 px-3 py-3"><input type="checkbox" aria-label="Select all visible unclaimed swimmers" checked={allVisibleSelected} onChange={event => toggleVisibleSelection(event.target.checked)} disabled={!canManage || !visibleDeletable.length || Boolean(busyId)} className="accent-[var(--accent)]" /></th>{['Swimmer','Country','Gender','Transplant type','Date of birth','Account','Review','Actions'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead><tbody>{filtered.map(swimmer => <tr key={swimmer.id} className="border-b border-[var(--navy-light)] last:border-0">
         <td className="px-3 py-3"><input type="checkbox" aria-label={`Select ${swimmer.first_name} ${swimmer.last_name}`} checked={selectedIds.has(swimmer.id)} onChange={event => toggleSwimmerSelection(swimmer.id, event.target.checked)} disabled={!canManage || Boolean(busyId)} className="accent-[var(--accent)]" /></td>
         <td className="px-3 py-3"><p className="font-semibold text-white">{swimmer.first_name} {swimmer.last_name}</p><p className="mt-1 max-w-56 truncate font-mono text-[9px] text-white/35" title={swimmer.source_key ?? ''}>{swimmer.source_key ?? 'Account profile'}</p></td>
-        <td className="px-3 py-3 text-white/70">{swimmer.country || '—'}{swimmer.country_code ? <span className="ml-1 font-mono text-[10px] text-white/40">{swimmer.country_code}</span> : ''}</td>
+        <td className="px-3 py-3 text-white/70">{swimmer.country || '—'}{normalizeCountryCode(swimmer.country, swimmer.country_code) ? <span className="ml-1 font-mono text-[10px] text-white/40">{normalizeCountryCode(swimmer.country, swimmer.country_code)}</span> : ''}</td>
         <td className="px-3 py-3 text-white/70">{swimmer.gender || '—'}</td><td className="px-3 py-3 text-white/70">{swimmer.transplant_type || '—'}</td><td className="px-3 py-3 text-white/70">{swimmer.date_of_birth || '—'}</td>
         <td className="px-3 py-3 text-white/70">{swimmer.account_id ? 'Linked' : 'Unclaimed'}</td><td className="px-3 py-3 text-white/70">{swimmer.identity_review_required ? 'Review' : '—'}</td>
         <td className="px-3 py-3"><div className="flex items-center gap-3"><button type="button" disabled={!canManage || Boolean(busyId)} onClick={() => openEdit(swimmer)} className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] disabled:opacity-40"><Pencil size={13} />Edit</button><button type="button" disabled={!canManage || Boolean(swimmer.account_id) || Boolean(swimmer.is_claimed) || Boolean(busyId)} onClick={() => { setDeleting(swimmer); setConfirmation(''); setError(''); }} title={swimmer.account_id || swimmer.is_claimed ? 'Claimed profiles cannot be deleted here.' : 'Delete unclaimed profile'} className="inline-flex items-center gap-1 text-xs font-semibold text-red-200 disabled:opacity-35"><Trash2 size={13} />Delete</button></div></td>
