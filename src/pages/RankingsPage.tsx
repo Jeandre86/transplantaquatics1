@@ -4,6 +4,7 @@ import type { Ranking } from '../types';
 import { AGE_GROUPS, COURSES, EVENTS, type Course, type Event } from '../types';
 import RankingTable from '../components/RankingTable';
 import TransplantCohortExplorer from '../components/TransplantCohortExplorer';
+import PageHeading from '../components/PageHeading';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
 import { is25mEvent, timeToSeconds } from '../lib/utils';
@@ -51,10 +52,10 @@ export default function RankingsPage() {
 
   return (
     <div className="bg-[var(--paper)]">
+      <PageHeading eyebrow="Rankings" title="Top swims by event" description="The fastest verified swims in each event. One row per athlete." />
       <section className="bg-[var(--paper)]">
-        <div className="mx-auto max-w-7xl px-4 py-9 sm:py-11">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:py-6">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-            <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)] sm:text-3xl">Top swims by event</h1>
             <div className="flex flex-wrap gap-3">
               <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Event:
                 <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
@@ -73,7 +74,6 @@ export default function RankingsPage() {
               </label>
             </div>
           </div>
-          <p className="mb-5 text-sm text-[var(--muted)]">The fastest verified swims in each event. One row per athlete.</p>
           <div className="grid items-start gap-5 lg:grid-cols-2">
             {(['Women', 'Men'] as const).map(gender => {
               const genderRankings = gender === 'Women' ? womenRankings : menRankings;

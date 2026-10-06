@@ -7,6 +7,7 @@ import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { getFlagEmoji, timeToSeconds } from '../lib/utils';
 import { normalizeCompetitionAgeGroup } from '../lib/competitionAge';
 import Pagination from '../components/Pagination';
+import PageHeading from '../components/PageHeading';
 import { describeSupabaseError } from '../lib/supabase';
 import { SkeletonTable } from '../components/Skeleton';
 import { getSavedAvatar } from '../lib/avatars';
@@ -88,12 +89,7 @@ export default function AthletesPage() {
   const pageAthletes = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return <div className="bg-[var(--paper)]">
-    <header className="bg-[var(--navy)] text-white">
-      <div className="mx-auto max-w-7xl px-4 py-7 sm:py-8">
-        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Find your people.</h1>
-        <p className="mt-1 text-xs text-white/70">Swimmers from every country, age group and transplant background.</p>
-      </div>
-    </header>
+    <PageHeading eyebrow="Athletes" title="Find your people." description="Swimmers from every country, age group and transplant background." />
     <section className="border-b border-[var(--border)] bg-white">
       <div className="mx-auto max-w-7xl px-4 py-3">
         <div className="grid gap-2 sm:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto] sm:items-center">
@@ -125,15 +121,15 @@ export default function AthletesPage() {
         {loading ? <SkeletonTable rows={8} columns={6} />
           : loadError ? <p role="alert" className="border border-red-200 bg-white p-5 text-sm text-red-800">{loadError}</p>
             : filtered.length ? <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[700px] border-collapse bg-white text-left text-[9px]">
-                  <thead className="bg-[var(--navy)] text-white"><tr>
-                    <th className="w-[30%] px-2.5 py-2 font-semibold">Athlete <span className="text-[var(--accent)]">↓</span></th>
-                    <th className="w-[18%] px-2.5 py-2 font-medium">Country ↕</th>
-                    <th className="w-[15%] px-2.5 py-2 font-medium">Age group ↕</th>
-                    <th className="w-[15%] px-2.5 py-2 font-medium">Transplant ↕</th>
-                    <th className="px-2.5 py-2 text-right font-medium">Best swim ↕</th>
-                    <th className="w-6 px-1 py-2" />
+              <div className="ta-table-shell">
+                <table className="border-collapse bg-white text-left text-sm">
+                  <thead><tr className="ta-table-header">
+                    <th className="w-[30%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Athlete <span className="text-[var(--accent)]">↓</span></th>
+                    <th className="w-[18%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Country ↕</th>
+                    <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Age group ↕</th>
+                    <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Transplant ↕</th>
+                    <th className="whitespace-nowrap px-3 py-3 text-right font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Best swim ↕</th>
+                    <th className="w-8 px-2 py-3" />
                   </tr></thead>
                   <tbody>{pageAthletes.map(athlete => {
                     const swim = bestSwimLabel(bestSwims.get(athlete.id));
@@ -141,16 +137,16 @@ export default function AthletesPage() {
                     const age = normalizeCompetitionAgeGroup(athlete.age_group);
                     const genderLabel = normalizedGender(athlete.gender);
                     const initials = `${athlete.first_name?.[0] ?? ''}${athlete.last_name?.[0] ?? ''}`;
-                    return <tr key={athlete.id} className="border-b border-[var(--border)] hover:bg-white">
-                      <td className="px-2.5 py-1.5"><Link to={`/athletes/${athlete.id}`} className="flex items-center gap-2 text-[var(--ink)] hover:text-[var(--accent-dark)]">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] text-[8px] font-semibold text-[var(--navy)]">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}</span>
-                        <span className="min-w-0"><span className="block truncate font-semibold">{athlete.first_name} {athlete.last_name}</span><span className="block truncate text-[8px] text-[var(--muted)]">{athlete.club_name || '—'}</span></span>
+                    return <tr key={athlete.id} className="ta-table-row">
+                      <td className="px-3 py-4 sm:px-5"><Link to={`/athletes/${athlete.id}`} className="flex min-w-52 items-center gap-2.5 text-[var(--ink)] hover:text-[var(--accent-dark)]">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] text-[10px] font-semibold text-[var(--navy)] sm:h-11 sm:w-11">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}</span>
+                        <span className="min-w-0"><span className="block truncate font-semibold">{athlete.first_name} {athlete.last_name}</span><span className="block truncate text-xs text-[var(--muted)]">{athlete.club_name || '—'}</span></span>
                       </Link></td>
-                      <td className="px-2.5 py-1.5 text-[var(--ink)]"><span className="mr-1.5 text-sm" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span>{athlete.country || '—'}</td>
-                      <td className="px-2.5 py-1.5 text-[var(--muted)]">{age || athlete.age_group || 'Unknown'}{genderLabel !== '—' ? ` · ${genderLabel}` : ''}</td>
-                      <td className="px-2.5 py-1.5 text-[var(--muted)]">{normalizedTransplant(athlete.transplant_type)}</td>
-                      <td className="px-2.5 py-1.5 text-right"><span className="block font-mono text-[10px] font-bold text-[var(--ink)]">{swim?.time ?? '—'}</span><span className="block text-[8px] text-[var(--muted)]">{swim?.event ?? 'No swim recorded'}</span></td>
-                      <td className="px-1 py-1.5 text-right"><Link to={`/athletes/${athlete.id}`} aria-label={`View ${athlete.first_name} ${athlete.last_name}`}><ChevronRight size={13} className="text-[var(--muted)]" /></Link></td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--ink)] sm:px-5"><span className="mr-1.5 text-base" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span>{athlete.country || '—'}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{age || athlete.age_group || 'Unknown'}{genderLabel !== '—' ? ` · ${genderLabel}` : ''}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{normalizedTransplant(athlete.transplant_type)}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-right sm:px-5"><span className="block font-mono text-base font-bold text-[var(--navy)]">{swim?.time ?? '—'}</span><span className="block text-[10px] text-[var(--muted)]">{swim?.event ?? 'No swim recorded'}</span></td>
+                      <td className="px-2 py-4 text-right"><Link to={`/athletes/${athlete.id}`} aria-label={`View ${athlete.first_name} ${athlete.last_name}`}><ChevronRight size={15} className="text-[var(--muted)]" /></Link></td>
                     </tr>;
                   })}</tbody>
                 </table>

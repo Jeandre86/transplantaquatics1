@@ -3,14 +3,14 @@ import { loadPublicSwimmerDirectory, loadPublicSubmittedResults } from './swimme
 import { timeToSeconds } from './utils';
 import { normalizeCompetitionAgeGroup } from './competitionAge';
 
-function normalizeGender(value: string | null | undefined): Ranking['gender'] | null {
+export function normalizeRankingGender(value: string | null | undefined): Ranking['gender'] | null {
   const normalized = value?.trim().toLowerCase();
   if (normalized === 'men' || normalized === 'male' || normalized === 'boys') return 'Men';
   if (normalized === 'women' || normalized === 'woman' || normalized === 'female' || normalized === 'girls') return 'Women';
   return null;
 }
 
-function normalizeTransplantType(value: string | null | undefined): Ranking['transplantType'] | null {
+export function normalizeRankingTransplantType(value: string | null | undefined): Ranking['transplantType'] | null {
   const normalized = value?.trim().toLowerCase().replace(/\s+transplant$/, '');
   if (!normalized) return null;
   if (normalized === 'kidney') return 'Kidney';
@@ -23,7 +23,7 @@ function normalizeTransplantType(value: string | null | undefined): Ranking['tra
   return null;
 }
 
-function normalizeCourse(value: string | null | undefined): Ranking['course'] | null {
+export function normalizeRankingCourse(value: string | null | undefined): Ranking['course'] | null {
   const normalized = value?.trim().toLowerCase();
   if (normalized === 'lcm' || normalized === 'long course') return 'LCM';
   if (normalized === 'scm' || normalized === 'short course') return 'SCM';
@@ -39,12 +39,13 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
 
   const personalBests = new Map<string, Omit<Ranking, 'rank'>>();
   submittedResults.forEach(result => {
-    if (!result.swimmer_id) return;
-    const profile = profileById.get(result.swimmer_id);
+    const swimmerId = result.swimmer_id ?? result.athlete_id;
+    if (!swimmerId) return;
+    const profile = profileById.get(swimmerId);
     if (!profile) return;
-    const gender = normalizeGender(profile.gender);
-    const transplantType = normalizeTransplantType(profile.transplant_type);
-    const course = normalizeCourse(result.course ?? result.submitted_meets?.course);
+    const gender = normalizeRankingGender(profile.gender) ?? normalizeRankingGender(result.gender);
+    const transplantType = normalizeRankingTransplantType(profile.transplant_type) ?? normalizeRankingTransplantType(result.transplant_type);
+    const course = normalizeRankingCourse(result.course || result.submitted_meets?.course);
     if (!gender || !transplantType || !course) return;
     const ageGroup = normalizeCompetitionAgeGroup(result.age_group)
       ?? normalizeCompetitionAgeGroup(profile.age_group);
