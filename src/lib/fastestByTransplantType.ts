@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from './swimmerSubmissions';
 import { timeToSeconds } from './utils';
 import { loadCached } from './requestCache';
-import { normalizeRankingCourse, normalizeRankingTransplantType } from './databaseRankings';
+import { normalizeRankingCourse, normalizeRankingEvent, normalizeRankingTransplantType } from './databaseRankings';
 
 export interface FastestTransplantSwim {
   athleteId: string;
@@ -64,7 +64,7 @@ async function loadFastestByTransplantTypeUncached(): Promise<FastestTransplantS
     // transplant type cannot be placed in this category-specific summary.
     const transplantType = normalizeRankingTransplantType(profile.transplant_type);
     if (!transplantType) continue;
-    const event = typeof row.event === 'string' ? row.event.trim() : '';
+    const event = normalizeRankingEvent(row.event);
     if (!event) continue;
     const gender = typeof profile.gender === 'string' ? profile.gender.trim() : '';
 

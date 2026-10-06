@@ -12,6 +12,7 @@ import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
 import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
 import { Skeleton } from '../components/Skeleton';
+import RankingTable from '../components/RankingTable';
 
 const section = 'mx-auto w-full max-w-7xl px-4 py-16 sm:py-20';
 const title = 'mt-3 text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl';
@@ -159,12 +160,10 @@ export default function HomePage() {
                   {(['Women', 'Men'] as const).map(value => <button key={value} type="button" onClick={() => setGender(value)} aria-pressed={gender === value} className={`px-3 py-1.5 text-xs font-semibold ${gender === value ? 'bg-[var(--navy)] text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{value}</button>)}
                 </div>
               </div>
-              <div className="flex items-center gap-3 bg-[var(--navy)] px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-white/70"><span className="w-5">#</span><span className="min-w-0 flex-1">Athlete</span><span className="w-20">Age group</span><span className="w-16 text-right">Time</span></div>
               {rankingsLoading ? <div role="status" aria-label="Loading world rankings">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 border-t border-[var(--border)] px-4 py-3"><Skeleton className="h-4 w-5" /><Skeleton className="h-4 flex-1" /><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-12" /></div>)}</div>
                 : rankingsError ? <p role="status" className="px-4 py-6 text-sm text-red-700">World rankings could not be loaded: {rankingsError}</p>
-                  : topRankings.length ? topRankings.map((r, i) => <Link key={`${r.athleteId}-${r.rank}`} to={`/athletes/${r.athleteId}`} className={`flex items-center gap-3 border-t border-[var(--border)] px-4 py-3 transition hover:bg-[var(--ice)] ${i % 2 ? 'bg-[var(--paper)]' : 'bg-white'}`}>
-                    <span className="w-5 font-mono text-sm font-bold text-[var(--accent-dark)]">{i + 1}</span><span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ink)]">{getFlagEmoji(r.countryCode)} {r.athleteName}<span className="ml-2 font-mono text-[10px] text-[var(--muted)]">{r.countryCode}</span></span><span className="w-20 text-xs text-[var(--muted)]">{r.ageGroup}</span><span className="w-16 text-right font-mono text-sm font-bold text-[var(--ink)]">{r.time}</span>
-                  </Link>) : <p className="px-4 py-6 text-sm text-[var(--muted)]">No verified swims match this event yet.</p>}
+                  : topRankings.length ? <RankingTable rankings={topRankings} showVerified={false} showGap={false} paperSurface showAgeGroup showDate />
+                    : <p className="px-4 py-6 text-sm text-[var(--muted)]">No verified swims match this event yet.</p>}
             </div>
           </div>
         </div>

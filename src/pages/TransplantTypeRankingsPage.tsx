@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { AGE_GROUPS, COURSES, EVENTS } from '../types';
 import type { Course, Event, Gender, Ranking, TransplantType } from '../types';
-import { getCountryAlpha3, getFlagEmoji, is25mEvent, timeToSeconds } from '../lib/utils';
+import { formatDate, getCountryAlpha3, getFlagEmoji, is25mEvent, timeToSeconds } from '../lib/utils';
 import { getSavedAvatar } from '../lib/avatars';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
@@ -135,7 +135,7 @@ export default function TransplantTypeRankingsPage() {
             : results.length ? <div className="ta-table-shell">
               <table className={`border-collapse text-sm ${event === ALL_EVENTS ? 'min-w-[900px]' : 'min-w-[780px]'}`}>
                 <thead><tr className="ta-table-header">
-                  {['Rank', 'Athlete', ...(event === ALL_EVENTS ? ['Event'] : []), 'Age group', 'Set at', 'Behind leader', 'Time', ''].map((label, index) => <th key={`${label}-${index}`} className={`whitespace-nowrap px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' || label === 'Behind leader' || label === '' ? 'text-right' : 'text-left'} ${index === 0 ? 'w-12' : ''}`}>{label}</th>)}
+                  {['Rank', 'Athlete', ...(event === ALL_EVENTS ? ['Event'] : []), 'Age group', 'Date / meet', 'Behind leader', 'Time', ''].map((label, index) => <th key={`${label}-${index}`} className={`whitespace-nowrap px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' || label === 'Behind leader' || label === '' ? 'text-right' : 'text-left'} ${index === 0 ? 'w-12' : ''}`}>{label}</th>)}
                 </tr></thead>
                 <tbody>{results.map(row => {
                   const nameParts = row.athleteName.trim().split(/\s+/);
@@ -156,7 +156,7 @@ export default function TransplantTypeRankingsPage() {
                     </td>
                     {event === ALL_EVENTS && <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{row.event}</td>}
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{row.ageGroup || 'Not given'}</td>
-                    <td className="px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{meetLabel(row)}</td>
+                    <td className="px-3 py-4 text-sm text-[var(--muted)] sm:px-5"><span className="block whitespace-nowrap text-[var(--ink)]">{formatDate(row.date)}</span><span className="mt-1 block text-xs text-[var(--muted)]">{meetLabel(row)}</span></td>
                     <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-xs text-[var(--muted)] sm:px-5">{behind}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-base font-bold text-[var(--navy)] sm:px-5">{row.time}</td>
                     <td className="px-2 py-4 text-right sm:px-4"><ChevronRight size={15} className="inline text-[var(--muted)]" aria-hidden="true" /></td>

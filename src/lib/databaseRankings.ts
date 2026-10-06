@@ -2,11 +2,12 @@ import type { Ranking } from '../types';
 import { loadPublicSwimmerDirectory, loadPublicSubmittedResults } from './swimmerSubmissions';
 import { timeToSeconds } from './utils';
 import { normalizeCompetitionAgeGroup } from './competitionAge';
+import { EVENTS } from '../types';
 
 export function normalizeRankingGender(value: string | null | undefined): Ranking['gender'] | null {
   const normalized = value?.trim().toLowerCase();
-  if (normalized === 'men' || normalized === 'male' || normalized === 'boys') return 'Men';
-  if (normalized === 'women' || normalized === 'woman' || normalized === 'female' || normalized === 'girls') return 'Women';
+  if (normalized === 'men' || normalized === 'male' || normalized === 'man' || normalized === 'boys' || normalized === 'm') return 'Men';
+  if (normalized === 'women' || normalized === 'woman' || normalized === 'female' || normalized === 'girls' || normalized === 'f') return 'Women';
   return null;
 }
 
@@ -30,6 +31,18 @@ export function normalizeRankingCourse(value: string | null | undefined): Rankin
   return null;
 }
 
+export function normalizeRankingEvent(value: string | null | undefined): Ranking['event'] | null {
+  const normalized = value?.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!normalized) return null;
+  const match = normalized.match(/^(\d+)\s*m?\s*(freestyle|free|backstroke|back|breaststroke|breast|butterfly|fly|individual medley|im)$/);
+  if (!match) return EVENTS.find(event => event.toLowerCase() === normalized) ?? null;
+  const stroke = match[2] === 'free' || match[2] === 'freestyle' ? 'Freestyle'
+    : match[2] === 'back' || match[2] === 'backstroke' ? 'Backstroke'
+      : match[2] === 'breast' || match[2] === 'breaststroke' ? 'Breaststroke'
+        : match[2] === 'fly' || match[2] === 'butterfly' ? 'Butterfly' : 'Individual Medley';
+  return `${match[1]}m ${stroke}` as Ranking['event'];
+}
+
 export async function loadDatabaseRankings(): Promise<Ranking[]> {
   const [profiles, submittedResults] = await Promise.all([
     loadPublicSwimmerDirectory(),
@@ -46,7 +59,8 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
     const gender = normalizeRankingGender(profile.gender) ?? normalizeRankingGender(result.gender);
     const transplantType = normalizeRankingTransplantType(profile.transplant_type) ?? normalizeRankingTransplantType(result.transplant_type);
     const course = normalizeRankingCourse(result.course || result.submitted_meets?.course);
-    if (!gender || !transplantType || !course) return;
+    const event = normalizeRankingEvent(result.event);
+    if (!gender || !transplantType || !course || !event) return;
     const ageGroup = normalizeCompetitionAgeGroup(result.age_group)
       ?? normalizeCompetitionAgeGroup(profile.age_group);
     if (!ageGroup) return;
@@ -61,7 +75,7 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
       countryCode: profile.country_code ?? '',
       ageGroup,
       gender,
-      event: result.event as Ranking['event'],
+      event,
       course,
       time: result.time,
       transplantType,
