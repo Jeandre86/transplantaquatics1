@@ -19,9 +19,9 @@ export default function RankingsPage() {
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [rankingsLoading, setRankingsLoading] = useState(true);
   const [rankingsError, setRankingsError] = useState<string | null>(null);
-  const [event, setEvent] = useState<Event>('50m Freestyle');
+  const [event, setEvent] = useState<Event | typeof ALL>(ALL);
   const [ageGroup, setAgeGroup] = useState(ALL);
-  const [course, setCourse] = useState<Course>('LCM');
+  const [course, setCourse] = useState<Course | typeof ALL>(ALL);
 
   useEffect(() => {
     let active = true;
@@ -35,7 +35,7 @@ export default function RankingsPage() {
   const fastestPreview = (gender: 'Men' | 'Women') => {
     const bestByAthlete = new Map<string, Ranking>();
     rankings
-      .filter(row => row.gender === gender && row.event === event && row.course === course
+      .filter(row => row.gender === gender && (event === ALL || row.event === event) && (course === ALL || row.course === course)
         && (ageGroup === ALL || row.ageGroup === ageGroup) && !is25mEvent(row.event))
       .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time) || compareNames(a.athleteName, b.athleteName))
       .forEach(row => { if (!bestByAthlete.has(row.athleteId)) bestByAthlete.set(row.athleteId, row); });
@@ -57,19 +57,20 @@ export default function RankingsPage() {
         <div className="mx-auto max-w-7xl px-4 py-5 sm:py-6">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div className="flex flex-wrap gap-3">
-              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Event:
-                <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Event:
+              <select value={event} onChange={e => setEvent(e.target.value as Event | typeof ALL)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-sm text-[var(--ink)]">
+                  <option value={ALL}>{ALL}</option>
                   {events.map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Age group:
-                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Age group:
+              <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-sm text-[var(--ink)]">
                   {[ALL, ...ageGroups].map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Course:
-                <select value={course} onChange={e => setCourse(e.target.value as Course)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
-                  {COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Course:
+              <select value={course} onChange={e => setCourse(e.target.value as Course | typeof ALL)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-sm text-[var(--ink)]">
+                  <option value={ALL}>{ALL}</option>{COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
                 </select>
               </label>
             </div>

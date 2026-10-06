@@ -14,8 +14,8 @@ const TYPE_LABELS: Record<TransplantType, string> = {
   Kidney: 'Kidney', Liver: 'Liver', Heart: 'Heart', Lung: 'Lung',
   Pancreas: 'Pancreas', 'Bone Marrow': 'Bone marrow', Donor: 'Living donor',
 };
-const TYPES: TransplantType[] = ['Kidney', 'Liver', 'Heart', 'Lung', 'Pancreas', 'Bone Marrow', 'Donor'];
 const ALL_EVENTS = 'All';
+const TYPES: Array<TransplantType | typeof ALL_EVENTS> = [ALL_EVENTS, 'Kidney', 'Liver', 'Heart', 'Lung', 'Pancreas', 'Bone Marrow', 'Donor'];
 
 function meetLabel(row: Ranking) {
   const year = row.date ? new Date(row.date).getUTCFullYear() : NaN;
@@ -33,11 +33,11 @@ function formatBehind(seconds: number) {
 }
 
 export default function TransplantTypeRankingsPage() {
-  const [transplantType, setTransplantType] = useState<TransplantType>('Kidney');
+  const [transplantType, setTransplantType] = useState<TransplantType | typeof ALL_EVENTS>(ALL_EVENTS);
   const [ageGroup, setAgeGroup] = useState('All');
-  const [gender, setGender] = useState<Gender>('Men');
+  const [gender, setGender] = useState<Gender | typeof ALL_EVENTS>(ALL_EVENTS);
   const [event, setEvent] = useState<Event | typeof ALL_EVENTS>(ALL_EVENTS);
-  const [course, setCourse] = useState<Course>('LCM');
+  const [course, setCourse] = useState<Course | typeof ALL_EVENTS>(ALL_EVENTS);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -52,13 +52,13 @@ export default function TransplantTypeRankingsPage() {
   }, []);
 
   const typeCounts = new Map<TransplantType, Set<string>>();
-  for (const type of TYPES) typeCounts.set(type, new Set());
-  rankings.forEach(row => typeCounts.get(row.transplantType)?.add(row.athleteId));
+  for (const type of TYPES) if (type !== ALL_EVENTS) typeCounts.set(type, new Set());
+  rankings.forEach(row => typeCounts.get(row.transplantType as TransplantType)?.add(row.athleteId));
 
   const bestByAthleteEvent = new Map<string, Ranking>();
   rankings
-    .filter(row => row.transplantType === transplantType && row.gender === gender
-      && (event === ALL_EVENTS || row.event === event) && !is25mEvent(row.event) && row.course === course
+    .filter(row => (transplantType === ALL_EVENTS || row.transplantType === transplantType) && (gender === ALL_EVENTS || row.gender === gender)
+      && (event === ALL_EVENTS || row.event === event) && !is25mEvent(row.event) && (course === ALL_EVENTS || row.course === course)
       && (ageGroup === 'All' || row.ageGroup === ageGroup))
     .sort((a, b) => (event === ALL_EVENTS
       ? String(a.event ?? '').localeCompare(String(b.event ?? ''), undefined, { numeric: true })
@@ -93,9 +93,9 @@ export default function TransplantTypeRankingsPage() {
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Transplant type">
             {TYPES.map(type => {
               const selected = transplantType === type;
-              const count = typeCounts.get(type)?.size ?? 0;
-              return <button key={type} type="button" aria-pressed={selected} onClick={() => setTransplantType(type)} className={`inline-flex items-center gap-2 border px-2.5 py-1.5 text-[10px] transition-colors ${selected ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--navy)]' : count ? 'border-white/25 text-white hover:border-white/60' : 'border-white/10 text-white/55 hover:border-white/40'}`}>
-                <span>{TYPE_LABELS[type]}</span><span className="font-mono">{count}</span>
+              const count = type === ALL_EVENTS ? rankings.length : typeCounts.get(type)?.size ?? 0;
+              return <button key={type} type="button" aria-pressed={selected} onClick={() => setTransplantType(type)} className={`inline-flex items-center gap-2 border px-2.5 py-1.5 text-sm transition-colors ${selected ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--navy)]' : count ? 'border-white/25 text-white hover:border-white/60' : 'border-white/10 text-white/55 hover:border-white/40'}`}>
+                <span>{type === ALL_EVENTS ? 'All' : TYPE_LABELS[type]}</span>{type !== ALL_EVENTS && <span className="font-mono">{count}</span>}
               </button>;
             })}
           </div>
@@ -103,23 +103,23 @@ export default function TransplantTypeRankingsPage() {
 
       <div className="border-b border-[var(--border)] bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2.5 px-4 py-2">
-          <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-[10px] text-[var(--muted)]">Event:
-            <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none">
+            <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-sm text-[var(--muted)]">Event:
+            <select value={event} onChange={e => setEvent(e.target.value as Event | typeof ALL_EVENTS)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-sm font-semibold text-[var(--ink)] outline-none">
               <option value={ALL_EVENTS}>All</option>
               {eventOptions.map(item => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <div className="inline-flex border border-[var(--border)] p-0.5" role="group" aria-label="Gender">
-            {(['Men', 'Women'] as const).map(item => <button key={item} type="button" aria-pressed={gender === item} onClick={() => setGender(item)} className={`px-3 py-1 text-[10px] ${gender === item ? 'bg-[var(--navy)] font-semibold text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{item}</button>)}
+            {([ALL_EVENTS, 'Men', 'Women'] as const).map(item => <button key={item} type="button" aria-pressed={gender === item} onClick={() => setGender(item)} className={`px-3 py-1 text-sm ${gender === item ? 'bg-[var(--navy)] font-semibold text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{item}</button>)}
           </div>
-          <label className="flex items-center gap-1.5 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)]">Age group:
-            <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none">
+          <label className="flex items-center gap-1.5 border border-[var(--border)] px-2 py-1 text-sm text-[var(--muted)]">Age group:
+            <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-sm font-semibold text-[var(--ink)] outline-none">
               {['All', ...ageGroupOptions].map(item => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-[10px] text-[var(--muted)]">Course:
-            <select value={course} onChange={e => setCourse(e.target.value as Course)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none">
-              {COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
+          <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-sm text-[var(--muted)]">Course:
+            <select value={course} onChange={e => setCourse(e.target.value as Course | typeof ALL_EVENTS)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-sm font-semibold text-[var(--ink)] outline-none">
+              <option value={ALL_EVENTS}>All</option>{COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
             </select>
           </label>
         </div>

@@ -10,7 +10,7 @@ export default function FilterSelect({ label, value, options, onChange, dark = f
   const generatedId = useId();
   return (
     <div className="flex flex-col gap-0.5">
-      <label htmlFor={generatedId} className={`font-mono text-xs tracking-widest uppercase ${dark ? 'text-white/70' : 'text-[var(--muted)]'}`}>
+      <label htmlFor={generatedId} className={`font-mono text-sm tracking-wide uppercase ${dark ? 'text-white/70' : 'text-[var(--muted)]'}`}>
         {label}
       </label>
       <select

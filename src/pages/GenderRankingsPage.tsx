@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import type { Ranking } from '../types';
 import { AGE_GROUPS, COURSES, EVENTS, type Course, type Event } from '../types';
 import RankingTable from '../components/RankingTable';
@@ -18,13 +18,9 @@ const compareNames = (a: Ranking['athleteName'], b: Ranking['athleteName']) =>
 export default function GenderRankingsPage() {
   const { gender: genderParam } = useParams<{ gender: string }>();
   const gender = genderParam?.toLowerCase() === 'men' ? 'Men' : genderParam?.toLowerCase() === 'women' ? 'Women' : null;
-  const [searchParams] = useSearchParams();
-  const initialEvent = searchParams.get('event');
-  const [ageGroup, setAgeGroup] = useState(searchParams.get('ageGroup') || ALL);
-  const [event, setEvent] = useState<Event>(initialEvent && EVENTS.includes(initialEvent as Event) && !is25mEvent(initialEvent)
-    ? initialEvent as Event
-    : '50m Freestyle');
-  const [course, setCourse] = useState<Course>(searchParams.get('course') === 'SCM' ? 'SCM' : 'LCM');
+  const [ageGroup, setAgeGroup] = useState(ALL);
+  const [event, setEvent] = useState<Event | typeof ALL>(ALL);
+  const [course, setCourse] = useState<Course | typeof ALL>(ALL);
   const [page, setPage] = useState(1);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +43,7 @@ export default function GenderRankingsPage() {
 
   const bestByAthlete = new Map<string, Ranking>();
   rankings
-    .filter(row => row.gender === gender && row.event === event && row.course === course
+    .filter(row => row.gender === gender && (event === ALL || row.event === event) && (course === ALL || row.course === course)
       && (ageGroup === ALL || row.ageGroup === ageGroup) && !is25mEvent(row.event))
     .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time) || compareNames(a.athleteName, b.athleteName))
     .forEach(row => {
@@ -71,19 +67,19 @@ export default function GenderRankingsPage() {
               <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)] sm:text-3xl">Top swims by event</h1>
             </div>
             <div className="flex flex-wrap gap-3">
-              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Event:
-                <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
-                  {events.map(item => <option key={item} value={item}>{item}</option>)}
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Event:
+                <select value={event} onChange={e => setEvent(e.target.value as Event | typeof ALL)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-sm text-[var(--ink)]">
+                  <option value={ALL}>{ALL}</option>{events.map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Age group:
-                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Age group:
+                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-sm text-[var(--ink)]">
                   {[ALL, ...ageGroups].map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Course:
-                <select value={course} onChange={e => setCourse(e.target.value as Course)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
-                  {COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Course:
+                <select value={course} onChange={e => setCourse(e.target.value as Course | typeof ALL)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-sm text-[var(--ink)]">
+                  <option value={ALL}>{ALL}</option>{COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
                 </select>
               </label>
             </div>

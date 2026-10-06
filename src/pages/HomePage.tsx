@@ -17,6 +17,7 @@ import RankingTable from '../components/RankingTable';
 const section = 'mx-auto w-full max-w-7xl px-4 py-16 sm:py-20';
 const title = 'mt-3 text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl';
 const HOME_EVENTS: Event[] = ['50m Freestyle', '100m Freestyle', '50m Backstroke', '100m Backstroke', '50m Breaststroke', '50m Butterfly', '200m Individual Medley'];
+const ALL = 'All';
 
 function AnimatedStat({ value, suffix = '' }: { value: number; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -41,9 +42,9 @@ function AnimatedStat({ value, suffix = '' }: { value: number; suffix?: string }
 
 export default function HomePage() {
   const { articles } = usePublishedArticles();
-  const [gender, setGender] = useState<Gender>('Women');
-  const [event, setEvent] = useState<Event>('50m Freestyle');
-  const [course, setCourse] = useState<Course>('LCM');
+  const [gender, setGender] = useState<Gender | typeof ALL>(ALL);
+  const [event, setEvent] = useState<Event | typeof ALL>(ALL);
+  const [course, setCourse] = useState<Course | typeof ALL>(ALL);
   const [transplantEvent, setTransplantEvent] = useState<Event>('50m Freestyle');
   const [transplantCourse, setTransplantCourse] = useState<Course>('LCM');
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -92,7 +93,8 @@ export default function HomePage() {
   }, []);
 
   const fastestEventSwims = databaseRankings
-    .filter(r => r.gender === gender && r.event === event && r.course === course && !is25mEvent(r.event))
+    .filter(r => (gender === ALL || r.gender === gender) && (event === ALL || r.event === event)
+      && (course === ALL || r.course === course) && !is25mEvent(r.event))
     .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time) || a.athleteName.localeCompare(b.athleteName));
   const fastestByAthlete = new Map<string, Ranking>();
   fastestEventSwims.forEach(swim => { if (!fastestByAthlete.has(swim.athleteId)) fastestByAthlete.set(swim.athleteId, swim); });
@@ -152,17 +154,17 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <label className="sr-only" htmlFor="home-ranking-event">Ranking event</label>
-                  <select id="home-ranking-event" value={event} onChange={e => setEvent(e.target.value as Event)} className="max-w-full bg-transparent text-sm font-semibold text-[var(--ink)] focus:outline focus:outline-2 focus:outline-[var(--accent-dark)]">{HOME_EVENTS.map(item => <option key={item} value={item}>{item}</option>)}</select>
+                  <select id="home-ranking-event" value={event} onChange={e => setEvent(e.target.value as Event | typeof ALL)} className="max-w-full bg-transparent text-sm font-semibold text-[var(--ink)] focus:outline focus:outline-2 focus:outline-[var(--accent-dark)]"><option value={ALL}>All events</option>{HOME_EVENTS.map(item => <option key={item} value={item}>{item}</option>)}</select>
                   <label className="sr-only" htmlFor="home-ranking-course">Ranking course</label>
-                  <select id="home-ranking-course" value={course} onChange={e => setCourse(e.target.value as Course)} className="bg-transparent text-xs text-[var(--muted)] focus:outline focus:outline-2 focus:outline-[var(--accent-dark)]"><option value="LCM">Long course</option><option value="SCM">Short course</option></select>
+                  <select id="home-ranking-course" value={course} onChange={e => setCourse(e.target.value as Course | typeof ALL)} className="bg-transparent text-sm text-[var(--muted)] focus:outline focus:outline-2 focus:outline-[var(--accent-dark)]"><option value={ALL}>All courses</option><option value="LCM">Long course</option><option value="SCM">Short course</option></select>
                 </div>
                 <div className="inline-flex border border-[var(--border)] p-0.5" aria-label="Ranking gender">
-                  {(['Women', 'Men'] as const).map(value => <button key={value} type="button" onClick={() => setGender(value)} aria-pressed={gender === value} className={`px-3 py-1.5 text-xs font-semibold ${gender === value ? 'bg-[var(--navy)] text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{value}</button>)}
+                  {([ALL, 'Women', 'Men'] as const).map(value => <button key={value} type="button" onClick={() => setGender(value)} aria-pressed={gender === value} className={`px-3 py-1.5 text-sm font-semibold ${gender === value ? 'bg-[var(--navy)] text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{value}</button>)}
                 </div>
               </div>
               {rankingsLoading ? <div role="status" aria-label="Loading world rankings">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 border-t border-[var(--border)] px-4 py-3"><Skeleton className="h-4 w-5" /><Skeleton className="h-4 flex-1" /><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-12" /></div>)}</div>
                 : rankingsError ? <p role="status" className="px-4 py-6 text-sm text-red-700">World rankings could not be loaded: {rankingsError}</p>
-                  : topRankings.length ? <RankingTable rankings={topRankings} showVerified={false} showGap={false} paperSurface showAgeGroup showDate />
+                  : topRankings.length ? <RankingTable rankings={topRankings} showVerified={false} showGap={false} paperSurface showAgeGroup showDate showEventColumn={event === ALL} />
                     : <p className="px-4 py-6 text-sm text-[var(--muted)]">No verified swims match this event yet.</p>}
             </div>
           </div>
