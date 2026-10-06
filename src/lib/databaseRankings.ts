@@ -15,9 +15,12 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
     const profile = profileById.get(result.swimmer_id);
     if (!profile) return;
 
+    const athleteName = [profile.first_name, profile.last_name]
+      .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+      .join(' ') || 'Unknown swimmer';
     const swim: Omit<Ranking, 'rank'> = {
       athleteId: profile.id,
-      athleteName: `${profile.first_name} ${profile.last_name}`,
+      athleteName,
       country: profile.country ?? '',
       countryCode: profile.country_code ?? '',
       ageGroup: result.age_group as Ranking['ageGroup'],
@@ -36,7 +39,8 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
 
   return [...personalBests.values()]
     .sort((a, b) => {
-      return timeToSeconds(a.time) - timeToSeconds(b.time) || a.athleteName.localeCompare(b.athleteName);
+      return timeToSeconds(a.time) - timeToSeconds(b.time)
+        || String(a.athleteName ?? '').localeCompare(String(b.athleteName ?? ''));
     })
     .map((swim, index) => ({ ...swim, rank: index + 1 }));
 }

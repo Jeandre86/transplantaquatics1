@@ -11,6 +11,8 @@ import { SkeletonTable } from '../components/Skeleton';
 
 const ALL = 'All';
 const GENDER_PREVIEW_SIZE = 5;
+const compareNames = (a: Ranking['athleteName'], b: Ranking['athleteName']) =>
+  String(a ?? '').localeCompare(String(b ?? ''));
 
 export default function RankingsPage() {
   const [rankings, setRankings] = useState<Ranking[]>([]);
@@ -34,16 +36,16 @@ export default function RankingsPage() {
     rankings
       .filter(row => row.gender === gender && row.event === event && row.course === course
         && (ageGroup === ALL || row.ageGroup === ageGroup) && !is25mEvent(row.event))
-      .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time) || a.athleteName.localeCompare(b.athleteName))
+      .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time) || compareNames(a.athleteName, b.athleteName))
       .forEach(row => { if (!bestByAthlete.has(row.athleteId)) bestByAthlete.set(row.athleteId, row); });
     return [...bestByAthlete.values()].slice(0, GENDER_PREVIEW_SIZE).map((row, index) => ({ ...row, rank: index + 1 }));
   };
 
   const events = [...new Set([...EVENTS, ...rankings.map(row => row.event)])]
     .filter(item => !is25mEvent(item))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
   const ageGroups = [...new Set([...AGE_GROUPS, ...rankings.map(row => row.ageGroup)])]
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
   const menRankings = fastestPreview('Men');
   const womenRankings = fastestPreview('Women');
 

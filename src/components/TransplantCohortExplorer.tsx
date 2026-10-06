@@ -55,7 +55,7 @@ export default function TransplantCohortExplorer() {
       if (pointsA !== null && pointsB !== null && pointsA !== pointsB) return pointsB - pointsA;
       if (pointsA !== null && pointsB === null) return -1;
       if (pointsA === null && pointsB !== null) return 1;
-      return a.rank - b.rank || a.athleteName.localeCompare(b.athleteName);
+      return a.rank - b.rank || String(a.athleteName ?? '').localeCompare(String(b.athleteName ?? ''));
     });
   const cohort = filtered.map((ranking, index) => ({ ...ranking, rank: index + 1 }));
   const rankPositions = new Map(cohort.map((ranking, index) => [
