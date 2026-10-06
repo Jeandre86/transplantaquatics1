@@ -155,4 +155,5 @@ export interface Ranking {
   time: string;
   transplantType: TransplantType;
   date: string;
+  meetName?: string;
 }

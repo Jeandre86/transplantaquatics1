@@ -30,6 +30,7 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
       time: result.time,
       transplantType: profile.transplant_type,
       date: result.submitted_meets.meet_date ?? result.created_at,
+      meetName: result.submitted_meets.name,
       points: result.points,
     };
     const key = [swim.athleteId, swim.event, swim.gender, swim.course, swim.ageGroup].join('|');

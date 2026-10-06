@@ -1,32 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Ranking } from '../types';
-import { AGE_GROUPS, COURSES, EVENTS } from '../types';
+import { AGE_GROUPS, COURSES, EVENTS, type Course, type Event } from '../types';
 import RankingTable from '../components/RankingTable';
-import FilterSelect from '../components/FilterSelect';
-import Eyebrow from '../components/Eyebrow';
-import { getTransplantPoints } from '../lib/transplantPoints';
-import { timeToSeconds } from '../lib/utils';
 import Pagination from '../components/Pagination';
-import FilterBar from '../components/FilterBar';
-import PageHeading from '../components/PageHeading';
-import EmptyState from '../components/EmptyState';
-import Button from '../components/Button';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
+import { is25mEvent, timeToSeconds } from '../lib/utils';
 import { SkeletonTable } from '../components/Skeleton';
 
 const ALL = 'All';
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
+const GENDER_PREVIEW_SIZE = 5;
+const compareNames = (a: Ranking['athleteName'], b: Ranking['athleteName']) =>
+  String(a ?? '').localeCompare(String(b ?? ''));
 
 export default function GenderRankingsPage() {
   const { gender: genderParam } = useParams<{ gender: string }>();
   const gender = genderParam?.toLowerCase() === 'men' ? 'Men' : genderParam?.toLowerCase() === 'women' ? 'Women' : null;
   const [searchParams] = useSearchParams();
+  const initialEvent = searchParams.get('event');
   const [ageGroup, setAgeGroup] = useState(searchParams.get('ageGroup') || ALL);
-  const [event, setEvent] = useState(searchParams.get('event') || ALL);
-  const [course, setCourse] = useState(searchParams.get('course') || ALL);
-  const [rankMode, setRankMode] = useState<'Points' | 'Time'>(searchParams.get('rankBy') === 'Time' ? 'Time' : 'Points');
+  const [event, setEvent] = useState<Event>(initialEvent && EVENTS.includes(initialEvent as Event) && !is25mEvent(initialEvent)
+    ? initialEvent as Event
+    : '50m Freestyle');
+  const [course, setCourse] = useState<Course>(searchParams.get('course') === 'SCM' ? 'SCM' : 'LCM');
   const [page, setPage] = useState(1);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,75 +41,69 @@ export default function GenderRankingsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [ageGroup, event, course, rankMode]);
+  }, [ageGroup, event, course]);
 
   if (!gender) return <Navigate to="/rankings" replace />;
 
-  const filtered = rankings
-    .filter(r => r.gender === gender
-      && (ageGroup === ALL || r.ageGroup === ageGroup)
-      && (event === ALL || r.event === event)
-      && (course === ALL || r.course === course))
-    .sort((a, b) => {
-      if (rankMode === 'Time') {
-        return timeToSeconds(a.time) - timeToSeconds(b.time)
-          || a.athleteName.localeCompare(b.athleteName);
-      }
-      const pointsA = getTransplantPoints(a);
-      const pointsB = getTransplantPoints(b);
-      if (pointsA !== null && pointsB !== null && pointsA !== pointsB) return pointsB - pointsA;
-      if (pointsA !== null && pointsB === null) return -1;
-      if (pointsA === null && pointsB !== null) return 1;
-      return a.rank - b.rank || a.athleteName.localeCompare(b.athleteName);
+  const bestByAthlete = new Map<string, Ranking>();
+  rankings
+    .filter(row => row.gender === gender && row.event === event && row.course === course
+      && (ageGroup === ALL || row.ageGroup === ageGroup) && !is25mEvent(row.event))
+    .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time) || compareNames(a.athleteName, b.athleteName))
+    .forEach(row => {
+      if (!bestByAthlete.has(row.athleteId)) bestByAthlete.set(row.athleteId, row);
     });
-  const rankPositions = new Map(filtered.map((r, index) => [
-    [r.athleteId, r.ageGroup, r.gender, r.event, r.course].join('|'),
-    index + 1,
-  ]));
+  const filtered = [...bestByAthlete.values()].map((row, index) => ({ ...row, rank: index + 1 }));
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const pageRankings = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const hasActiveFilters = [ageGroup, event, course].some(value => value !== ALL);
-
-  const clearFilters = () => {
-    setAgeGroup(ALL);
-    setEvent(ALL);
-    setCourse(ALL);
-  };
+  const ageGroups = [...new Set([...AGE_GROUPS, ...rankings.map(row => row.ageGroup)])]
+    .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
+  const events = [...new Set([...EVENTS, ...rankings.map(row => row.event)])]
+    .filter(item => !is25mEvent(item))
+    .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
 
   return (
-    <div>
-      <PageHeading eyebrow="World Rankings" title={`${gender} rankings`} description={`Explore ${gender.toLowerCase()} transplant swimmer performances. Choose whether to rank by World Aquatics PTS or fastest time, then filter by age group, event, or course.`}>
-        <Link to="/rankings" className="inline-flex font-mono text-xs uppercase tracking-widest text-white/65 transition-colors hover:text-[var(--accent)]">← All rankings</Link>
-      </PageHeading>
-
-      <section style={{ backgroundColor: '#f4f2ed' }}>
-        <div className="max-w-7xl mx-auto px-4 py-10">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
+    <div className="bg-[var(--paper)]">
+      <section className="bg-[var(--paper)]">
+        <div className="mx-auto max-w-7xl px-4 py-9 sm:py-11">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <Eyebrow>Leaderboard</Eyebrow>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">{gender} top swims by {rankMode.toLowerCase()}</h2>
+              <Link to="/rankings" className="mb-3 inline-flex text-xs font-semibold text-[var(--accent-dark)] hover:underline">← All rankings</Link>
+              <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)] sm:text-3xl">Top swims by event</h1>
             </div>
-            {hasActiveFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
-          </div>
-
-          <FilterBar className="mb-6" collapsible>
             <div className="flex flex-wrap gap-3">
-              <FilterSelect label="Rank by" value={rankMode} options={['Points', 'Time']} onChange={value => setRankMode(value as 'Points' | 'Time')} />
-              <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...AGE_GROUPS]} onChange={setAgeGroup} />
-              <FilterSelect label="Event" value={event} options={[ALL, ...EVENTS]} onChange={setEvent} />
-              <FilterSelect label="Course" value={course} options={[ALL, ...COURSES]} onChange={setCourse} />
+              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Event:
+                <select value={event} onChange={e => setEvent(e.target.value as Event)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                  {events.map(item => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </label>
+              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Age group:
+                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                  {[ALL, ...ageGroups].map(item => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </label>
+              <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Course:
+                <select value={course} onChange={e => setCourse(e.target.value as Course)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                  {COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
+                </select>
+              </label>
             </div>
-          </FilterBar>
+          </div>
+          <p className="mb-5 text-sm text-[var(--muted)]">The fastest swims in {gender.toLowerCase()}'s {event}. One row per athlete.</p>
 
-          {loading ? (
-            <SkeletonTable rows={8} columns={5} />
-          ) : loadError ? (
-            <p role="status" className="py-8 text-center text-sm text-red-700">Rankings could not be loaded: {loadError}</p>
-          ) : filtered.length > 0 ? <>
-            <p className="mb-3 font-mono text-xs text-neutral-600">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} ranking{filtered.length === 1 ? '' : 's'}</p>
-            <RankingTable rankings={pageRankings} showVerified={false} rankByPoints rankOffset={(page - 1) * PAGE_SIZE} rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title={gender} />
-            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label={`${gender} ranking pages`} />
-          </> : <EmptyState title="No swims match these filters" subtitle="Try another age group, event, or course, or clear your filters." action={hasActiveFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />}
+          <section className="min-w-0">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[var(--ink)]">{gender}</h2>
+              {!loading && !loadError && <span className="text-xs text-[var(--muted)]">{filtered.length.toLocaleString()} swimmers · fastest verified time</span>}
+            </div>
+            {loading ? <SkeletonTable rows={GENDER_PREVIEW_SIZE} columns={4} />
+              : loadError ? <p role="status" className="border border-[var(--border)] bg-white px-4 py-6 text-sm text-red-700">Rankings could not be loaded: {loadError}</p>
+                : filtered.length ? <>
+                  <RankingTable rankings={pageRankings} showVerified={false} showGap={false} showPoints paperSurface showAgeGroup />
+                  <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label={`${gender} rankings`} />
+                </>
+                  : <div className="border border-[var(--border)] bg-white px-4 py-8 text-sm text-[var(--muted)]">No swims match these filters yet.</div>}
+          </section>
         </div>
       </section>
     </div>

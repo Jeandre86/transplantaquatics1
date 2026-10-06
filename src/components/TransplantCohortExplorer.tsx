@@ -12,6 +12,7 @@ import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
 import { SkeletonTable } from './Skeleton';
 import SearchInput from './SearchInput';
+import { X } from 'lucide-react';
 
 const ALL = 'All';
 const PAGE_SIZE = 25;
@@ -81,7 +82,6 @@ export default function TransplantCohortExplorer() {
             <h2 className="text-2xl font-black tracking-tight text-[var(--ink)]">All swimmers</h2>
             <p className="mt-1 text-xs text-[var(--muted)]">Every athlete’s best swim, ranked by points.</p>
           </div>
-          {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
         </div>
 
         <FilterBar className="mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
@@ -93,7 +93,15 @@ export default function TransplantCohortExplorer() {
           </div>
         </FilterBar>
 
-        {!loading && !loadError && <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{cohort.length.toLocaleString()} swimmers</span>{hasFilters && <span className="rounded-full bg-[var(--navy)] px-3 py-1 font-medium text-white">Filtered view</span>}</div>}
+        {!loading && !loadError && <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+          <span className="mr-1 font-semibold text-[var(--ink)]">{cohort.length.toLocaleString()} swimmers</span>
+          {transplantType !== ALL && <button type="button" onClick={() => setTransplantType(ALL)} aria-label={`Remove Transplant filter ${transplantType}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Transplant: {transplantType}<X size={12} aria-hidden="true" /></button>}
+          {ageGroup !== ALL && <button type="button" onClick={() => setAgeGroup(ALL)} aria-label={`Remove Age group filter ${ageGroup}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Age group: {ageGroup}<X size={12} aria-hidden="true" /></button>}
+          {gender !== ALL && <button type="button" onClick={() => setGender(ALL)} aria-label={`Remove Gender filter ${gender}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Gender: {gender}<X size={12} aria-hidden="true" /></button>}
+          {course !== ALL && <button type="button" onClick={() => setCourse(ALL)} aria-label={`Remove Course filter ${course}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Course: {course === 'LCM' ? 'Long course' : 'Short course'}<X size={12} aria-hidden="true" /></button>}
+          {search.trim() && <button type="button" onClick={() => setSearch('')} aria-label="Remove search filter" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Search: {search.trim()}<X size={12} aria-hidden="true" /></button>}
+          {hasFilters && <button type="button" onClick={clearFilters} className="px-1.5 py-1 font-semibold text-[var(--accent-dark)] hover:underline">Clear all</button>}
+        </div>}
 
         {loading ? (
           <SkeletonTable rows={8} columns={5} />
