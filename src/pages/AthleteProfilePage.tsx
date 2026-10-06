@@ -42,6 +42,7 @@ export default function AthleteProfilePage() {
   const [wtgRecords,setWtgRecords]=useState<ConfirmedWtgRecord[]>([]);
   const [wtgRecordError,setWtgRecordError]=useState('');
   const [registeredLoading, setRegisteredLoading] = useState(false);
+  const [medalsLoading, setMedalsLoading] = useState(false);
   const [registeredError, setRegisteredError] = useState('');
   useEffect(() => setResultPage(1), [id, tab]);
 
@@ -52,6 +53,7 @@ export default function AthleteProfilePage() {
       setRegisteredAthlete(null);
       setRegisteredResults([]);
       setDatabaseMedals([]);
+      setMedalsLoading(false);
       return;
     }
     let active = true;
@@ -59,12 +61,13 @@ export default function AthleteProfilePage() {
     setRegisteredError('');
     setRegisteredResults([]);
     setDatabaseMedals([]);
+    setMedalsLoading(Boolean(supabase));
     setWtgRecords([]);setWtgRecordError('');
     if(supabase){
       supabase.from('wtg_record_history').select('id,event,age_group,gender,competition_category,course,holder_name,time_ms,source_evidence,confirmed_at,superseded_at').eq('swimmer_id',id).order('confirmed_at',{ascending:false})
         .then(({data,error})=>{if(!active)return;if(error)setWtgRecordError(describeSupabaseError(error));else setWtgRecords((data??[]) as ConfirmedWtgRecord[]);});
       supabase.from('transplant_medals').select('competition,year,medal,swimmer_results(event)').eq('swimmer_id',id).order('year',{ascending:false})
-        .then(({data})=>{if(!active)return;setDatabaseMedals((data??[]).map((row:Record<string,unknown>)=>{const linked=row.swimmer_results as {event?:string}|{event?:string}[]|null;const event=Array.isArray(linked)?linked[0]?.event:linked?.event;return {competition:String(row.competition),year:Number(row.year),color:String(row.medal) as Medal['color'],event:String(event??'Unknown event') as Medal['event']};}));});
+        .then(({data,error})=>{if(!active)return;if(error)setRegisteredError(`Medal totals could not be loaded. ${describeSupabaseError(error)}`);else setDatabaseMedals((data??[]).map((row:Record<string,unknown>)=>{const linked=row.swimmer_results as {event?:string}|{event?:string}[]|null;const event=Array.isArray(linked)?linked[0]?.event:linked?.event;return {competition:String(row.competition),year:Number(row.year),color:String(row.medal) as Medal['color'],event:String(event??'Unknown event') as Medal['event']};}));setMedalsLoading(false);},()=>{if(!active)return;setRegisteredError('Medal totals could not be loaded.');setMedalsLoading(false);});
     }
     if (athlete) {
       setRegisteredAthlete(null);
@@ -90,7 +93,7 @@ export default function AthleteProfilePage() {
 
   if (!athlete) {
     if (registeredLoading) return <PageLoading />;
-    if (registeredAthlete) return <RegisteredAthleteProfile athlete={registeredAthlete} results={registeredResults} medals={databaseMedals} loading={registeredLoading} error={registeredError} />;
+    if (registeredAthlete) return <RegisteredAthleteProfile athlete={registeredAthlete} results={registeredResults} medals={databaseMedals} loading={registeredLoading || medalsLoading} error={registeredError} />;
     return (
       <div className="max-w-7xl mx-auto px-4 py-20">
         <EmptyState
@@ -462,6 +465,11 @@ function RegisteredAthleteProfile({ athlete, results, medals, loading, error }: 
   const clubPath = athlete.club_id || athlete.club_name?.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   useEffect(() => { setPage(1); setTab('Overview'); }, [athlete.id]);
   const pageCount = Math.ceil(results.length / RESULT_PAGE_SIZE);
+  const medalCounts = medals.reduce((counts, medal) => {
+    if (medal.color in counts) counts[medal.color as keyof typeof counts] += 1;
+    return counts;
+  }, { Gold: 0, Silver: 0, Bronze: 0 });
+  const totalMedals = medalCounts.Gold + medalCounts.Silver + medalCounts.Bronze;
   const visibleResults = results.slice((page - 1) * RESULT_PAGE_SIZE, page * RESULT_PAGE_SIZE);
   const bestByEvent = new Map<string, PublicSwimmerResult>();
   results.forEach(result => {
@@ -498,12 +506,12 @@ function RegisteredAthleteProfile({ athlete, results, medals, loading, error }: 
             <Eyebrow onDark className="mb-3">Transplant Games Medals</Eyebrow>
             <div className="grid grid-cols-3 gap-2" aria-label="World Transplant Games medal totals">
               {[
-                { label: 'Gold', color: '#f5c542' },
-                { label: 'Silver', color: '#d1d5db' },
-                { label: 'Bronze', color: '#d4956a' },
+                { label: 'Gold', color: '#f5c542', count: medalCounts.Gold },
+                { label: 'Silver', color: '#d1d5db', count: medalCounts.Silver },
+                { label: 'Bronze', color: '#d4956a', count: medalCounts.Bronze },
               ].map(medal => (
                 <div key={medal.label} className="border border-white/15 bg-white/5 px-3 py-2 text-center">
-                  <div className="font-mono text-2xl font-black" style={{ color: medal.color }}>—</div>
+                  <div className="font-mono text-2xl font-black" style={{ color: medal.color }}>{medal.count}</div>
                   <div className="font-mono text-[10px] uppercase tracking-widest text-white/60">{medal.label}</div>
                 </div>
               ))}
@@ -522,7 +530,7 @@ function RegisteredAthleteProfile({ athlete, results, medals, loading, error }: 
       {error && <div role="alert" className="mb-6 border border-red-300 bg-red-50 px-5 py-4 text-sm text-red-800">{error}</div>}
       {tab === 'Overview' ? <div className="space-y-8">
             <div className="grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-3">
-              {[{ label: 'Personal bests', value: loading || error ? '—' : personalBests.length }, { label: 'Results', value: loading || error ? '—' : results.length }, { label: 'Medals', value: '—' }].map(stat => <div key={stat.label} className="bg-[var(--surface)] px-5 py-4"><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">{stat.label}</p><p className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">{stat.value}</p></div>)}
+              {[{ label: 'Personal bests', value: loading || error ? '—' : personalBests.length }, { label: 'Results', value: loading || error ? '—' : results.length }, { label: 'Medals', value: loading || error ? '—' : totalMedals }].map(stat => <div key={stat.label} className="bg-[var(--surface)] px-5 py-4"><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">{stat.label}</p><p className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">{stat.value}</p></div>)}
             </div>
             <div>
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Competition history</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{results.length} result{results.length === 1 ? '' : 's'}</span></div>

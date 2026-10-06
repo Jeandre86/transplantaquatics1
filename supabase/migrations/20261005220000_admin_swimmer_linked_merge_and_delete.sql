@@ -119,11 +119,6 @@ begin
   select * into duplicate_profile from public.swimmer_profiles where id = p_duplicate_swimmer_id for update;
   if not found then raise exception 'The duplicate profile was not found.' using errcode = 'P0002'; end if;
 
-  if lower(trim(primary_profile.first_name)) <> lower(trim(duplicate_profile.first_name))
-    or lower(trim(primary_profile.last_name)) <> lower(trim(duplicate_profile.last_name)) then
-    raise exception 'Profiles must have the same first and last name to merge.' using errcode = '23514';
-  end if;
-
   if primary_profile.account_id is not null and duplicate_profile.account_id is not null
     and primary_profile.account_id is distinct from duplicate_profile.account_id then
     raise exception 'These profiles belong to two different login accounts. They cannot be combined into one swimmer profile without choosing which account should retain access.' using errcode = '23514';
@@ -320,6 +315,10 @@ declare
   merged_profile_id uuid;
   profile_to_merge record;
   merge_response jsonb;
+  keeper_account_id uuid;
+  profiles_snapshot jsonb := '[]'::jsonb;
+  accounts_snapshot jsonb := '[]'::jsonb;
+  unlinked_account_ids uuid[] := '{}';
   merged_profile_ids uuid[] := '{}';
   merged_source_keys text[] := '{}';
 begin
@@ -348,33 +347,50 @@ begin
   select count(distinct profile.account_id) into account_count
   from public.swimmer_profiles profile
   where profile.id = any(p_swimmer_ids) and profile.account_id is not null;
-  if account_count > 1 then
-    raise exception 'These profiles belong to different login accounts. Resolve account access before merging.' using errcode = '23514';
-  end if;
 
-  -- Keep the account-holder profile when one is part of the selection.
-  select profile.id into keep_id
+  select coalesce(jsonb_agg(to_jsonb(profile) order by profile.created_at), '[]'::jsonb)
+  into profiles_snapshot
   from public.swimmer_profiles profile
-  where profile.id = any(p_swimmer_ids) and profile.account_id is not null
-  order by profile.is_account_holder desc, (profile.id = p_primary_swimmer_id) desc, profile.created_at asc
-  limit 1;
-  keep_id := coalesce(keep_id, p_primary_swimmer_id);
+  where profile.id = any(p_swimmer_ids);
+  select coalesce(jsonb_agg(jsonb_build_object('profile_id', profile.id, 'account_id', profile.account_id, 'is_account_holder', profile.is_account_holder)), '[]'::jsonb)
+  into accounts_snapshot
+  from public.swimmer_profiles profile
+  where profile.id = any(p_swimmer_ids) and profile.account_id is not null;
 
-  if exists (
-    select 1 from public.swimmer_profiles profile
-    where profile.id = any(p_swimmer_ids)
-      and (lower(trim(profile.first_name)) <> lower(trim((select first_name from public.swimmer_profiles where id = keep_id)))
-        or lower(trim(profile.last_name)) <> lower(trim((select last_name from public.swimmer_profiles where id = keep_id))))
-  ) then
-    raise exception 'Only profiles with the same first and last name can be merged.' using errcode = '23514';
+  if account_count > 1 then
+    select profile.account_id into keeper_account_id
+    from public.swimmer_profiles profile where profile.id = p_primary_swimmer_id;
+    if keeper_account_id is null then
+      raise exception 'Choose one of the linked account profiles to keep its swimmer access.' using errcode = '22023';
+    end if;
+    keep_id := p_primary_swimmer_id;
+  else
+    -- Keep the account-holder profile when one is part of the selection.
+    select profile.id into keep_id
+    from public.swimmer_profiles profile
+    where profile.id = any(p_swimmer_ids) and profile.account_id is not null
+    order by profile.is_account_holder desc, (profile.id = p_primary_swimmer_id) desc, profile.created_at asc
+    limit 1;
+    keep_id := coalesce(keep_id, p_primary_swimmer_id);
+    select profile.account_id into keeper_account_id from public.swimmer_profiles profile where profile.id = keep_id;
   end if;
 
   for profile_to_merge in
-    select selected.id
+    select selected.id, profile.account_id
     from unnest(p_swimmer_ids) as selected(id)
+    join public.swimmer_profiles profile on profile.id = selected.id
     where selected.id <> keep_id
     order by selected.id
   loop
+    if profile_to_merge.account_id is not null and profile_to_merge.account_id is distinct from keeper_account_id then
+      -- Keep both login accounts intact, but detach the losing login from this
+      -- swimmer so the canonical profile can be owned by only one account.
+      unlinked_account_ids := array_append(unlinked_account_ids, profile_to_merge.account_id);
+      update public.swimmer_profiles
+      set account_id = null, is_account_holder = false
+      where id = profile_to_merge.id;
+    end if;
+
     merge_response := public.admin_merge_swimmer_profiles(
       p_duplicate_swimmer_id => profile_to_merge.id,
       p_primary_swimmer_id => keep_id
@@ -390,11 +406,25 @@ begin
     )) as merged(merged_key);
   end loop;
 
+  insert into public.admin_activity_log(actor_id, action, target_type, target_id, after_data)
+  values (
+    auth.uid(), 'swimmer_profile_group_merged', 'swimmer_profile', keep_id::text,
+    jsonb_build_object(
+      'profile_ids', p_swimmer_ids,
+      'primary_swimmer_id', keep_id,
+      'profiles_before_merge', profiles_snapshot,
+      'account_links_before_merge', accounts_snapshot,
+      'login_account_ids_unlinked_from_swimmer', unlinked_account_ids,
+      'source_keys', merged_source_keys
+    )
+  );
+
   return jsonb_build_object(
     'merged', true,
     'primary_swimmer_id', keep_id,
     'merged_swimmer_ids', merged_profile_ids,
     'merged_count', cardinality(merged_profile_ids),
+    'login_account_ids_unlinked_from_swimmer', unlinked_account_ids,
     'source_keys', merged_source_keys
   );
 end;

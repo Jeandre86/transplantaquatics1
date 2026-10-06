@@ -14,6 +14,7 @@ import AdminAboutContent from '../components/AdminAboutContent';
 import { useAuth } from '../contexts/AuthContext';
 import { hasSupabaseConfig, supabase, describeSupabaseError } from '../lib/supabase';
 import { permissionsForRole } from '../lib/adminImports';
+import { loadPublicSwimmerDirectory } from '../lib/swimmerSubmissions';
 
 type Tab = 'Overview' | 'Imports' | 'Historical archive' | 'Swimmers' | 'Meets and results' | 'Profile claims' | 'Records' | 'Writers' | 'Write article' | 'Article library' | 'Articles' | 'Ads' | 'About page' | 'Roles and permissions' | 'Activity log';
 type Batch = { id: string; status: string; progress: string; error_message: string | null; stage_count: number; published_count: number; file_name: string | null; created_at: string; published_at: string | null; meet_catalog_id: string; source_url: string | null };
@@ -289,8 +290,40 @@ export default function AdminPage() {
         return;
       }
       if (queryError) throw queryError;
+
+      // The public Athletes page is backed by athletes joined to swimmer_profiles.
+      // Reconcile its full ID set with the admin RPC so a profile cannot appear
+      // publicly while being absent from the admin search/list.
+      let publicProfiles: Awaited<ReturnType<typeof loadPublicSwimmerDirectory>> = [];
+      try {
+        publicProfiles = await loadPublicSwimmerDirectory();
+      } catch {
+        // The admin RPC remains the source of truth if the public directory
+        // endpoint is unavailable during a database migration.
+      }
+      const adminIds = new Set(data.map(row => String(row.id ?? '')));
+      const missingFromAdmin = publicProfiles
+        .filter(profile => !adminIds.has(profile.id))
+        .map(profile => ({
+          ...profile,
+          date_of_birth: null,
+          club_name: profile.club_name ?? null,
+          account_id: null,
+          is_account_holder: false,
+          is_claimed: false,
+          source_key: null,
+          source_keys: [],
+          identity_review_required: false,
+          admin_directory_reconciled: true,
+        } as unknown as Record<string, unknown>));
+      const reconciledData = [...data, ...missingFromAdmin]
+        .sort((left, right) => String(left.last_name ?? '').localeCompare(String(right.last_name ?? ''))
+          || String(left.first_name ?? '').localeCompare(String(right.first_name ?? '')));
       setSwimmerAdminRpcAvailable(true);
-      setSwimmerRows(data);
+      setSwimmerRows(reconciledData);
+      if (missingFromAdmin.length) {
+        setNotice(`${missingFromAdmin.length} athlete${missingFromAdmin.length === 1 ? '' : 's'} missing from the admin directory were added from the public athlete list. These rows are read-only until the admin directory database function is reconciled.`);
+      }
       return;
     }
     const query = target === 'Profile claims'
