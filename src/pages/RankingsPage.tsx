@@ -55,7 +55,7 @@ export default function RankingsPage() {
       <PageHeading eyebrow="Rankings" title="Top swims by event" description="The fastest verified swims in each event. One row per athlete." />
       <section className="bg-[var(--paper)]">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:py-6">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div className="ta-filter-bar-full-bleed mb-5 flex flex-wrap items-end justify-between gap-4 border-y border-[var(--border)] bg-white py-3">
             <div className="flex flex-wrap gap-3">
               <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Event:
               <select value={event} onChange={e => setEvent(e.target.value as Event | typeof ALL)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-sm text-[var(--ink)]">

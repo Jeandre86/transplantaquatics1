@@ -61,7 +61,7 @@ export default function GenderRankingsPage() {
     <div className="bg-[var(--paper)]">
       <section className="bg-[var(--paper)]">
         <div className="mx-auto max-w-7xl px-4 py-9 sm:py-11">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div className="ta-filter-bar-full-bleed mb-5 flex flex-wrap items-end justify-between gap-4 border-y border-[var(--border)] bg-white py-3">
             <div>
               <Link to="/rankings" className="mb-3 inline-flex text-xs font-semibold text-[var(--accent-dark)] hover:underline">← All rankings</Link>
               <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)] sm:text-3xl">Top swims by event</h1>

@@ -83,7 +83,7 @@ export default function TransplantCohortExplorer() {
           </div>
         </div>
 
-        <FilterBar className="mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
+        <FilterBar className="ta-filter-bar-full-bleed mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
           <div className="flex flex-wrap items-center gap-2">
             <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 text-sm text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Transplant:
               <select value={transplantType} onChange={event => setTransplantType(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-sm font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
