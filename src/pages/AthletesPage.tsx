@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { AGE_GROUPS, GENDERS, TRANSPLANT_TYPES, type Ranking } from '../types';
 import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
@@ -91,20 +91,20 @@ export default function AthletesPage() {
   return <div className="bg-[var(--paper)]">
     <PageHeading eyebrow="Athletes" title="Find your people." description="Swimmers from every country, age group and transplant background." />
     <section className="border-b border-[var(--border)] bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-3">
+      <div className="mx-auto max-w-7xl px-4 py-4">
         <div className="grid gap-2 sm:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto] sm:items-center">
           <div className="relative min-w-0">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by athlete, club or country" aria-label="Search by athlete, club or country" className="h-[34px] w-full border border-[var(--border)] bg-[var(--paper)] pl-8 pr-3 text-[10px] text-[var(--ink)] outline-none focus:border-[var(--accent-dark)]" />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by athlete, club or country" aria-label="Search by athlete, club or country" className="h-[42px] w-full border border-[var(--border)] bg-[var(--paper)] pl-8 pr-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-dark)]" />
           </div>
           {[
             { label: 'Country', value: country, set: setCountry, options: [ALL, ...countries] },
             { label: 'Gender', value: gender, set: setGender, options: [ALL, ...GENDERS] },
             { label: 'Age group', value: ageGroup, set: setAgeGroup, options: [ALL, ...AGE_GROUPS] },
             { label: 'Transplant', value: transplant, set: setTransplant, options: [ALL, ...TRANSPLANT_TYPES] },
-          ].map(filter => <label key={filter.label} className="flex h-[34px] items-center gap-1 border border-[var(--border)] bg-white px-2 text-[9px] text-[var(--muted)]">
+          ].map(filter => <label key={filter.label} className="flex h-[42px] items-center gap-1.5 border border-[var(--border)] bg-white px-3 text-sm text-[var(--muted)]">
             <span className="shrink-0">{filter.label}:</span>
-            <select value={filter.value} onChange={event => filter.set(event.target.value)} className="min-w-0 appearance-none bg-transparent pr-4 text-[9px] font-medium text-[var(--ink)] outline-none">
+            <select value={filter.value} onChange={event => filter.set(event.target.value)} className="min-w-0 appearance-none bg-transparent pr-5 text-sm font-medium text-[var(--ink)] outline-none">
               {filter.options.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
           </label>)}
@@ -129,7 +129,6 @@ export default function AthletesPage() {
                     <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Age group ↕</th>
                     <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Transplant ↕</th>
                     <th className="whitespace-nowrap px-3 py-3 text-right font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Best swim ↕</th>
-                    <th className="w-8 px-2 py-3" />
                   </tr></thead>
                   <tbody>{pageAthletes.map(athlete => {
                     const swim = bestSwimLabel(bestSwims.get(athlete.id));
@@ -146,7 +145,6 @@ export default function AthletesPage() {
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{age || athlete.age_group || 'Unknown'}{genderLabel !== '—' ? ` · ${genderLabel}` : ''}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{normalizedTransplant(athlete.transplant_type)}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-right sm:px-5"><span className="block font-mono text-base font-bold text-[var(--navy)]">{swim?.time ?? '—'}</span><span className="block text-[10px] text-[var(--muted)]">{swim?.event ?? 'No swim recorded'}</span></td>
-                      <td className="px-2 py-4 text-right"><Link to={`/athletes/${athlete.id}`} aria-label={`View ${athlete.first_name} ${athlete.last_name}`}><ChevronRight size={15} className="text-[var(--muted)]" /></Link></td>
                     </tr>;
                   })}</tbody>
                 </table>
