@@ -52,9 +52,8 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
 
   const personalBests = new Map<string, Omit<Ranking, 'rank'>>();
   submittedResults.forEach(result => {
-    const swimmerId = result.swimmer_id ?? result.athlete_id;
-    if (!swimmerId) return;
-    const profile = profileById.get(swimmerId);
+    const linkedSwimmerId = result.swimmer_id ?? result.athlete_id;
+    const profile = linkedSwimmerId ? profileById.get(linkedSwimmerId) : undefined;
     // Imported and older result rows can retain their full public result data
     // even when the swimmer directory has no matching profile row. Use the
     // result snapshot in that case so those swims still appear in rankings.
@@ -70,6 +69,7 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
     const athleteName = [profile?.first_name, profile?.last_name]
       .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
       .join(' ') || result.swimmer_name?.trim() || 'Unknown swimmer';
+    const swimmerId = linkedSwimmerId || `result:${athleteName.toLowerCase()}|${result.country_code ?? result.country ?? ''}`;
     const swim: Omit<Ranking, 'rank'> = {
       athleteId: swimmerId,
       athleteName,
