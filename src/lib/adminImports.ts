@@ -1,4 +1,4 @@
-import { normalizeCountryCode } from './utils';
+import { normalizeCountryCode } from './utils.ts';
 
 export type RaceStatus = 'OK' | 'DNS' | 'DNF' | 'DQ' | 'SCR' | 'NS';
 

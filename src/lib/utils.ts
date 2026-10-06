@@ -2,6 +2,73 @@ export function formatTime(time: string): string {
   return time;
 }
 
+/** Format a swim time from seconds or the historical string formats in use. */
+export function formatSwimTime(secondsOrTime: number | string): string {
+  const raw = typeof secondsOrTime === 'number' ? secondsOrTime : secondsOrTime.trim();
+  if (raw === '') return '—';
+
+  let seconds: number;
+  if (typeof raw === 'number') {
+    seconds = raw;
+  } else if (/^\d+(?:\.\d+)?$/.test(raw)) {
+    seconds = Number(raw);
+  } else {
+    const match = /^(\d+):(\d{1,2}(?:\.\d+)?)$/.exec(raw);
+    if (!match) return '—';
+    seconds = Number(match[1]) * 60 + Number(match[2]);
+  }
+
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  const rounded = Math.round(seconds * 100) / 100;
+  const minutes = Math.floor(rounded / 60);
+  const remainder = (rounded - minutes * 60).toFixed(2);
+  return minutes > 0 ? `${minutes}:${remainder.padStart(5, '0')}` : remainder;
+}
+
+const NON_PERSON_DISPLAY_VALUES = /^(?:great britain\s*&|unknown|not shared|n\/?a|—|-)$/i;
+
+/** Improve legacy all-caps names at render time while preserving mixed-case names. */
+export function formatPersonName(raw: string | null | undefined): string {
+  const value = raw?.trim() ?? '';
+  if (!value || NON_PERSON_DISPLAY_VALUES.test(value)) return value;
+  if (value !== value.toLocaleUpperCase()) return value;
+
+  const titleCase = (part: string) => part.toLocaleLowerCase().replace(/(^|[\s'-])([\p{L}])/gu, (_match, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase()}`);
+  if (value.includes(',')) {
+    const [surname, ...givenParts] = value.split(',').map(part => part.trim()).filter(Boolean);
+    return givenParts.length ? `${titleCase(givenParts.join(' '))} ${titleCase(surname)}` : titleCase(surname);
+  }
+  const parts = value.split(/\s+/);
+  return titleCase(parts.length > 1 ? [...parts.slice(1), parts[0]].join(' ') : value);
+}
+
+/** Add the conventional distance unit to legacy event names at display time. */
+export function formatEventName(raw: string | null | undefined): string {
+  const value = raw?.trim() ?? '';
+  if (!value) return '—';
+  return value.replace(/^(\d+)\s+(?=(?:freestyle|backstroke|breaststroke|butterfly|individual\s+medley)\b)/i, '$1m ');
+}
+
+/** Normalize age ranges and remove a redundant trailing "years" label. */
+export function formatAgeGroup(raw: string | null | undefined): string {
+  const value = raw?.trim() ?? '';
+  if (!value) return '—';
+  return value.replace(/\s*(?:years?|yrs?)\s*$/i, '').replace(/\s*[-–]\s*/g, '–');
+}
+
+export function displayOrFallback(value: string | number | null | undefined, fallback = 'Not shared'): string {
+  if (value === null || value === undefined) return fallback;
+  const display = String(value).trim();
+  return display || fallback;
+}
+
+export function formatHeldFor(years: number | string | null | undefined): string {
+  if (years === null || years === undefined || String(years).trim() === '') return '—';
+  const count = Number(years);
+  if (!Number.isFinite(count) || count < 0) return '—';
+  return `${count} ${count === 1 ? 'year' : 'years'}`;
+}
+
 /** True for short-course junior 25m events, regardless of event-name spelling. */
 export function is25mEvent(event: string | null | undefined): boolean {
   return /^\s*25\s*(?:m(?:etres?)?|met(?:re|er)s?)\b/i.test(event ?? '');
@@ -89,7 +156,10 @@ export function timeToSeconds(time: string): number {
 
 export function formatDate(dateStr: string): string {
   if (!dateStr?.trim()) return '—';
-  const d = new Date(dateStr);
+  // Parse date-only values in UTC so the displayed day does not shift by timezone.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? new Date(`${dateStr}T00:00:00Z`) : new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const parts = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).formatToParts(d);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)?.value ?? '';
+  return `${part('day')} ${part('month')} ${part('year')}`;
 }
