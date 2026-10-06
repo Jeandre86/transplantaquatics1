@@ -401,7 +401,7 @@ export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> 
 export function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> {
   return loadCached('public-submitted-results', async () => {
     const pageSize = 1000;
-    const fields = 'id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
+    const fields = 'id,swimmer_id,athlete_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
     const first = await client().from('swimmer_results').select(fields, { count: 'exact' })
       .neq('status', 'rejected').order('created_at', { ascending: false }).order('id', { ascending: false })
       .range(0, pageSize - 1);

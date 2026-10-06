@@ -55,24 +55,26 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
     const swimmerId = result.swimmer_id ?? result.athlete_id;
     if (!swimmerId) return;
     const profile = profileById.get(swimmerId);
-    if (!profile) return;
-    const gender = normalizeRankingGender(profile.gender) ?? normalizeRankingGender(result.gender);
-    const transplantType = normalizeRankingTransplantType(profile.transplant_type) ?? normalizeRankingTransplantType(result.transplant_type);
+    // Imported and older result rows can retain their full public result data
+    // even when the swimmer directory has no matching profile row. Use the
+    // result snapshot in that case so those swims still appear in rankings.
+    const gender = normalizeRankingGender(profile?.gender) ?? normalizeRankingGender(result.gender);
+    const transplantType = normalizeRankingTransplantType(profile?.transplant_type) ?? normalizeRankingTransplantType(result.transplant_type);
     const course = normalizeRankingCourse(result.course || result.submitted_meets?.course);
     const event = normalizeRankingEvent(result.event);
     if (!gender || !transplantType || !course || !event) return;
     const ageGroup = normalizeCompetitionAgeGroup(result.age_group)
-      ?? normalizeCompetitionAgeGroup(profile.age_group);
+      ?? normalizeCompetitionAgeGroup(profile?.age_group);
     if (!ageGroup) return;
 
-    const athleteName = [profile.first_name, profile.last_name]
+    const athleteName = [profile?.first_name, profile?.last_name]
       .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
-      .join(' ') || 'Unknown swimmer';
+      .join(' ') || result.swimmer_name?.trim() || 'Unknown swimmer';
     const swim: Omit<Ranking, 'rank'> = {
-      athleteId: profile.id,
+      athleteId: swimmerId,
       athleteName,
-      country: profile.country ?? '',
-      countryCode: profile.country_code ?? '',
+      country: profile?.country ?? result.country ?? '',
+      countryCode: profile?.country_code ?? result.country_code ?? '',
       ageGroup,
       gender,
       event,
