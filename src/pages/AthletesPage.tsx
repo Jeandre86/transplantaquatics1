@@ -45,6 +45,7 @@ export default function AthletesPage() {
   const [gender, setGender] = useState(ALL);
   const [ageGroup, setAgeGroup] = useState(ALL);
   const [transplant, setTransplant] = useState(ALL);
+  const [sortBy, setSortBy] = useState<'name' | 'country'>('name');
   const [page, setPage] = useState(1);
   const [athletes, setAthletes] = useState<PublicSwimmerProfile[]>([]);
   const [rankings, setRankings] = useState<Ranking[]>([]);
@@ -82,9 +83,15 @@ export default function AthletesPage() {
       && (gender === ALL || normalizedGender(athlete.gender) === gender)
       && (ageGroup === ALL || normalizeCompetitionAgeGroup(athlete.age_group) === ageGroup)
       && (transplant === ALL || normalizedTransplant(athlete.transplant_type) === transplant);
-  }).sort((a, b) => `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`)), [athletes, search, country, gender, ageGroup, transplant]);
+  }).sort((a, b) => {
+    if (sortBy === 'country') {
+      const countryOrder = String(a.country ?? '').localeCompare(String(b.country ?? ''), undefined, { sensitivity: 'base' });
+      if (countryOrder) return countryOrder;
+    }
+    return `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`, undefined, { sensitivity: 'base' });
+  }), [athletes, search, country, gender, ageGroup, transplant, sortBy]);
 
-  useEffect(() => setPage(1), [search, country, gender, ageGroup, transplant]);
+  useEffect(() => setPage(1), [search, country, gender, ageGroup, transplant, sortBy]);
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const pageAthletes = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -109,9 +116,15 @@ export default function AthletesPage() {
             </select>
           </label>)}
         </div>
-        <div className="mt-2 flex items-center justify-between text-[9px] text-[var(--muted)]">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--muted)]">
           <span className="font-semibold text-[var(--ink)]">{loading ? 'Loading athletes…' : `${filtered.length.toLocaleString()} athletes`}</span>
-          <span>Sorted A–Z by surname</span>
+          <label className="inline-flex h-[42px] items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-3 text-sm text-[var(--muted)]">
+            <span>Sort:</span>
+            <select value={sortBy} onChange={event => setSortBy(event.target.value as 'name' | 'country')} className="appearance-none bg-transparent pr-5 text-sm font-semibold text-[var(--ink)] outline-none">
+              <option value="name">Name, surname A–Z</option>
+              <option value="country">Country A–Z</option>
+            </select>
+          </label>
         </div>
       </div>
     </section>
