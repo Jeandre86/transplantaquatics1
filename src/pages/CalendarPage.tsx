@@ -147,7 +147,7 @@ export default function CalendarPage() {
             })}</div> : <EmptyState title="No meets found" subtitle="Try a different competition or year filter." />}
 
         <div className="mt-8 border-t border-[var(--border)] pt-5 text-sm text-[var(--muted)]">
-          Have results from one of these events? <Link to="/submit" className="font-semibold text-[var(--blue)] hover:underline">Submit results and link them to the Games edition</Link>.
+          Have results from one of these events? <Link to="/submit" className="font-semibold text-[var(--blue)] hover:underline">Submit a result and link it to the Games edition</Link>.
         </div>
       </section>
     </div>

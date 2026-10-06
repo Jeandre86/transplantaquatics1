@@ -182,7 +182,7 @@ function SignInForm() {
         className="w-full py-3.5 text-sm font-bold uppercase tracking-wider text-black flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{ backgroundColor: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}
       >
-        {loading ? 'Signing in…' : <><span>Sign In</span> <ArrowRight size={16} /></>}
+        {loading ? 'Signing in…' : <><span>Sign in</span> <ArrowRight size={16} /></>}
       </button>
 
       <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>
