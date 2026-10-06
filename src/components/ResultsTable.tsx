@@ -4,7 +4,7 @@ import VerificationBadge from './VerificationBadge';
 import { formatDate, getCountryAlpha3, getFlagEmoji } from '../lib/utils';
 import { athletes } from '../data/athletes';
 import { getSavedAvatar } from '../lib/avatars';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface ResultsTableProps {
   results: Result[];
@@ -16,6 +16,7 @@ const TABS = ['All', 'PBs', 'SBs', 'LCM', 'SCM'] as const;
 type Tab = typeof TABS[number];
 
 export default function ResultsTable({ results, showAthlete = false, dark = false }: ResultsTableProps) {
+  const navigate = useNavigate();
   const primaryText = dark ? 'text-white' : 'text-[var(--ink)]';
   const secondaryText = dark ? 'text-[var(--muted-on-dark)]' : 'text-[var(--muted)]';
   const [tab, setTab] = useState<Tab>('All');
@@ -84,7 +85,22 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
                 const photo = athlete ? getSavedAvatar(athlete.firstName, athlete.lastName) : null;
                 const initials = athlete?.avatarInitials || fullName.split(/\s+/).map(part => part[0]).slice(0, 2).join('').toUpperCase();
                 return (
-                <tr key={r.id} className={dark ? 'ta-table-row-dark' : 'ta-table-row'}>
+                <tr
+                  key={r.id}
+                  className={`cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-dark)] ${dark ? 'ta-table-row-dark' : 'ta-table-row'}`}
+                  tabIndex={0}
+                  aria-label={`Open ${fullName} athlete profile`}
+                  onClick={event => {
+                    if ((event.target as HTMLElement).closest('a, button')) return;
+                    navigate(`/athletes/${r.athleteId}`);
+                  }}
+                  onKeyDown={event => {
+                    if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
+                      event.preventDefault();
+                      navigate(`/athletes/${r.athleteId}`);
+                    }
+                  }}
+                >
                   {showAthlete && (
                   <td className={`px-3 py-4 font-semibold text-base whitespace-nowrap sm:px-5 ${primaryText}`}>
                     <div className="flex items-center gap-2.5">

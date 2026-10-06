@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Ranking } from '../types';
 import { getCountryAlpha3, getFlagEmoji, timeToSeconds } from '../lib/utils';
 import { getTransplantPoints } from '../lib/transplantPoints';
@@ -53,6 +53,7 @@ function VerifiedBadge({ status }: { status: 'verified' | 'pending' | 'unverifie
 }
 
 export default function RankingTable({ rankings, light = false, showExtras = false, showVerified = true, showCategory = false, showGap = true, rankByPoints = false, rankOffset = 0, rankPositions, genderCard = false, showPoints = true, title, showGenderInEvent = false, showEventMeta = true, showAgeGroup = false, showGender = false, paperSurface = false }: RankingTableProps) {
+  const navigate = useNavigate();
   if (rankings.length === 0) {
     return (
       <div className="py-12 text-center font-mono text-sm" style={{ color: 'var(--muted)' }}>
@@ -126,7 +127,19 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
             return (
               <tr
                 key={`${r.athleteId}-${r.rank}`}
-                className={`group ${light ? 'ta-table-row-dark' : paperSurface ? 'ta-table-row-paper' : 'ta-table-row'}`}
+                className={`group cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-dark)] ${light ? 'ta-table-row-dark' : paperSurface ? 'ta-table-row-paper' : 'ta-table-row'}`}
+                tabIndex={0}
+                aria-label={`Open ${r.athleteName || 'swimmer'} athlete profile`}
+                onClick={event => {
+                  if ((event.target as HTMLElement).closest('a, button')) return;
+                  navigate(`/athletes/${r.athleteId}`);
+                }}
+                onKeyDown={event => {
+                  if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
+                    event.preventDefault();
+                    navigate(`/athletes/${r.athleteId}`);
+                  }
+                }}
               >
                 {/* Rank */}
                 <td className="px-3 py-4 sm:px-5">
