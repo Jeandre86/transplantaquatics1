@@ -11,6 +11,7 @@ import FilterBar from '../components/FilterBar';
 import Button from '../components/Button';
 import { describeSupabaseError } from '../lib/supabase';
 import { SkeletonTable } from '../components/Skeleton';
+import { is25mEvent } from '../lib/utils';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -50,7 +51,8 @@ export default function RecordsPage() {
 
   const ageGroups = [...new Set(records.map(r => r.ageGroup))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const genders = [...new Set(records.map(r => r.gender))].sort();
-  const events = [...new Set(records.map(r => r.event))].sort();
+  const events = [...new Set(records.map(r => r.event))]
+    .sort((a, b) => Number(is25mEvent(a)) - Number(is25mEvent(b)) || a.localeCompare(b, undefined, { numeric: true }));
   const courses = [...new Set(records.map(r => r.course))].sort();
   const categories = [...new Set(records.map(r => r.category ?? 'Other'))].sort();
 
@@ -67,7 +69,7 @@ export default function RecordsPage() {
     if (query && ![r.event, r.ageGroup, r.gender, r.category, r.course, r.athleteName, r.country, r.meet]
       .some(value => value?.toLowerCase().includes(query))) return false;
     return true;
-  });
+  }).sort((a, b) => Number(is25mEvent(a.event)) - Number(is25mEvent(b.event)));
   const hasActiveFilters = Boolean(search.trim()) || [filterAgeGroup, filterGender, filterCategory, filterEvent, filterCourse, filterHolderType]
     .some(value => value !== ALL);
 
@@ -88,14 +90,13 @@ export default function RecordsPage() {
       <PageHeading eyebrow="World Records" title="Make history." description="Explore swimming records by age group, category, event and course." />
 
       <div className="max-w-7xl mx-auto px-4 py-10">
-        <FilterBar className="mb-6">
-          <div className="max-w-xl">
+        <FilterBar className="mb-6" collapsible search={<div className="w-full max-w-xl">
             <SearchInput
               value={search}
               onChange={setSearch}
               placeholder="Search event, athlete, country or meet..."
             />
-          </div>
+          </div>}>
           <div className="flex flex-wrap gap-3">
             <FilterSelect label="Age Group" value={filterAgeGroup} options={[ALL, ...ageGroups]} onChange={setFilterAgeGroup} />
             <FilterSelect label="Gender" value={filterGender} options={[ALL, ...genders]} onChange={setFilterGender} />

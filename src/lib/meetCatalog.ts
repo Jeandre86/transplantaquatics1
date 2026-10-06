@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { loadCached } from './requestCache';
 
 export type MeetCatalogCategory = 'World Transplant Games' | 'National Transplant Games';
 
@@ -18,7 +19,8 @@ export interface MeetCatalogEdition {
   source_url: string | null;
 }
 
-export async function loadMeetCatalog(): Promise<MeetCatalogEdition[]> {
+export function loadMeetCatalog(): Promise<MeetCatalogEdition[]> {
+  return loadCached('meet-catalog', async () => {
   if (!supabase) throw new Error('Supabase is not configured.');
 
   const { data, error } = await supabase
@@ -30,4 +32,5 @@ export async function loadMeetCatalog(): Promise<MeetCatalogEdition[]> {
 
   if (error) throw error;
   return (data ?? []) as MeetCatalogEdition[];
+  });
 }

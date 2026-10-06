@@ -4,8 +4,7 @@ import type { Ranking } from '../types';
 import RankingTable from '../components/RankingTable';
 import Eyebrow from '../components/Eyebrow';
 import { Link } from 'react-router-dom';
-import { getTransplantColor, timeToSeconds } from '../lib/utils';
-import { getTransplantPoints } from '../lib/transplantPoints';
+import { getTransplantColor, is25mEvent, timeToSeconds } from '../lib/utils';
 import TransplantCohortExplorer from '../components/TransplantCohortExplorer';
 import PageHeading from '../components/PageHeading';
 import EmptyState from '../components/EmptyState';
@@ -31,23 +30,12 @@ export default function RankingsPage() {
     return () => { active = false; };
   }, []);
 
-  const categoryRankings = [...rankings]
-    .sort((a, b) => {
-      const pointsA = getTransplantPoints(a);
-      const pointsB = getTransplantPoints(b);
-      if (pointsA !== null && pointsB !== null && pointsA !== pointsB) return pointsB - pointsA;
-      if (pointsA !== null && pointsB === null) return -1;
-      if (pointsA === null && pointsB !== null) return 1;
-      return a.rank - b.rank || a.athleteName.localeCompare(b.athleteName);
-    });
-  const rankPositions = new Map<string, number>();
-  for (const group of ['Men', 'Women']) {
-    categoryRankings.filter(r => r.gender === group).forEach((r, index) => {
-      rankPositions.set([r.athleteId, r.ageGroup, r.gender, r.event, r.course].join('|'), index + 1);
-    });
-  }
-  const menRankings = categoryRankings.filter(r => r.gender === 'Men');
-  const womenRankings = categoryRankings.filter(r => r.gender === 'Women');
+  const fastestPreview = (gender: 'Men' | 'Women') => rankings
+    .filter(row => row.gender === gender && !is25mEvent(row.event))
+    .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time) || a.athleteName.localeCompare(b.athleteName))
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+  const menRankings = fastestPreview('Men');
+  const womenRankings = fastestPreview('Women');
 
   return (
     <div>
@@ -60,7 +48,8 @@ export default function RankingsPage() {
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
             <div>
               <Eyebrow>Leaderboard</Eyebrow>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Top swims</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Fastest swims</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">Fastest recorded times across events for each gender. Junior 25m events are excluded from this preview.</p>
             </div>
           </div>
           <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8 xl:gap-12">
@@ -70,7 +59,7 @@ export default function RankingsPage() {
               ) : rankingsError ? (
                 <p role="status" className="py-8 text-center text-sm text-red-700">Rankings could not be loaded: {rankingsError}</p>
               ) : (
-                <RankingTable rankings={menRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Men" />
+                <RankingTable rankings={menRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints={false} showGap={false} showPoints={false} genderCard showEventMeta={false} paperSurface title="Men" />
               )}
               {menRankings.length > GENDER_PREVIEW_SIZE && (
                 <Link to="/rankings/men" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[var(--accent-dark)] hover:underline">
@@ -91,7 +80,7 @@ export default function RankingsPage() {
                   </div>
                 </div>
               ) : (
-                <RankingTable rankings={womenRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints rankPositions={rankPositions} showGap={false} genderCard showEventMeta={false} paperSurface title="Women" />
+                <RankingTable rankings={womenRankings.slice(0, GENDER_PREVIEW_SIZE)} showVerified={false} rankByPoints={false} showGap={false} showPoints={false} genderCard showEventMeta={false} paperSurface title="Women" />
               )}
               {womenRankings.length > GENDER_PREVIEW_SIZE && (
                 <Link to="/rankings/women" className="ml-auto mt-3 flex w-fit items-center gap-1 font-mono text-sm text-[var(--accent-dark)] hover:underline">
@@ -128,7 +117,6 @@ export default function RankingsPage() {
                       <div>
                         <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: 'var(--accent)' }}>{fastest.event} · {fastest.gender}{fastest.course ? ` · ${fastest.course}` : ''}</div>
                         <div className="mt-1 flex items-baseline justify-between gap-2"><Link to={`/athletes/${fastest.athleteId}`} className="truncate text-sm font-bold hover:underline" style={{ color: 'var(--ink-on-dark)' }}>{fastest.athleteName}</Link><span className="shrink-0 font-mono text-sm font-bold" style={{ color: 'var(--ink-on-dark)' }}>{fastest.time}</span></div>
-                        {fastest.status === 'swimmer_submitted' && <div className="mt-1 font-mono text-[9px] uppercase tracking-wider" style={{ color: 'var(--muted-on-dark)' }}>Pending verification</div>}
                       </div>
                     </div>
                   ) : (

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, MapPin, RotateCw, Search, X } from 'lucide-react';
+import { CalendarDays, MapPin, RotateCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { loadMeetCatalog, type MeetCatalogCategory, type MeetCatalogEdition } from '../lib/meetCatalog';
 import PageHeading from '../components/PageHeading';
 import EmptyState from '../components/EmptyState';
@@ -57,6 +57,7 @@ export default function CalendarPage() {
   const [category, setCategory] = useState<'All' | MeetCatalogCategory>('All');
   const [year, setYear] = useState('All');
   const [search, setSearch] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [pages, setPages] = useState<Record<MeetCatalogCategory, number>>({
     'World Transplant Games': 1,
     'National Transplant Games': 1,
@@ -102,6 +103,8 @@ export default function CalendarPage() {
                 {search && <button type="button" onClick={() => setSearch('')} aria-label="Clear meet search" className="text-[var(--muted)] hover:text-[var(--ink)]"><X size={14} /></button>}
               </span>
             </label>
+            <button type="button" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(open => !open)} className="inline-flex h-10 items-center gap-2 border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-semibold text-[var(--ink)] transition-colors hover:border-[var(--blue)]"><SlidersHorizontal size={15} aria-hidden="true" />{filtersOpen ? 'Hide filters' : 'Show filters'}</button>
+            {filtersOpen && <>
             <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">Competition
               <select value={category} onChange={event => setCategory(event.target.value as 'All' | MeetCatalogCategory)} className="min-w-48 border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-sans text-sm normal-case tracking-normal text-[var(--ink)]">
                 <option value="All">All competitions</option>
@@ -114,6 +117,7 @@ export default function CalendarPage() {
                 {years.map(item => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
+            </>}
           </div>
         </div>
 

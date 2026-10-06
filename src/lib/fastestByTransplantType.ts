@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from './swimmerSubmissions';
 import { timeToSeconds } from './utils';
+import { loadCached } from './requestCache';
 
 export interface FastestTransplantSwim {
   athleteId: string;
@@ -33,7 +34,11 @@ function compareText(left: unknown, right: unknown): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-export async function loadFastestByTransplantType(): Promise<FastestTransplantSwim[]> {
+export function loadFastestByTransplantType(): Promise<FastestTransplantSwim[]> {
+  return loadCached('fastest-transplant-swims', loadFastestByTransplantTypeUncached);
+}
+
+async function loadFastestByTransplantTypeUncached(): Promise<FastestTransplantSwim[]> {
   if (!supabase) throw new Error('Supabase is not configured. Add the project URL and publishable key to .env.local.');
 
   const [profiles, resultRows] = await Promise.all([
@@ -92,19 +97,24 @@ export async function loadFastestByTransplantType(): Promise<FastestTransplantSw
 
 async function loadAllRankingResults(): Promise<ResultRow[]> {
   const pageSize = 1000;
-  const rows: ResultRow[] = [];
-
-  for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await supabase!
-      .from('swimmer_results')
-      .select('id, swimmer_id, athlete_id, event, time, age_group, status, submitted_meets(course)')
-      .neq('status', 'rejected')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + pageSize - 1);
-
-    if (error) throw error;
-    const page = (data ?? []) as unknown as ResultRow[];
-    rows.push(...page);
-    if (page.length < pageSize) return rows;
+  const first = await supabase!.from('swimmer_results')
+    .select('id, swimmer_id, athlete_id, event, time, age_group, status, submitted_meets(course)', { count: 'exact' })
+    .neq('status', 'rejected').order('created_at', { ascending: false }).order('id', { ascending: false })
+    .range(0, pageSize - 1);
+  if (first.error) throw first.error;
+  const rows = [...((first.data ?? []) as unknown as ResultRow[])];
+  const count = first.count ?? rows.length;
+  const offsets = Array.from({ length: Math.ceil((count - rows.length) / pageSize) }, (_, index) => pageSize * (index + 1));
+  for (let batch = 0; batch < offsets.length; batch += 4) {
+    const pages = await Promise.all(offsets.slice(batch, batch + 4).map(async offset => {
+      const { data, error } = await supabase!.from('swimmer_results')
+        .select('id, swimmer_id, athlete_id, event, time, age_group, status, submitted_meets(course)')
+        .neq('status', 'rejected').order('created_at', { ascending: false }).order('id', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      return (data ?? []) as unknown as ResultRow[];
+    }));
+    pages.forEach(page => rows.push(...page));
   }
+  return rows;
 }

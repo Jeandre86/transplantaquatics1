@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { loadCached } from './requestCache';
 
 export interface ClubRecord {
   id: string;
@@ -27,11 +28,13 @@ export function getClubLogoUrl(club: Pick<ClubRecord, 'name' | 'slug' | 'logo_ur
   return club.logo_url;
 }
 
-export async function loadClubRecords(): Promise<ClubRecord[]> {
+export function loadClubRecords(): Promise<ClubRecord[]> {
+  return loadCached('club-records', async () => {
   if (!supabase) return [];
   const { data, error } = await supabase.from('clubs').select('*').order('name');
   if (error) throw error;
   return (data ?? []) as ClubRecord[];
+  });
 }
 
 export async function loadClubCoaches(clubId: string): Promise<ClubCoachRecord[]> {

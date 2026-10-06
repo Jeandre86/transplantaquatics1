@@ -85,11 +85,10 @@ export default function GenderResultsPage() {
             {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
           </div>
 
-          <FilterBar className="mb-6">
-            <div className="max-w-xl">
+          <FilterBar className="mb-6" collapsible search={<div className="w-full max-w-xl">
               <label htmlFor="gender-results-search" className="mb-1.5 block font-mono text-xs uppercase tracking-widest text-neutral-600">Search athlete or meet</label>
               <SearchInput id="gender-results-search" value={search} onChange={setSearch} placeholder="Search athlete or meet name..." />
-            </div>
+            </div>}>
             <div className="flex flex-wrap gap-3">
               <FilterSelect label="Country" value={country} options={options.country} onChange={setCountry} />
               <FilterSelect label="Event" value={event} options={options.event} onChange={setEvent} />

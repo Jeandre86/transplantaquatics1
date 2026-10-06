@@ -62,8 +62,7 @@ export default function AthletesPage() {
     <PageHeading eyebrow="Athletes" title="Find your people." description="Explore swimmers from every country, age group and transplant background." />
     <section className="border-b border-neutral-200" style={{ backgroundColor: 'var(--paper)' }}>
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <FilterBar>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search athlete, country or club…" />
+        <FilterBar collapsible search={<div className="w-full max-w-xl"><SearchInput value={search} onChange={setSearch} placeholder="Search athlete, country or club…" /></div>}>
           <div className="flex flex-wrap gap-3">
             <FilterSelect label="Country" value={country} options={[ALL, ...countries]} onChange={setCountry} />
             <FilterSelect label="Gender" value={gender} options={[ALL, ...GENDERS]} onChange={setGender} />

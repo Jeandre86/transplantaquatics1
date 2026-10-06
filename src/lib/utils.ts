@@ -2,6 +2,11 @@ export function formatTime(time: string): string {
   return time;
 }
 
+/** True for short-course junior 25m events, regardless of event-name spelling. */
+export function is25mEvent(event: string | null | undefined): boolean {
+  return /^\s*25\s*(?:m(?:etres?)?|met(?:re|er)s?)\b/i.test(event ?? '');
+}
+
 export function getFlagEmoji(countryCode: string): string {
   const code = getCountryIso2(countryCode);
   if (!/^[A-Z]{2}$/.test(code)) return '🏳️';

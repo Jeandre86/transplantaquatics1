@@ -2,6 +2,7 @@ import type { Gender, TransplantType } from '../types';
 import { getCompetitionAgeGroup } from './competitionAge';
 import { supabase } from './supabase';
 import { normalizeCountryCode } from './utils';
+import { clearCachedRequest, loadCached } from './requestCache';
 
 export interface SwimmerProfile {
   id: string;
@@ -120,18 +121,34 @@ function normalizeSubmittedResult(row: Record<string, unknown>): SubmittedSwimme
   } as SubmittedSwimmerResult;
 }
 
-export async function loadPublicSwimmerDirectory(): Promise<PublicSwimmerProfile[]> {
-  const pageSize = 500;
-  const profiles: PublicSwimmerProfile[] = [];
-  for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await client()
-      .rpc('get_public_swimmer_directory')
-      .range(offset, offset + pageSize - 1);
-    if (error) throw error;
-    const page = (data ?? []) as PublicSwimmerProfile[];
-    profiles.push(...page);
-    if (page.length < pageSize) return profiles;
-  }
+export function loadPublicSwimmerDirectory(): Promise<PublicSwimmerProfile[]> {
+  return loadCached('public-swimmer-directory', async () => {
+    const pageSize = 1000;
+    const first = await client().rpc('get_public_swimmer_directory', {}, { count: 'exact' }).range(0, pageSize - 1);
+    if (first.error) throw first.error;
+    const profiles = (first.data ?? []) as PublicSwimmerProfile[];
+    const count = first.count;
+    if (count === null || count === undefined) {
+      if (profiles.length < pageSize) return profiles;
+      for (let offset = pageSize; ; offset += pageSize) {
+        const { data, error } = await client().rpc('get_public_swimmer_directory').range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        const page = (data ?? []) as PublicSwimmerProfile[];
+        profiles.push(...page);
+        if (page.length < pageSize) return profiles;
+      }
+    }
+    const offsets = Array.from({ length: Math.ceil((count - profiles.length) / pageSize) }, (_, index) => pageSize * (index + 1));
+    for (let batch = 0; batch < offsets.length; batch += 4) {
+      const pages = await Promise.all(offsets.slice(batch, batch + 4).map(async offset => {
+        const { data, error } = await client().rpc('get_public_swimmer_directory').range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        return (data ?? []) as PublicSwimmerProfile[];
+      }));
+      pages.forEach(page => profiles.push(...page));
+    }
+    return profiles;
+  });
 }
 
 export async function loadPublicSwimmerResults(swimmerId: string): Promise<PublicSwimmerResult[]> {
@@ -243,6 +260,9 @@ export async function saveManagedSwimmer(profile: SwimmerProfileDraft): Promise<
     : client().from('swimmer_profiles').insert(payload);
   const { data, error } = await request.select('*').single();
   if (error) throw error;
+  clearCachedRequest('public-swimmer-directory');
+  clearCachedRequest('public-submitted-results');
+  clearCachedRequest('fastest-transplant-swims');
   return mapSwimmer(data as Record<string, unknown>);
 }
 
@@ -324,6 +344,8 @@ export async function saveSwimmerResult(result: SwimmerResultDraft): Promise<Sub
     .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name')
     .single();
   if (error) throw error;
+  clearCachedRequest('public-submitted-results');
+  clearCachedRequest('fastest-transplant-swims');
   return normalizeSubmittedResult(data);
 }
 
@@ -376,44 +398,57 @@ export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> 
   });
 }
 
-export async function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> {
-  const rows: SubmittedSwimmerResult[] = [];
-  const pageSize = 1000;
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await client().from('swimmer_results')
-      .select('id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)')
-      .neq('status', 'rejected')
-      .order('created_at', { ascending: false })
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
-    const pageRows = (data ?? []).map(row => normalizeSubmittedResult(row));
-    rows.push(...pageRows);
-    if (pageRows.length < pageSize) break;
-  }
+export function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> {
+  return loadCached('public-submitted-results', async () => {
+    const pageSize = 1000;
+    const fields = 'id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
+    const first = await client().from('swimmer_results').select(fields, { count: 'exact' })
+      .neq('status', 'rejected').order('created_at', { ascending: false }).order('id', { ascending: false })
+      .range(0, pageSize - 1);
+    if (first.error) throw first.error;
+    const rawRows = [...(first.data ?? [])];
+    const count = first.count ?? rawRows.length;
+    const offsets = Array.from({ length: Math.ceil((count - rawRows.length) / pageSize) }, (_, index) => pageSize * (index + 1));
+    for (let batch = 0; batch < offsets.length; batch += 4) {
+      const pages = await Promise.all(offsets.slice(batch, batch + 4).map(async offset => {
+        const { data, error } = await client().from('swimmer_results').select(fields)
+          .neq('status', 'rejected').order('created_at', { ascending: false }).order('id', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        return data ?? [];
+      }));
+      pages.forEach(page => rawRows.push(...page));
+    }
+    const rows = rawRows.map(row => normalizeSubmittedResult(row));
 
-  // Older imported results can lack country fields even while the linked
-  // athlete profile has them. Enrich in bounded batches without changing the
-  // source result rows or relying on embedded PostgREST relationships.
-  const swimmerIds = [...new Set(rows.map(row => row.swimmer_id).filter((id): id is string => Boolean(id)))];
-  const countryBySwimmer = new Map<string, { country: string | null; country_code: string | null }>();
-  for (let offset = 0; offset < swimmerIds.length; offset += 500) {
-    const { data, error } = await client().from('athletes')
-      .select('id,country,country_code')
-      .in('id', swimmerIds.slice(offset, offset + 500));
-    if (error) continue;
-    for (const athlete of data ?? []) {
-      countryBySwimmer.set(String(athlete.id), {
-        country: typeof athlete.country === 'string' ? athlete.country : null,
-        country_code: typeof athlete.country_code === 'string' ? athlete.country_code : null,
+    // Older imported rows can lack country details. Fetch directory fields only
+    // for swimmers whose result rows actually need enrichment.
+    const swimmerIds = [...new Set(rows
+      .filter(row => !row.country?.trim() || !row.country_code?.trim())
+      .map(row => row.swimmer_id)
+      .filter((id): id is string => Boolean(id)))];
+    const countryBySwimmer = new Map<string, { country: string | null; country_code: string | null }>();
+    const swimmerBatches = Array.from({ length: Math.ceil(swimmerIds.length / 500) }, (_, index) => swimmerIds.slice(index * 500, (index + 1) * 500));
+    for (let batch = 0; batch < swimmerBatches.length; batch += 4) {
+      const pages = await Promise.all(swimmerBatches.slice(batch, batch + 4).map(async ids => {
+        const { data, error } = await client().from('athletes').select('id,country,country_code').in('id', ids);
+        if (error) return [];
+        return data ?? [];
+      }));
+      pages.flat().forEach(athlete => {
+        countryBySwimmer.set(String(athlete.id), {
+          country: typeof athlete.country === 'string' ? athlete.country : null,
+          country_code: typeof athlete.country_code === 'string' ? athlete.country_code : null,
+        });
       });
     }
-  }
-  return rows.map(result => {
-    const athlete = result.swimmer_id ? countryBySwimmer.get(result.swimmer_id) : undefined;
-    return {
-      ...result,
-      country: result.country?.trim() || athlete?.country?.trim() || '',
-      country_code: result.country_code?.trim() || athlete?.country_code || null,
-    };
+    return rows.map(result => {
+      const athlete = result.swimmer_id ? countryBySwimmer.get(result.swimmer_id) : undefined;
+      return {
+        ...result,
+        country: result.country?.trim() || athlete?.country?.trim() || '',
+        country_code: result.country_code?.trim() || athlete?.country_code || null,
+      };
+    });
   });
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarPlus, ClipboardList, FileUp, Pencil, RotateCcw } from 'lucide-react';
+import { CalendarPlus, ClipboardList, FileUp, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { describeSupabaseError, supabase } from '../lib/supabase';
 
@@ -21,6 +21,7 @@ export default function AdminMeetsManager({ meets, cardStyle, inputClass, onErro
   const [editingId, setEditingId] = useState('');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [selectedMeet, setSelectedMeet] = useState<AdminMeet | null>(null);
   const [officialRows, setOfficialRows] = useState<OfficialResult[]>([]);
   const [submittedRows, setSubmittedRows] = useState<SubmittedResult[]>([]);
@@ -118,7 +119,7 @@ export default function AdminMeetsManager({ meets, cardStyle, inputClass, onErro
       </form>
       <section className="border p-5 sm:p-6" style={cardStyle}>
         <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">Calendar entries</p><h2 className="mt-1 text-lg font-bold text-white">Meets</h2><p className="mt-1 text-sm text-white/50">Manage event details or open results for a meet.</p></div><span className="font-mono text-xs text-white/45">{filtered.length} meets</span></div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]"><input aria-label="Search meets" value={search} onChange={event => setSearch(event.target.value)} className={inputClass} placeholder="Search meet, city or country" /><select aria-label="Filter meet category" value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className={inputClass}><option value="all">All categories</option><option>World Transplant Games</option><option>National Transplant Games</option></select></div>
+        <div className="mt-4 space-y-3"><div className="flex items-center gap-2"><input aria-label="Search meets" value={search} onChange={event => setSearch(event.target.value)} className={`${inputClass} min-w-0 flex-1`} placeholder="Search meet, city or country" /><button type="button" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(open => !open)} className="inline-flex shrink-0 items-center gap-2 border border-[var(--navy-light)] px-3 py-2.5 text-xs font-semibold text-white/75 hover:border-[var(--accent)]"><SlidersHorizontal size={15} aria-hidden="true" />{filtersOpen ? 'Hide filters' : 'Show filters'}</button></div>{filtersOpen && <select aria-label="Filter meet category" value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className={`${inputClass} w-full max-w-xs`}><option value="all">All categories</option><option>World Transplant Games</option><option>National Transplant Games</option></select>}</div>
         {filtered.length ? <div className="mt-4 divide-y divide-[var(--navy-light)]">{filtered.map(meet => <article key={meet.id} className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-2"><div className="min-w-0"><p className="font-semibold text-white">{meet.name}</p><p className="mt-1 text-xs text-white/50">{meet.category} · {meet.host_city || 'City not set'}{meet.host_country ? `, ${meet.host_country}` : ''} · {meet.year}</p><p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/40">{meet.status.replaceAll('_',' ')} · {meet.meet_date ?? 'Dates TBC'}{meet.end_date ? ` – ${meet.end_date}` : ''}</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => editMeet(meet)} className="inline-flex items-center gap-1.5 border border-[var(--navy-light)] px-3 py-2 text-xs text-white/70 hover:text-[var(--accent)]"><Pencil size={13} /> Edit</button><button type="button" onClick={() => void manageResults(meet)} className="inline-flex items-center gap-1.5 border border-[var(--navy-light)] px-3 py-2 text-xs text-white/70 hover:text-[var(--accent)]"><ClipboardList size={13} /> Results</button><button type="button" onClick={() => onAddResults(meet.id)} className="inline-flex items-center gap-1.5 border border-[var(--accent)]/40 px-3 py-2 text-xs text-[var(--accent)] hover:border-[var(--accent)]"><FileUp size={13} /> Add results</button></div></article>)}</div> : <div className="mt-5"><EmptyState title="No meets found" subtitle={meets.length ? 'Try another search or category.' : 'Add your first meet to start building the calendar.'} onDark /></div>}
         <LinkCalendar />
       </section>

@@ -85,7 +85,7 @@ export default function TransplantCohortExplorer() {
           {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
         </div>
 
-        <FilterBar className="mb-6">
+        <FilterBar className="mb-6" collapsible>
           <div className="flex flex-wrap gap-3">
             <FilterSelect label="Transplant Type" value={transplantType} options={[ALL, ...TRANSPLANT_TYPES]} onChange={setTransplantType} />
             <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...ageGroupOptions]} onChange={setAgeGroup} />

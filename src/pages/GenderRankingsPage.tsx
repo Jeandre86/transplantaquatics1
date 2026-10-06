@@ -94,7 +94,7 @@ export default function GenderRankingsPage() {
             {hasActiveFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
           </div>
 
-          <FilterBar className="mb-6">
+          <FilterBar className="mb-6" collapsible>
             <div className="flex flex-wrap gap-3">
               <FilterSelect label="Rank by" value={rankMode} options={['Points', 'Time']} onChange={value => setRankMode(value as 'Points' | 'Time')} />
               <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...AGE_GROUPS]} onChange={setAgeGroup} />

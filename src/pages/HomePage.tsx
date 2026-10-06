@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { usePublishedArticles } from '../hooks/usePublishedArticles';
 import { latestRecords } from '../data/records';
 import { TRANSPLANT_TYPES, type AgeGroup, type Course, type Event, type Gender, type Ranking } from '../types';
-import { getFlagEmoji, getTransplantColor } from '../lib/utils';
+import { getFlagEmoji, getTransplantColor, is25mEvent } from '../lib/utils';
 import ArticleCard from '../components/ArticleCard';
 import Eyebrow from '../components/Eyebrow';
 import RankingFilters from '../components/RankingFilters';
@@ -82,11 +82,14 @@ export default function HomePage() {
     .filter(r => (ageGroup === ALL || r.ageGroup === ageGroup)
       && (gender === ALL || r.gender === gender)
       && (event === ALL || r.event === event)
+      && (event !== ALL || !is25mEvent(r.event))
       && (course === ALL || r.course === course))
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 5);
   const featuredAthletes = athleteProfiles.slice(0, 4);
-  const featuredRecords = latestRecords.slice(0, 4);
+  const featuredRecords = [...latestRecords]
+    .sort((a, b) => Number(is25mEvent(a.event)) - Number(is25mEvent(b.event)))
+    .slice(0, 4);
   const featuredArticles = articles.slice(0, 3);
 
   return (
@@ -216,7 +219,9 @@ export default function HomePage() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">Explore leading performances from swimmers with similar transplant backgrounds.</p>
           <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {TRANSPLANT_TYPES.map(type => {
-              const eventBest = fastestSwims.filter(swim => swim.transplantType === type).slice(0, 1);
+              const eventBest = fastestSwims
+                .filter(swim => swim.transplantType === type && !is25mEvent(swim.event))
+                .slice(0, 1);
               return <div key={type} className="border border-[var(--border)] bg-[var(--paper)] p-5">
                 <div className="mb-3 flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ backgroundColor: getTransplantColor(type) }} /><span className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">{type}</span></div>
                 {fastestLoading ? <div role="status" aria-label="Loading fastest swims" className="space-y-3"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-8 w-full" /></div> : fastestError ? <p className="text-sm text-[var(--muted)]">Unable to load swims.</p> : eventBest.length ? <div className="space-y-3">

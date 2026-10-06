@@ -1,5 +1,6 @@
 import type { Record as WorldRecord } from '../types';
 import { supabase } from './supabase';
+import { loadCached } from './requestCache';
 
 interface WorldRecordRow {
   id: string;
@@ -72,18 +73,26 @@ function formatCategory(category: string) {
   return category.split('_').map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
 }
 
-export async function loadWorldRecords(): Promise<WorldRecord[]> {
+export function loadWorldRecords(): Promise<WorldRecord[]> {
+  return loadCached('world-records', loadWorldRecordsUncached);
+}
+
+async function loadWorldRecordsUncached(): Promise<WorldRecord[]> {
   if (!supabase) throw new Error('Supabase is not configured. Add the project URL and publishable key to .env.local.');
 
-  const { data, error } = await supabase
-    .from('world_records')
-    .select('id,athlete_id,country_code,event,age_group,time,athlete_name,country,games,gender,category,course')
-    .order('event')
-    .order('age_group');
+  const [baselineResult, confirmedResult] = await Promise.all([
+    supabase.from('world_records')
+      .select('id,athlete_id,country_code,event,age_group,time,athlete_name,country,games,gender,category,course')
+      .order('event').order('age_group'),
+    supabase.from('wtg_record_history')
+      .select('id,baseline_record_id,swimmer_id,country_code,event,age_group,gender,competition_category,course,holder_name,time_ms,country,meet_name,meet_year,confirmed_at')
+      .is('superseded_at', null).order('confirmed_at', { ascending: false }),
+  ]);
 
-  if (error) throw error;
+  if (baselineResult.error) throw baselineResult.error;
+  if (confirmedResult.error) throw confirmedResult.error;
 
-  const records: WorldRecord[] = ((data ?? []) as WorldRecordRow[]).map(row => ({
+  const records: WorldRecord[] = ((baselineResult.data ?? []) as WorldRecordRow[]).map(row => ({
     id: row.id,
     athleteId: row.athlete_id ?? undefined,
     countryCode: row.country_code ?? undefined,
@@ -99,11 +108,7 @@ export async function loadWorldRecords(): Promise<WorldRecord[]> {
     games: row.games,
   }));
 
-  const {data:confirmedData,error:confirmedError}=await supabase.from('wtg_record_history')
-    .select('id,baseline_record_id,swimmer_id,country_code,event,age_group,gender,competition_category,course,holder_name,time_ms,country,meet_name,meet_year,confirmed_at')
-    .is('superseded_at',null).order('confirmed_at',{ascending:false});
-  if(confirmedError)throw confirmedError;
-  const confirmed=(confirmedData??[]) as ConfirmedWtgRecordRow[];
+  const confirmed=(confirmedResult.data??[]) as ConfirmedWtgRecordRow[];
   const byBaseline=new Map<string,ConfirmedWtgRecordRow[]>();
   for(const row of confirmed){if(!row.baseline_record_id)continue;const group=byBaseline.get(row.baseline_record_id)??[];group.push(row);byBaseline.set(row.baseline_record_id,group);}
   for(const [baselineId,holders] of byBaseline){
