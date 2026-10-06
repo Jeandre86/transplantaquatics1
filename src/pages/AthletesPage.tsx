@@ -88,6 +88,12 @@ export default function AthletesPage() {
   const pageAthletes = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return <div className="bg-[var(--paper)]">
+    <header className="bg-[var(--navy)] text-white">
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:py-8">
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Find your people.</h1>
+        <p className="mt-1 text-xs text-white/70">Swimmers from every country, age group and transplant background.</p>
+      </div>
+    </header>
     <section className="border-b border-[var(--border)] bg-white">
       <div className="mx-auto max-w-7xl px-4 py-3">
         <div className="grid gap-2 sm:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto] sm:items-center">
