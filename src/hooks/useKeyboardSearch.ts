@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 /**
- * Fires `callback` when the user presses "/" outside of an input or textarea.
+ * Fires `callback` for the search shortcut or slash when focus is outside editable controls.
  * Cleans up the event listener on unmount.
  */
 export function useKeyboardSearch(callback: () => void): void {
@@ -13,7 +13,9 @@ export function useKeyboardSearch(callback: () => void): void {
         tag === 'textarea' ||
         (e.target as HTMLElement)?.isContentEditable;
 
-      if (e.key === '/' && !isEditable && !e.metaKey && !e.ctrlKey) {
+      const searchShortcut = e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey);
+      const slashShortcut = e.key === '/' && !e.metaKey && !e.ctrlKey;
+      if ((searchShortcut || slashShortcut) && !isEditable) {
         e.preventDefault();
         callback();
       }

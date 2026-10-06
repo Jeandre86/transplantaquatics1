@@ -94,13 +94,12 @@ export default function Header() {
                 to={l.to}
                 end={l.to === '/'}
                 className={({ isActive }) =>
-                  `px-3 py-1.5 text-sm font-medium transition-colors ${
+                  `flex h-full items-center border-b-2 px-3 pt-0.5 text-sm font-medium transition-colors ${
                     isActive
-                      ? 'text-accent'
-                      : 'text-white/60 hover:text-white'
+                      ? 'border-[var(--accent)] text-white'
+                      : 'border-transparent text-white/65 hover:text-white'
                   }`
                 }
-                style={({ isActive }) => isActive ? { color: 'var(--accent)' } : {}}
               >
                 {l.label}
               </NavLink>
@@ -112,7 +111,7 @@ export default function Header() {
                 aria-controls="about-navigation-menu"
                 aria-current={isAboutActive ? 'page' : undefined}
                 onClick={() => setAboutOpen(open => !open)}
-                className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${isAboutActive ? 'text-[var(--accent)]' : 'text-white/70 hover:text-white'}`}
+                className={`inline-flex h-full items-center gap-1 border-b-2 px-3 pt-0.5 text-sm font-medium transition-colors ${isAboutActive ? 'border-[var(--accent)] text-white' : 'border-transparent text-white/70 hover:text-white'}`}
                 onKeyDown={event => { if (event.key === 'ArrowDown') setAboutOpen(true); }}
               >
                 About <ChevronDown size={14} className={`transition-transform ${aboutOpen ? 'rotate-180' : ''}`} />
@@ -157,15 +156,10 @@ export default function Header() {
 
           {/* Right */}
           <div className="flex items-center gap-2">
-            <Link
-              to="/search"
-              aria-label="Search"
-              className="w-8 h-8 flex items-center justify-center transition-colors"
-              style={{ color: 'rgba(255,255,255,0.5)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
-            >
-              <Search size={18} />
+            <Link to="/search" aria-label="Search (⌘K)" title="Search · ⌘K" className="inline-flex h-8 items-center gap-2 border border-white/15 px-2.5 text-white/65 transition-colors hover:border-white/35 hover:text-white sm:px-3">
+              <Search size={16} aria-hidden="true" />
+              <span className="hidden text-sm sm:inline">Search</span>
+              <kbd className="hidden border-l border-white/15 pl-2 font-mono text-[10px] text-white/40 lg:inline">⌘K</kbd>
             </Link>
             {/* User area — avatar or login icon */}
             {auth.isLoggedIn && auth.user ? (
@@ -247,7 +241,7 @@ export default function Header() {
                         <path d="M9 4.5L11.5 7 9 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M11.5 7H5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                       </svg>
-                      Sign Out
+                      Sign out
                     </button>
                   </div>
                 )}
@@ -314,10 +308,9 @@ export default function Header() {
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `px-5 py-3 text-xl font-semibold transition-colors sm:text-2xl ${
-                    isActive ? 'text-[var(--lime)]' : 'text-white/75 hover:text-[var(--lime)]'
+                    isActive ? 'border-b-2 border-[var(--accent)] text-white' : 'border-b-2 border-transparent text-white/75 hover:text-white'
                   }`
                 }
-                style={({ isActive }) => isActive ? { color: 'var(--lime)' } : {}}
               >
                 {l.label}
               </NavLink>
@@ -327,7 +320,7 @@ export default function Header() {
                 aria-expanded={mobileAboutOpen}
                 aria-controls="mobile-about-navigation-menu"
                 onClick={() => setMobileAboutOpen(open => !open)}
-                className={`flex items-center gap-2 px-5 py-3 text-xl font-semibold transition-colors sm:text-2xl ${isAboutActive ? 'text-[var(--accent)]' : 'text-white/75 hover:text-[var(--accent)]'}`}
+                  className={`flex items-center gap-2 border-b-2 px-5 py-3 text-xl font-semibold transition-colors sm:text-2xl ${isAboutActive ? 'border-[var(--accent)] text-white' : 'border-transparent text-white/75 hover:text-white'}`}
               >
               About <ChevronDown size={18} className={`transition-transform ${mobileAboutOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -385,7 +378,7 @@ export default function Header() {
                     onClick={() => { setMobileOpen(false); handleSignOut(); }}
                     className="w-full px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"
                   >
-                    Sign Out
+                    Sign out
                   </button>
                 </>
               ) : (
