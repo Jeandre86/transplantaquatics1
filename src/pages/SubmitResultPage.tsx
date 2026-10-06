@@ -185,7 +185,7 @@ export default function SubmitResultPage() {
     <section className="ta-page-top text-white">
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12">
         <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">My results</p>
-        <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Submit results</h1>
+        <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Submit a result</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">Add a meet once, then record one time for each event your swimmer competed in. Results appear as swimmer-submitted as soon as you submit.</p>
       </div>
     </section>

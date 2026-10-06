@@ -288,7 +288,7 @@ export default function DashboardPage() {
                   <span className={`w-fit px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${result.record_candidate ? 'bg-amber-50 text-amber-800' : 'bg-[var(--ice)] text-[var(--navy)]'}`}>{result.record_candidate ? 'Record candidate' : result.status === 'verified' ? 'Verified' : 'Swimmer-submitted'}</span>
                 </div>)}
               </div> : <div className="flex flex-1 flex-col justify-center"><p className="font-semibold text-[var(--ink)]">{resultsLoadFailed ? 'Your results could not be loaded' : 'Start with your next meet'}</p><p className="mt-1 max-w-md text-sm leading-relaxed text-[var(--muted)]">{resultsLoadFailed ? 'Check the meet submission tables in Supabase and try refreshing.' : 'Add a meet and record each event your swimmer competed in. Results show as swimmer-submitted immediately.'}</p></div>}
-              <Link to="/submit" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] transition-colors hover:text-[var(--accent-dark)]">Submit results <ArrowRight size={15} /></Link>
+              <Link to="/submit" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] transition-colors hover:text-[var(--accent-dark)]">Submit a result <ArrowRight size={15} /></Link>
             </div>
           </DashboardCard>
 
@@ -337,7 +337,7 @@ export default function DashboardPage() {
                     {courseEventRankings.length > RANKING_PREVIEW_SIZE && <p className="mt-3 text-xs text-[var(--muted)]">Showing {RANKING_PREVIEW_SIZE} of {courseEventRankings.length} {rankingCourse} events.</p>}
                     <Link to="/rankings" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Explore more rankings <ArrowRight size={15} /></Link>
                     </> : <div className="py-8 text-center"><p className="font-semibold text-[var(--ink)]">No {rankingCourse} rankings yet</p><p className="mt-1 text-sm text-[var(--muted)]">Your {rankingCourse} event rankings will appear here when results are added.</p></div>}
-                  </> : <div className="flex min-h-36 flex-col items-start justify-center"><p className="font-semibold text-[var(--ink)]">Your event rankings will appear here</p><p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">Submit a swim result to see your best time, points, and world position for each event.</p><Link to="/submit" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Submit results <ArrowRight size={15} /></Link></div>}
+                  </> : <div className="flex min-h-36 flex-col items-start justify-center"><p className="font-semibold text-[var(--ink)]">Your event rankings will appear here</p><p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">Submit a swim result to see your best time, points, and world position for each event.</p><Link to="/submit" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Submit a result <ArrowRight size={15} /></Link></div>}
             </div>
           </DashboardCard>
         </div>
