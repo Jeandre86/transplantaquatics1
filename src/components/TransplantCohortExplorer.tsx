@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { AGE_GROUPS, COURSES, GENDERS, TRANSPLANT_TYPES } from '../types';
 import type { Ranking } from '../types';
 import RankingTable from './RankingTable';
-import FilterSelect from './FilterSelect';
 import { getTransplantPoints } from '../lib/transplantPoints';
 import FilterBar from './FilterBar';
 import Pagination from './Pagination';
@@ -18,7 +17,7 @@ const ALL = 'All';
 const PAGE_SIZE = 25;
 
 export default function TransplantCohortExplorer() {
-  const [transplantType, setTransplantType] = useState(ALL);
+  const [transplantType, setTransplantType] = useState('Kidney');
   const [ageGroup, setAgeGroup] = useState(ALL);
   const [gender, setGender] = useState(ALL);
   const [course, setCourse] = useState(ALL);
@@ -85,11 +84,27 @@ export default function TransplantCohortExplorer() {
         </div>
 
         <FilterBar className="mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
-          <div className="flex flex-wrap gap-3">
-            <FilterSelect label="Transplant Type" value={transplantType} options={[ALL, ...TRANSPLANT_TYPES]} onChange={setTransplantType} />
-            <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...ageGroupOptions]} onChange={setAgeGroup} />
-            <FilterSelect label="Gender" value={gender} options={[ALL, ...GENDERS]} onChange={setGender} />
-            <FilterSelect label="Course" value={course} options={[ALL, ...COURSES]} onChange={setCourse} />
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-[10px] text-[var(--muted)]">Transplant:
+              <select value={transplantType} onChange={event => setTransplantType(event.target.value)} className="bg-transparent py-0.5 text-[10px] font-semibold text-[var(--ink)] outline-none">
+                {[ALL, ...TRANSPLANT_TYPES].map(type => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </label>
+            <label className="inline-flex items-center gap-1.5 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)]">Age group:
+              <select value={ageGroup} onChange={event => setAgeGroup(event.target.value)} className="bg-transparent py-0.5 text-[10px] font-semibold text-[var(--ink)] outline-none">
+                {[ALL, ...ageGroupOptions].map(group => <option key={group} value={group}>{group}</option>)}
+              </select>
+            </label>
+            <label className="inline-flex items-center gap-1.5 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)]">Gender:
+              <select value={gender} onChange={event => setGender(event.target.value)} className="bg-transparent py-0.5 text-[10px] font-semibold text-[var(--ink)] outline-none">
+                {[ALL, ...GENDERS].map(option => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </label>
+            <label className="inline-flex items-center gap-1.5 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)]">Course:
+              <select value={course} onChange={event => setCourse(event.target.value)} className="bg-transparent py-0.5 text-[10px] font-semibold text-[var(--ink)] outline-none">
+                {[ALL, ...COURSES].map(option => <option key={option} value={option}>{option === 'LCM' ? 'Long course' : option === 'SCM' ? 'Short course' : option}</option>)}
+              </select>
+            </label>
           </div>
         </FilterBar>
 

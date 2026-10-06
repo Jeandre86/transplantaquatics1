@@ -88,7 +88,7 @@ export default function FilterBar({ children, className = '', collapsible = fals
       </select>
     </label>)}
   </div>;
-  const filters = <div className={`flex ${compact ? 'flex-wrap items-end gap-3' : 'flex-col gap-4'}`}>{fieldsUi ?? children}</div>;
+  const filters = <div className={`flex ${compact ? 'flex-wrap items-end gap-3' : 'flex-col gap-4'}`}>{fieldsUi || children}</div>;
   const extras = <>
     {visibleFilters.length > 0 && <div className="flex flex-wrap items-center gap-2" aria-label="Active filters">
       {visibleFilters.map(filter => <span key={filter.key} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs text-[var(--ink)]">
