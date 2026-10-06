@@ -12,14 +12,14 @@ export default function Footer() {
             <p className="mt-4 text-sm leading-relaxed max-w-xs" style={{ color: 'var(--muted-on-dark)' }}>
               A global home for transplant aquatics.
             </p>
-            <p className="mt-4 font-bold uppercase tracking-wider text-xs" style={{ color: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}>
+            <p className="mt-4 text-sm font-semibold" style={{ color: 'var(--accent)', fontFamily: "'Manrope', sans-serif" }}>
               Different journeys. Same water.
             </p>
           </div>
 
           {/* Explore */}
           <div>
-            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Explore</div>
+            <div className="mb-4 text-sm font-semibold text-white">Explore</div>
             <ul className="space-y-2">
               {[
                 { to: '/rankings',  label: 'Rankings' },
@@ -41,12 +41,12 @@ export default function Footer() {
 
           {/* Discover */}
           <div>
-            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Discover</div>
+            <div className="mb-4 text-sm font-semibold text-white">Discover</div>
             <ul className="space-y-2">
               {[
                 { to: '/countries',          label: 'Countries' },
                 { to: '/clubs',              label: 'Clubs' },
-                { to: '/calendar',           label: 'Meet Calendar' },
+                { to: '/calendar',           label: 'Meet calendar' },
                 /*{ to: '/compare',            label: 'Compare Athletes' },*/
                 { to: '/from-the-pool-deck', label: 'News' },
                 /*{ to: '/search',             label: 'Search' },*/
@@ -63,12 +63,12 @@ export default function Footer() {
 
           {/* Transplant Aquatics */}
           <div>
-            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Transplant Aquatics</div>
+            <div className="mb-4 text-sm font-semibold text-white">Take part</div>
             <ul className="space-y-2">
               {[
-                { to: '/join',    label: 'Join Transplant Aquatics' },
-                { to: '/login',   label: 'Sign In' },
-                { to: '/submit',  label: 'Submit a Result' },
+                { to: '/join',    label: 'Join' },
+                { to: '/login',   label: 'Sign in' },
+                { to: '/submit',  label: 'Submit a result' },
               ].map((l, i) => (
                 <li key={i}>
                   <Link to={l.to} className="-ml-1.5 inline-flex rounded-sm px-1.5 py-1 text-sm text-white transition-colors hover:text-[#00c2d7]"
@@ -82,10 +82,12 @@ export default function Footer() {
 
           {/* Socials */}
           <div>
-            <div className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-white">Socials</div>
+            <div className="mb-4 text-sm font-semibold text-white">Follow</div>
             <ul className="space-y-2">
               {['Facebook', 'Instagram', 'X'].map(name => (
-                <li key={name} className="text-sm" style={{ color: 'var(--muted-on-dark)' }}>{name}</li>
+                <li key={name}>
+                  <span className="inline-flex cursor-default text-sm text-white/70 underline decoration-transparent underline-offset-4 transition-colors hover:text-white hover:decoration-white/50">{name === 'X' ? 'X (Twitter)' : name}</span>
+                </li>
               ))}
             </ul>
           </div>
@@ -100,7 +102,7 @@ export default function Footer() {
             Copyright © 2026 Transplant Aquatics All rights reserved.
           </p>
           <p className="font-mono text-xs" style={{ color: 'var(--muted-on-dark)' }}>
-            Project By Ontwrp.
+            Different journeys. Same water.
           </p>
         </div>
       </div>
