@@ -75,6 +75,8 @@ function toListedCountries(swimmers: PublicSwimmerProfile[], records: WorldRecor
 
 export default function CountriesPage() {
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<'swimmers' | 'records' | 'name'>('swimmers');
+  const [showAll, setShowAll] = useState(false);
   const [page, setPage] = useState(1);
   const [swimmers, setSwimmers] = useState<PublicSwimmerProfile[]>([]);
   const [records, setRecords] = useState<WorldRecord[]>([]);
@@ -95,35 +97,47 @@ export default function CountriesPage() {
   }, []);
 
   const allCountries = useMemo(() => toListedCountries(swimmers, records, !recordLoadError), [swimmers, records, recordLoadError]);
-  const filtered = allCountries.filter(country => country.name.toLowerCase().includes(search.trim().toLowerCase()));
-  useEffect(() => setPage(1), [search]);
-  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
-  const pageCountries = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const maxSwimmers = Math.max(1, ...allCountries.map(country => country.swimmerCount));
+  const filtered = allCountries.filter(country => country.name.toLowerCase().includes(search.trim().toLowerCase())).sort((a, b) => {
+    if (sort === 'name') return a.name.localeCompare(b.name);
+    if (sort === 'records') return (b.recordCount ?? -1) - (a.recordCount ?? -1) || a.name.localeCompare(b.name);
+    return b.swimmerCount - a.swimmerCount || a.name.localeCompare(b.name);
+  });
+  const visibleCountries = showAll || search.trim() ? filtered : filtered.slice(0, 17);
+  useEffect(() => setPage(1), [search, sort, showAll]);
+  const pageCount = Math.ceil(visibleCountries.length / PAGE_SIZE);
+  const pageCountries = visibleCountries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div style={{ backgroundColor: 'var(--paper)' }}>
       <PageHeading eyebrow="Global directory" title="Countries" description="Browse registered swimmers and countries with World Transplant Games records." />
       <section style={{ backgroundColor: '#f4f2ed' }}>
         <div className="max-w-7xl mx-auto px-4 py-10">
-          <FilterBar className="mb-6 max-w-md">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+          <FilterBar className="min-w-[260px] flex-1">
             <SearchInput value={search} onChange={setSearch} placeholder="Search countries..." />
           </FilterBar>
+          <div className="inline-flex border border-[var(--border)] bg-white p-1" aria-label="Sort countries">
+            {[['swimmers', 'Most swimmers'], ['records', 'Most records'], ['name', 'A–Z']].map(([value, label]) => <button key={value} type="button" onClick={() => setSort(value as typeof sort)} aria-pressed={sort === value} className={`px-3 py-2 text-xs font-semibold ${sort === value ? 'bg-[var(--navy)] text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{label}</button>)}
+          </div>
+          </div>
           {loading ? (
             <SkeletonTable rows={6} columns={4} />
           ) : loadError ? (
             <EmptyState title="Country data is unavailable" subtitle={loadError} />
           ) : filtered.length ? (
             <div className="ta-table-shell">
-              <div className="ta-table-header grid grid-cols-[minmax(0,1fr)_auto_auto_20px] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:grid-cols-[minmax(0,1fr)_100px_100px_28px] sm:px-5 sm:text-xs">
-                <span>Country</span><span className="text-right">Swimmers</span><span className="text-right">Records</span><span aria-hidden="true" />
+              <div className="ta-table-header grid grid-cols-[32px_minmax(0,1fr)_minmax(150px,1fr)_90px_28px] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 sm:text-xs">
+                <span>#</span><span>Country</span><span className="hidden sm:block">Swimmers</span><span className="text-right">World records</span><span aria-hidden="true" />
               </div>
-              <div>{pageCountries.map(country => (
-                <Link key={country.code} to={`/countries/${encodeURIComponent(country.code)}`} className="ta-table-row group grid grid-cols-[minmax(0,1fr)_auto_auto_20px] items-center gap-3 px-3 py-5 sm:grid-cols-[minmax(0,1fr)_100px_100px_28px] sm:px-5">
+              <div>{pageCountries.map((country, index) => (
+                <Link key={country.code} to={`/countries/${encodeURIComponent(country.code)}`} className="ta-table-row group grid grid-cols-[32px_minmax(0,1fr)_minmax(150px,1fr)_90px_28px] items-center gap-3 px-3 py-4 sm:px-5">
+                  <span className="font-mono text-sm text-[var(--muted)]">{(page - 1) * PAGE_SIZE + index + 1}</span>
                   <span className="flex min-w-0 items-center gap-3">
                     <span className="ta-table-flag" aria-hidden="true">{country.flag}</span>
                     <span className="truncate text-base font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">{country.name}</span>
                   </span>
-                  <span className="text-right font-mono text-sm text-[var(--muted)]">{country.swimmerCount}</span>
+                  <span className="hidden items-center gap-3 sm:flex"><span className="w-8 text-right font-mono text-sm font-semibold text-[var(--ink)]">{country.swimmerCount}</span><span className="h-1.5 flex-1 bg-[var(--paper-dark)]"><span className="block h-full bg-[var(--accent-dark)]" style={{ width: `${Math.max(3, country.swimmerCount / maxSwimmers * 100)}%` }} /></span></span>
                   <span className="text-right font-mono text-sm text-[var(--muted)]">{country.recordCount ?? '—'}</span>
                   <span className="flex justify-end text-[var(--muted)] transition-colors group-hover:text-[var(--accent-dark)]"><ArrowRight size={20} aria-hidden="true" /></span>
                 </Link>
@@ -135,7 +149,8 @@ export default function CountriesPage() {
             <EmptyState title="No swimmer countries yet" subtitle="Countries will appear here when swimmer profiles with a country are in the database." />
           )}
           {!loading && !loadError && recordLoadError && <p className="mt-4 text-xs text-[var(--muted)]">World record counts are temporarily unavailable.</p>}
-          {!loading && !loadError && filtered.length > 0 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Country pages" />}
+          {!loading && !loadError && filtered.length > 0 && !showAll && !search.trim() && filtered.length > 17 ? <div className="mt-6 text-center"><Button variant="secondary" size="sm" onClick={() => setShowAll(true)}>Show all {filtered.length} countries</Button></div> : null}
+          {!loading && !loadError && filtered.length > 0 && (showAll || Boolean(search.trim())) && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Country pages" />}
         </div>
       </section>
     </div>

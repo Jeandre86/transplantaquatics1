@@ -72,10 +72,12 @@ export default function ClubsPage() {
       </section>
 
       <section style={{ backgroundColor: '#f4f2ed' }}>
-      <div className="max-w-7xl mx-auto px-4 py-8 pb-16">
-        <FilterBar className="mb-6 max-w-xl">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 pb-16 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div>
+        <FilterBar className="mb-5">
           <SearchInput value={search} onChange={setSearch} placeholder="Search by club name, city or country…" />
         </FilterBar>
+        <p className="mb-4 text-sm font-semibold text-[var(--ink)]">{filtered.length} {filtered.length === 1 ? 'club' : 'clubs'} registered</p>
         {loading ? <SkeletonTable rows={6} columns={3} /> : filtered.length === 0 ? (
           <EmptyState title="No clubs match your search" subtitle="Try a different club, city or country name." action={<Button variant="secondary" size="sm" onClick={() => setSearch('')}>Clear search</Button>} />
         ) : (
@@ -107,6 +109,18 @@ export default function ClubsPage() {
           </div>
         )}
         <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Club pages" />
+        <p className="mt-6 text-sm leading-relaxed text-[var(--muted)]">We’re just getting started. If you train with a transplant swim group, ask them to register so others nearby can find it.</p>
+        </div>
+        <aside className="h-fit bg-[var(--navy)] p-6 text-white lg:p-8">
+          <h2 className="text-2xl font-bold">Run a club? Register it.</h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/70">It takes about five minutes and helps swimmers near you find a place to train.</p>
+          <ol className="mt-6 space-y-4 text-sm text-white/85">
+            <li className="flex gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-[var(--navy)]">1</span><span>Tell us the club name, pool and training times.</span></li>
+            <li className="flex gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-[var(--navy)]">2</span><span>Add a contact so swimmers can reach you.</span></li>
+            <li className="flex gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-[var(--navy)]">3</span><span>Invite members to link their athlete profiles.</span></li>
+          </ol>
+          <Link to="/join" className="mt-7 inline-flex w-full items-center justify-center gap-2 bg-[var(--accent)] px-5 py-3 font-semibold text-[var(--navy)] hover:bg-white">Register your club <ArrowRight size={16} /></Link>
+        </aside>
       </div>
       </section>
     </div>

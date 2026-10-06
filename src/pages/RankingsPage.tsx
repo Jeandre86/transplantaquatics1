@@ -40,7 +40,16 @@ export default function RankingsPage() {
   return (
     <div>
       {/* Header */}
-      <PageHeading eyebrow="Leaderboard" title="World Rankings" description="Explore transplant swimming performances by points, time, age group, gender, event and course." />
+      <PageHeading eyebrow="Leaderboard" title="World rankings" description="Every verified swim, scored with World Aquatics points so you can compare swimmers across events, ages and genders.">
+        <div className="mt-5 max-w-4xl">
+          <p className="mb-3 text-xs font-semibold text-[var(--accent)]">How points work</p>
+          <div className="grid gap-4 border-l-2 border-[var(--accent)] pl-4 sm:grid-cols-3 sm:gap-6">
+            <p className="text-xs leading-relaxed text-white/65"><strong className="text-white">Time decides the event.</strong> Within one event, the faster swim always ranks higher.</p>
+            <p className="text-xs leading-relaxed text-white/65"><strong className="text-white">Points compare across events.</strong> 1,000 points equals the current world-record pace for that event.</p>
+            <p className="text-xs leading-relaxed text-white/65"><strong className="text-white">Only verified swims count.</strong> Pending results appear once officials confirm them.</p>
+          </div>
+        </div>
+      </PageHeading>
 
       {/* Gender leaderboard previews */}
       <section style={{ backgroundColor: '#f4f2ed' }}>
@@ -92,6 +101,8 @@ export default function RankingsPage() {
         </div>
       </section>
 
+      <TransplantCohortExplorer />
+
       {/* Fastest by Transplant Type — Discovery */}
       <section style={{ backgroundColor: 'var(--navy-mid)', borderTop: '1px solid var(--navy-light)' }}>
         <div className="max-w-7xl mx-auto px-4 py-16">
@@ -136,7 +147,6 @@ export default function RankingsPage() {
         </div>
       </section>
 
-      <TransplantCohortExplorer />
     </div>
   );
 }

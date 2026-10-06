@@ -22,6 +22,8 @@ export default function AboutPage() {
 
   const selected = sections.find(item => item.slug === section);
   const overview = sections.find(item => item.slug === 'overview') ?? DEFAULT_ABOUT_SECTIONS[0];
+  const story = sections.find(item => item.slug === 'our-story') ?? DEFAULT_ABOUT_SECTIONS[1];
+  const partners = sections.find(item => item.slug === 'partners') ?? DEFAULT_ABOUT_SECTIONS[5];
 
   if (section && !selected) return <Navigate to="/about" replace />;
 
@@ -31,10 +33,10 @@ export default function AboutPage() {
         <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 md:py-16">
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--accent)]">About Transplant Aquatics</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-            {selected?.title ?? overview.title}
+            {selected?.title ?? story.title}
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--muted-on-dark)] sm:text-base">
-            {selected?.description ?? overview.description}
+            {selected?.description ?? story.description}
           </p>
         </div>
       </section>
@@ -52,18 +54,37 @@ export default function AboutPage() {
             </article>
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {sections.filter(item => item.slug !== 'overview').map((item, index) => (
-                  <Link key={item.slug} to={`/about/${item.slug}`} className="group flex min-h-40 flex-col justify-between border border-[var(--border)] p-5 transition-colors hover:border-[var(--accent-dark)] hover:bg-[var(--surface)]" style={{ backgroundColor: index % 2 ? 'var(--paper-dark)' : 'var(--surface)' }}>
-                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent-dark)]">0{index + 1}</span>
-                    <span>
-                      <span className="flex items-center justify-between gap-3 text-lg font-bold text-[var(--ink)]">{item.title}<ArrowRight size={17} className="shrink-0 transition-transform group-hover:translate-x-1" /></span>
-                      <span className="mt-2 block text-sm leading-relaxed text-[var(--muted)]">{item.description}</span>
-                      {item.slug === 'partners' && item.badge && <span className="mt-3 inline-flex font-mono text-[10px] uppercase tracking-widest text-[var(--accent-dark)]">TBA</span>}
-                    </span>
-                  </Link>
-                ))}
-              </div>
+              <section aria-label="Our story" className="grid gap-8 bg-[var(--paper)] py-2 md:grid-cols-2 md:gap-14">
+                <h2 className="max-w-xl text-2xl font-semibold leading-snug tracking-tight text-[var(--ink)] sm:text-3xl">Every swimmer here has had an organ or bone marrow transplant. We exist so their performances are recorded, compared and celebrated like any elite sport.</h2>
+                <div className="space-y-5 text-base leading-relaxed text-[var(--muted)]">
+                  {story.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+                  <Link to="/athletes" className="inline-flex items-center gap-2 pt-1 font-semibold text-[var(--accent-dark)] hover:underline">Meet the athletes <ArrowRight size={15} /></Link>
+                </div>
+              </section>
+              <section className="mt-12 border-t border-[var(--border)] pt-9" aria-labelledby="about-find-heading">
+                <h2 id="about-find-heading" className="mb-6 text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-3xl">What you’ll find here</h2>
+                <div className="grid gap-x-12 md:grid-cols-2">
+                  {[
+                    ['Rankings', 'Who is fastest right now? Each athlete’s best verified swim, ranked by event.', '/rankings'],
+                    ['Results', 'Every swim from every meet, including ones still waiting for verification.', '/results'],
+                    ['Records', 'The fastest swim ever set at the World Transplant Games, for each event and age group.', '/records'],
+                    ['Athletes', 'A profile for every swimmer, with their best times, meets and medals.', '/athletes'],
+                  ].map(([label, copy, href]) => <Link key={label} to={href} className="grid gap-2 border-t border-[var(--border)] py-4 transition-colors hover:bg-white sm:grid-cols-[120px_1fr] sm:gap-5"><span className="font-semibold text-[var(--ink)]">{label}</span><span className="text-sm leading-relaxed text-[var(--muted)]">{copy}</span></Link>)}
+                </div>
+              </section>
+              <section className="mt-12 grid gap-8 border-t border-[var(--border)] pt-9 md:grid-cols-2 md:gap-14" aria-label="Community and partners">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-3xl">Who’s behind it</h2>
+                  <p className="mt-4 text-sm leading-relaxed text-[var(--muted)]">{overview.description} {partners.description}</p>
+                  {partners.badge && <p className="mt-5 border-t border-[var(--border)] py-3 text-sm text-[var(--muted)]">{partners.badge}</p>}
+                  {sections.filter(item => !['overview', 'our-story', 'what-we-do', 'partners'].includes(item.slug)).map(item => <Link key={item.slug} to={`/about/${item.slug}`} className="flex items-center justify-between border-t border-[var(--border)] py-3 text-sm font-medium text-[var(--ink)] hover:text-[var(--accent-dark)]">{item.title}<ArrowRight size={15} /></Link>)}
+                </div>
+                <div className="bg-[var(--navy)] p-7 text-white sm:p-9">
+                  <h2 className="text-2xl font-bold leading-tight sm:text-3xl">Every athlete here is swimming because of a donor.</h2>
+                  <p className="mt-4 text-sm leading-relaxed text-white/70">Learn about organ donation and talk with your family about your decision.</p>
+                  <Link to="/about/partners" className="mt-7 inline-flex items-center gap-2 bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-[var(--navy)] transition-colors hover:bg-white">Learn more <ArrowRight size={15} /></Link>
+                </div>
+              </section>
             </>
           )}
         </div>
