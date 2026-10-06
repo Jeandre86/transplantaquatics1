@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AGE_GROUPS, COURSES, EVENTS, GENDERS, TRANSPLANT_TYPES } from '../types';
+import { AGE_GROUPS, COURSES, GENDERS, TRANSPLANT_TYPES } from '../types';
 import type { Ranking } from '../types';
 import RankingTable from './RankingTable';
 import FilterSelect from './FilterSelect';
-import Eyebrow from './Eyebrow';
 import { getTransplantPoints } from '../lib/transplantPoints';
 import FilterBar from './FilterBar';
 import Pagination from './Pagination';
@@ -12,16 +11,17 @@ import Button from './Button';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
 import { SkeletonTable } from './Skeleton';
+import SearchInput from './SearchInput';
 
 const ALL = 'All';
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
 
 export default function TransplantCohortExplorer() {
   const [transplantType, setTransplantType] = useState(ALL);
   const [ageGroup, setAgeGroup] = useState(ALL);
   const [gender, setGender] = useState(ALL);
-  const [event, setEvent] = useState(ALL);
   const [course, setCourse] = useState(ALL);
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,17 +38,17 @@ export default function TransplantCohortExplorer() {
 
   useEffect(() => {
     setPage(1);
-  }, [transplantType, ageGroup, gender, event, course]);
+  }, [transplantType, ageGroup, gender, course, search]);
 
-  const hasFilters = [transplantType, ageGroup, gender, event, course].some(value => value !== ALL);
+  const hasFilters = [transplantType, ageGroup, gender, course].some(value => value !== ALL) || Boolean(search.trim());
   const ageGroupOptions = [...new Set([...AGE_GROUPS, ...rankings.map(row => row.ageGroup)])];
-  const eventOptions = [...new Set([...EVENTS, ...rankings.map(row => row.event)])];
+  const normalizedSearch = search.trim().toLowerCase();
   const filtered = rankings
     .filter(r => (transplantType === ALL || r.transplantType === transplantType)
       && (ageGroup === ALL || r.ageGroup === ageGroup)
       && (gender === ALL || r.gender === gender)
-      && (event === ALL || r.event === event)
-      && (course === ALL || r.course === course))
+      && (course === ALL || r.course === course)
+      && (!normalizedSearch || `${r.athleteName} ${r.country} ${r.countryCode}`.toLowerCase().includes(normalizedSearch)))
     .sort((a, b) => {
       const pointsA = getTransplantPoints(a);
       const pointsB = getTransplantPoints(b);
@@ -69,31 +69,31 @@ export default function TransplantCohortExplorer() {
     setTransplantType(ALL);
     setAgeGroup(ALL);
     setGender(ALL);
-    setEvent(ALL);
     setCourse(ALL);
+    setSearch('');
   };
 
   return (
-    <section style={{ backgroundColor: '#f4f2ed' }}>
-      <div className="max-w-7xl mx-auto px-4 py-14">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
+    <section className="bg-[var(--paper)]">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:py-12">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Eyebrow>Transplant cohort</Eyebrow>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">See where you rank</h2>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">Browse swimmers ranked by World Aquatics PTS, then filter by transplant type, age group, event, gender, or course.</p>
+            <h2 className="text-2xl font-black tracking-tight text-[var(--ink)]">All swimmers</h2>
+            <p className="mt-1 text-xs text-[var(--muted)]">Every athlete’s best swim, ranked by points.</p>
           </div>
           {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
         </div>
 
-        <FilterBar className="mb-6" collapsible>
+        <FilterBar className="mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
           <div className="flex flex-wrap gap-3">
             <FilterSelect label="Transplant Type" value={transplantType} options={[ALL, ...TRANSPLANT_TYPES]} onChange={setTransplantType} />
             <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...ageGroupOptions]} onChange={setAgeGroup} />
             <FilterSelect label="Gender" value={gender} options={[ALL, ...GENDERS]} onChange={setGender} />
-            <FilterSelect label="Event" value={event} options={[ALL, ...eventOptions]} onChange={setEvent} />
             <FilterSelect label="Course" value={course} options={[ALL, ...COURSES]} onChange={setCourse} />
           </div>
         </FilterBar>
+
+        {!loading && !loadError && <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{cohort.length.toLocaleString()} swimmers</span>{hasFilters && <span className="rounded-full bg-[var(--navy)] px-3 py-1 font-medium text-white">Filtered view</span>}</div>}
 
         {loading ? (
           <SkeletonTable rows={8} columns={5} />
@@ -111,12 +111,11 @@ export default function TransplantCohortExplorer() {
               rankOffset={(page - 1) * PAGE_SIZE}
               rankPositions={rankPositions}
               showGap={false}
-              genderCard
+              showEventColumn
               paperSurface
               showAgeGroup
-              showGender
+              ageGroupWithGender
               showEventMeta={false}
-              title={hasFilters ? [transplantType, ageGroup, gender, event, course].filter(value => value !== ALL).join(' · ') : 'All swimmers'}
             />
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Transplant cohort pages" />
           </>

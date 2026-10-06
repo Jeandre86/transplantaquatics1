@@ -16,11 +16,13 @@ interface RankingTableProps {
   rankOffset?: number;
   rankPositions?: Map<string, number>;
   genderCard?: boolean;
+  showEventColumn?: boolean;
   showPoints?: boolean;
   title?: string;
   showGenderInEvent?: boolean;
   showEventMeta?: boolean;
   showAgeGroup?: boolean;
+  ageGroupWithGender?: boolean;
   showGender?: boolean;
   paperSurface?: boolean;
 }
@@ -52,7 +54,7 @@ function VerifiedBadge({ status }: { status: 'verified' | 'pending' | 'unverifie
   return null; // unverified — no badge (keeps table clean)
 }
 
-export default function RankingTable({ rankings, light = false, showExtras = false, showVerified = true, showCategory = false, showGap = true, rankByPoints = false, rankOffset = 0, rankPositions, genderCard = false, showPoints = true, title, showGenderInEvent = false, showEventMeta = true, showAgeGroup = false, showGender = false, paperSurface = false }: RankingTableProps) {
+export default function RankingTable({ rankings, light = false, showExtras = false, showVerified = true, showCategory = false, showGap = true, rankByPoints = false, rankOffset = 0, rankPositions, genderCard = false, showEventColumn = false, showPoints = true, title, showGenderInEvent = false, showEventMeta = true, showAgeGroup = false, ageGroupWithGender = false, showGender = false, paperSurface = false }: RankingTableProps) {
   const navigate = useNavigate();
   if (rankings.length === 0) {
     return (
@@ -100,7 +102,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
             <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">{genderCard ? 'Name' : 'Athlete'}</th>
             {showAgeGroup && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Age Group</th>}
             {showGender && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Gender</th>}
-            {genderCard && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Event</th>}
+            {(genderCard || showEventColumn) && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Event</th>}
             <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5">Time</th>
             {showPoints && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="World Aquatics base times are used; matching WTG records are used for junior 25m events">PTS</th>}
             {showGap && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden md:table-cell sm:px-5">Gap</th>}
@@ -178,10 +180,10 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                   )}
                 </td>
 
-                {showAgeGroup && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.ageGroup || '—'}</td>}
+                {showAgeGroup && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.ageGroup || '—'}{ageGroupWithGender && r.gender ? ` · ${r.gender}` : ''}</td>}
                 {showGender && <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{r.gender || '—'}</td>}
 
-                {genderCard && (
+                {(genderCard || showEventColumn) && (
                   <td className="px-3 py-4 text-sm text-[var(--ink)] sm:px-5">
                     <div>{r.event ? r.event.replace('m ', ' ') : '—'}</div>
                     {showEventMeta && <div className="mt-1 font-mono text-[10px] text-[var(--muted)]">{showGenderInEvent && `${r.gender || '—'} · `}{r.ageGroup || '—'} · {r.course || '—'}</div>}

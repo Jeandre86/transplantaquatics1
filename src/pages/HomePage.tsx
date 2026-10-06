@@ -237,15 +237,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="order-7 bg-[var(--paper)]">
+      {featuredArticles.length > 0 && <section className="order-7 bg-white">
         <div className={section}>
           <Eyebrow color="blue">From the pool deck</Eyebrow>
           <h2 className={title}>Stories from the world of transplant swimming</h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">The people, preparation, and progress behind the performances.</p>
-          {featuredArticles.length ? <div className="mt-9 grid gap-6 md:grid-cols-3">{featuredArticles.map(a => <ArticleCard key={a.id} article={a} />)}</div> : <p className="mt-8 border-t border-[var(--border)] py-6 text-sm text-[var(--muted)]">No stories have been published yet.</p>}
+          <div className="mt-9 grid gap-6 md:grid-cols-3">{featuredArticles.map(a => <ArticleCard key={a.id} article={a} />)}</div>
           <Link to="/from-the-pool-deck" className="mt-7 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-[var(--blue)]">Read all stories <ArrowRight size={15} /></Link>
         </div>
-      </section>
+      </section>}
 
       <section className="order-8 bg-[var(--navy)] text-center text-white">
         <div className="mx-auto max-w-4xl px-5 py-16 sm:px-8 sm:py-20">
