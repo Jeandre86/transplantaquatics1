@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { AGE_GROUPS, COURSES, EVENTS } from '../types';
 import type { Course, Event, Gender, Ranking, TransplantType } from '../types';
-import { getCountryAlpha3, getFlagEmoji, timeToSeconds } from '../lib/utils';
+import { getCountryAlpha3, getFlagEmoji, is25mEvent, timeToSeconds } from '../lib/utils';
 import { getSavedAvatar } from '../lib/avatars';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
@@ -14,7 +14,7 @@ const TYPE_LABELS: Record<TransplantType, string> = {
   Pancreas: 'Pancreas', 'Bone Marrow': 'Bone marrow', Donor: 'Living donor',
 };
 const TYPES: TransplantType[] = ['Kidney', 'Liver', 'Heart', 'Lung', 'Pancreas', 'Bone Marrow', 'Donor'];
-const INITIAL_EVENT = '100m Backstroke' as Event;
+const ALL_EVENTS = 'All';
 
 function meetLabel(row: Ranking) {
   const year = row.date ? new Date(row.date).getUTCFullYear() : NaN;
@@ -35,7 +35,7 @@ export default function TransplantTypeRankingsPage() {
   const [transplantType, setTransplantType] = useState<TransplantType>('Kidney');
   const [ageGroup, setAgeGroup] = useState('All');
   const [gender, setGender] = useState<Gender>('Men');
-  const [event, setEvent] = useState<Event>(INITIAL_EVENT);
+  const [event, setEvent] = useState<Event | typeof ALL_EVENTS>(ALL_EVENTS);
   const [course, setCourse] = useState<Course>('LCM');
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,20 +54,36 @@ export default function TransplantTypeRankingsPage() {
   for (const type of TYPES) typeCounts.set(type, new Set());
   rankings.forEach(row => typeCounts.get(row.transplantType)?.add(row.athleteId));
 
-  const bestByAthlete = new Map<string, Ranking>();
+  const bestByAthleteEvent = new Map<string, Ranking>();
   rankings
     .filter(row => row.transplantType === transplantType && row.gender === gender
-      && row.event === event && row.course === course
+      && (event === ALL_EVENTS || row.event === event) && !is25mEvent(row.event) && row.course === course
       && (ageGroup === 'All' || row.ageGroup === ageGroup))
-    .sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time)
+    .sort((a, b) => (event === ALL_EVENTS
+      ? String(a.event ?? '').localeCompare(String(b.event ?? ''), undefined, { numeric: true })
+      : 0)
+      || timeToSeconds(a.time) - timeToSeconds(b.time)
       || String(a.athleteName ?? '').localeCompare(String(b.athleteName ?? '')))
     .forEach(row => {
-      if (!bestByAthlete.has(row.athleteId)) bestByAthlete.set(row.athleteId, row);
+      const key = event === ALL_EVENTS ? `${row.athleteId}|${row.event}` : row.athleteId;
+      if (!bestByAthleteEvent.has(key)) bestByAthleteEvent.set(key, row);
     });
-  const results = [...bestByAthlete.values()].map((row, index) => ({ ...row, rank: index + 1 }));
-  const leaderSeconds = results.length ? timeToSeconds(results[0].time) : 0;
+  const sortedResults = [...bestByAthleteEvent.values()].sort((a, b) =>
+    (event === ALL_EVENTS ? String(a.event ?? '').localeCompare(String(b.event ?? ''), undefined, { numeric: true }) : 0)
+    || timeToSeconds(a.time) - timeToSeconds(b.time)
+    || String(a.athleteName ?? '').localeCompare(String(b.athleteName ?? '')));
+  const leaders = new Map<string, number>();
+  const ranks = new Map<string, number>();
+  const results = sortedResults.map(row => {
+    const category = event === ALL_EVENTS ? row.event : ALL_EVENTS;
+    const rank = (ranks.get(category) ?? 0) + 1;
+    ranks.set(category, rank);
+    if (!leaders.has(category)) leaders.set(category, timeToSeconds(row.time));
+    return { ...row, rank };
+  });
   const ageGroupOptions = AGE_GROUPS;
   const eventOptions = [...new Set([...EVENTS, ...rankings.map(row => row.event)])]
+    .filter(item => !is25mEvent(item))
     .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
 
   return (
@@ -95,6 +111,7 @@ export default function TransplantTypeRankingsPage() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2.5 px-4 py-2">
           <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-[10px] text-[var(--muted)]">Event:
             <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none">
+              <option value={ALL_EVENTS}>All</option>
               {eventOptions.map(item => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
@@ -116,32 +133,34 @@ export default function TransplantTypeRankingsPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">{transplantType} · {gender} · {event}</h2>
-          {!loading && !loadError && <p className="text-[10px] text-[var(--muted)]">{results.length} swimmers · each athlete’s best verified time</p>}
+          <h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">{transplantType} · {gender} · {event === ALL_EVENTS ? 'All events' : event}</h2>
+          {!loading && !loadError && <p className="text-[10px] text-[var(--muted)]">{results.length} swims · {event === ALL_EVENTS ? 'each athlete’s best time per event' : 'each athlete’s best verified time'}</p>}
         </div>
         {loading ? <SkeletonTable rows={6} columns={6} />
           : loadError ? <div role="alert" className="border border-red-300 bg-red-50 px-5 py-6 text-sm text-red-800">Athlete rankings could not be loaded from the database. {loadError}</div>
             : results.length ? <div className="overflow-x-auto border-t border-[var(--muted)] bg-white">
-              <table className="w-full min-w-[650px] border-collapse">
+              <table className={`w-full ${event === ALL_EVENTS ? 'min-w-[740px]' : 'min-w-[650px]'} border-collapse`}>
                 <thead><tr className="bg-[var(--navy)] text-white">
-                  {['Rank', 'Athlete', 'Age group', 'Set at', 'Behind leader', 'Time', ''].map((label, index) => <th key={`${label}-${index}`} className={`px-3 py-2 text-[9px] font-medium ${index === 0 || index === 1 || index === 2 || index === 3 ? 'text-left' : 'text-right'} ${index === 0 ? 'w-10' : ''}`}>{label}</th>)}
+                  {['Rank', 'Athlete', ...(event === ALL_EVENTS ? ['Event'] : []), 'Age group', 'Set at', 'Behind leader', 'Time', ''].map((label, index) => <th key={`${label}-${index}`} className={`px-3 py-2 text-[9px] font-medium ${label === 'Time' || label === 'Behind leader' || label === '' ? 'text-right' : 'text-left'} ${index === 0 ? 'w-10' : ''}`}>{label}</th>)}
                 </tr></thead>
-                <tbody>{results.map((row, index) => {
+                <tbody>{results.map(row => {
                   const nameParts = row.athleteName.trim().split(/\s+/);
                   const lastName = nameParts.length > 1 ? nameParts.pop()! : '';
                   const firstName = nameParts.join(' ');
                   const initials = `${firstName[0] ?? row.athleteName[0] ?? '?'}${lastName[0] ?? ''}`.toUpperCase();
                   const avatar = getSavedAvatar(firstName, lastName);
                   const countryFlag = row.countryCode ? getFlagEmoji(row.countryCode) : '';
-                  const behind = formatBehind(timeToSeconds(row.time) - leaderSeconds);
+                  const category = event === ALL_EVENTS ? row.event : ALL_EVENTS;
+                  const behind = formatBehind(timeToSeconds(row.time) - (leaders.get(category) ?? timeToSeconds(row.time)));
                   return <tr key={`${row.athleteId}-${row.rank}`} className="border-b border-[var(--border)] hover:bg-[var(--paper)]">
-                    <td className="px-3 py-2.5 text-[10px] font-mono text-[var(--accent-dark)]">{index + 1}</td>
+                    <td className="px-3 py-2.5 text-[10px] font-mono text-[var(--accent-dark)]">{row.rank}</td>
                     <td className="px-3 py-2.5">
                       <Link to={`/athletes/${row.athleteId}`} className="flex items-center gap-2 hover:underline">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] text-[9px] font-semibold text-[var(--navy)]">{avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initials}</span>
                         <span className="min-w-0"><span className="block truncate text-[10px] font-semibold text-[var(--ink)]">{row.athleteName}</span><span className="block text-[9px] text-[var(--muted)]">{countryFlag} {row.countryCode ? getCountryAlpha3(row.countryCode) : '—'}</span></span>
                       </Link>
                     </td>
+                    {event === ALL_EVENTS && <td className="px-3 py-2.5 text-[9px] text-[var(--ink)]">{row.event}</td>}
                     <td className="px-3 py-2.5 text-[9px] text-[var(--muted)]">{row.ageGroup || 'Not given'}</td>
                     <td className="px-3 py-2.5 text-[9px] text-[var(--muted)]">{meetLabel(row)}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-[9px] text-[var(--muted)]">{behind}</td>

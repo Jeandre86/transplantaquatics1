@@ -1,22 +1,42 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import { AGE_GROUPS, GENDERS, TRANSPLANT_TYPES } from '../types';
+import { ChevronRight, Search } from 'lucide-react';
+import { AGE_GROUPS, GENDERS, TRANSPLANT_TYPES, type Ranking } from '../types';
 import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
-import { getCountryAlpha3, getFlagEmoji } from '../lib/utils';
-import SearchInput from '../components/SearchInput';
-import FilterSelect from '../components/FilterSelect';
+import { loadDatabaseRankings } from '../lib/databaseRankings';
+import { getFlagEmoji, timeToSeconds } from '../lib/utils';
+import { normalizeCompetitionAgeGroup } from '../lib/competitionAge';
 import Pagination from '../components/Pagination';
-import FilterBar from '../components/FilterBar';
-import PageHeading from '../components/PageHeading';
-import EmptyState from '../components/EmptyState';
-import Button from '../components/Button';
 import { describeSupabaseError } from '../lib/supabase';
 import { SkeletonTable } from '../components/Skeleton';
 import { getSavedAvatar } from '../lib/avatars';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
 const ALL = 'All';
+
+function normalizedGender(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === 'men' || normalized === 'male' || normalized === 'boys') return 'Men';
+  if (normalized === 'women' || normalized === 'woman' || normalized === 'female' || normalized === 'girls') return 'Women';
+  return value || '—';
+}
+
+function normalizedTransplant(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase().replace(/\s+transplant$/, '');
+  if (normalized === 'kidney') return 'Kidney';
+  if (normalized === 'liver') return 'Liver';
+  if (normalized === 'heart') return 'Heart';
+  if (normalized === 'lung') return 'Lung';
+  if (normalized === 'pancreas') return 'Pancreas';
+  if (normalized === 'bone marrow' || normalized === 'marrow') return 'Bone Marrow';
+  if (normalized === 'donor' || normalized === 'living donor') return 'Donor';
+  return value || 'Not shared';
+}
+
+function bestSwimLabel(swim?: Ranking) {
+  if (!swim) return null;
+  return { time: swim.time, event: swim.event };
+}
 
 export default function AthletesPage() {
   const [search, setSearch] = useState('');
@@ -26,86 +46,111 @@ export default function AthletesPage() {
   const [transplant, setTransplant] = useState(ALL);
   const [page, setPage] = useState(1);
   const [athletes, setAthletes] = useState<PublicSwimmerProfile[]>([]);
+  const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let active = true;
-    loadPublicSwimmerDirectory().then(rows => {
-      if (active) setAthletes(rows);
-    }).catch((error: unknown) => {
+    Promise.allSettled([loadPublicSwimmerDirectory(), loadDatabaseRankings()]).then(([directoryResult, rankingsResult]) => {
       if (!active) return;
-      setLoadError(`The athlete directory could not be loaded from Supabase. ${describeSupabaseError(error)}`);
+      if (directoryResult.status === 'rejected') {
+        setLoadError(`The athlete directory could not be loaded from Supabase. ${describeSupabaseError(directoryResult.reason)}`);
+        return;
+      }
+      setAthletes(directoryResult.value);
+      if (rankingsResult.status === 'fulfilled') setRankings(rankingsResult.value);
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
 
   const countries = useMemo(() => [...new Set(athletes.map(athlete => athlete.country).filter((value): value is string => Boolean(value)))].sort(), [athletes]);
-  const ageGroups = useMemo(() => [...new Set([...AGE_GROUPS, 'Under 18', ...athletes.map(athlete => athlete.age_group).filter(Boolean)])].sort(), [athletes]);
+  const bestSwims = useMemo(() => {
+    const best = new Map<string, Ranking>();
+    rankings.slice().sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time)).forEach(swim => {
+      if (!best.has(swim.athleteId)) best.set(swim.athleteId, swim);
+    });
+    return best;
+  }, [rankings]);
   const filtered = useMemo(() => athletes.filter(athlete => {
     const query = search.trim().toLowerCase();
-    const searchable = `${athlete.first_name} ${athlete.last_name} ${athlete.country} ${athlete.club_name ?? ''}`.toLowerCase();
+    const fullName = `${athlete.first_name} ${athlete.last_name}`;
+    const searchable = `${fullName} ${athlete.country ?? ''} ${athlete.club_name ?? ''}`.toLowerCase();
     return (!query || searchable.includes(query))
       && (country === ALL || athlete.country === country)
-      && (gender === ALL || athlete.gender === gender)
-      && (ageGroup === ALL || athlete.age_group === ageGroup)
-      && (transplant === ALL || athlete.transplant_type === transplant);
-  }), [athletes, search, country, gender, ageGroup, transplant]);
+      && (gender === ALL || normalizedGender(athlete.gender) === gender)
+      && (ageGroup === ALL || normalizeCompetitionAgeGroup(athlete.age_group) === ageGroup)
+      && (transplant === ALL || normalizedTransplant(athlete.transplant_type) === transplant);
+  }).sort((a, b) => `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`)), [athletes, search, country, gender, ageGroup, transplant]);
 
   useEffect(() => setPage(1), [search, country, gender, ageGroup, transplant]);
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const pageAthletes = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const hasFilters = Boolean(search || country !== ALL || gender !== ALL || ageGroup !== ALL || transplant !== ALL);
-  const clearFilters = () => { setSearch(''); setCountry(ALL); setGender(ALL); setAgeGroup(ALL); setTransplant(ALL); };
 
-  return <div>
-    <PageHeading eyebrow="Athletes" title="Find your people." description="Explore swimmers from every country, age group and transplant background." />
-    <section className="border-b border-neutral-200" style={{ backgroundColor: 'var(--paper)' }}>
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <FilterBar collapsible search={<div className="w-full max-w-xl"><SearchInput value={search} onChange={setSearch} placeholder="Search athlete, country or club…" /></div>}>
-          <div className="flex flex-wrap gap-3">
-            <FilterSelect label="Country" value={country} options={[ALL, ...countries]} onChange={setCountry} />
-            <FilterSelect label="Gender" value={gender} options={[ALL, ...GENDERS]} onChange={setGender} />
-            <FilterSelect label="Age Group" value={ageGroup} options={[ALL, ...ageGroups]} onChange={setAgeGroup} />
-            <FilterSelect label="Transplant Type" value={transplant} options={[ALL, ...TRANSPLANT_TYPES]} onChange={setTransplant} />
-            {hasFilters && <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button>}
+  return <div className="bg-[var(--paper)]">
+    <section className="border-b border-[var(--border)] bg-white">
+      <div className="mx-auto max-w-7xl px-4 py-3">
+        <div className="grid gap-2 sm:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto] sm:items-center">
+          <div className="relative min-w-0">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by athlete, club or country" aria-label="Search by athlete, club or country" className="h-[34px] w-full border border-[var(--border)] bg-[var(--paper)] pl-8 pr-3 text-[10px] text-[var(--ink)] outline-none focus:border-[var(--accent-dark)]" />
           </div>
-        </FilterBar>
+          {[
+            { label: 'Country', value: country, set: setCountry, options: [ALL, ...countries] },
+            { label: 'Gender', value: gender, set: setGender, options: [ALL, ...GENDERS] },
+            { label: 'Age group', value: ageGroup, set: setAgeGroup, options: [ALL, ...AGE_GROUPS] },
+            { label: 'Transplant', value: transplant, set: setTransplant, options: [ALL, ...TRANSPLANT_TYPES] },
+          ].map(filter => <label key={filter.label} className="flex h-[34px] items-center gap-1 border border-[var(--border)] bg-white px-2 text-[9px] text-[var(--muted)]">
+            <span className="shrink-0">{filter.label}:</span>
+            <select value={filter.value} onChange={event => filter.set(event.target.value)} className="min-w-0 appearance-none bg-transparent pr-4 text-[9px] font-medium text-[var(--ink)] outline-none">
+              {filter.options.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </label>)}
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[9px] text-[var(--muted)]">
+          <span className="font-semibold text-[var(--ink)]">{loading ? 'Loading athletes…' : `${filtered.length.toLocaleString()} athletes`}</span>
+          <span>Sorted A–Z by surname</span>
+        </div>
       </div>
     </section>
-    <section style={{ backgroundColor: 'var(--paper)' }}>
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        {loading ? <SkeletonTable rows={6} columns={6} />
-          : loadError ? <EmptyState title="Athlete data is unavailable" subtitle={loadError} />
-            : <>
-              <div className="mb-6 flex items-center justify-between">
-                <span className="font-mono text-xs uppercase tracking-widest text-neutral-500">{filtered.length ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} athletes` : '0 athletes'}</span>
+
+    <section>
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:py-5">
+        {loading ? <SkeletonTable rows={8} columns={6} />
+          : loadError ? <p role="alert" className="border border-red-200 bg-white p-5 text-sm text-red-800">{loadError}</p>
+            : filtered.length ? <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px] border-collapse bg-white text-left text-[9px]">
+                  <thead className="bg-[var(--navy)] text-white"><tr>
+                    <th className="w-[30%] px-2.5 py-2 font-semibold">Athlete <span className="text-[var(--accent)]">↓</span></th>
+                    <th className="w-[18%] px-2.5 py-2 font-medium">Country ↕</th>
+                    <th className="w-[15%] px-2.5 py-2 font-medium">Age group ↕</th>
+                    <th className="w-[15%] px-2.5 py-2 font-medium">Transplant ↕</th>
+                    <th className="px-2.5 py-2 text-right font-medium">Best swim ↕</th>
+                    <th className="w-6 px-1 py-2" />
+                  </tr></thead>
+                  <tbody>{pageAthletes.map(athlete => {
+                    const swim = bestSwimLabel(bestSwims.get(athlete.id));
+                    const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
+                    const age = normalizeCompetitionAgeGroup(athlete.age_group);
+                    const genderLabel = normalizedGender(athlete.gender);
+                    const initials = `${athlete.first_name?.[0] ?? ''}${athlete.last_name?.[0] ?? ''}`;
+                    return <tr key={athlete.id} className="border-b border-[var(--border)] hover:bg-white">
+                      <td className="px-2.5 py-1.5"><Link to={`/athletes/${athlete.id}`} className="flex items-center gap-2 text-[var(--ink)] hover:text-[var(--accent-dark)]">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] text-[8px] font-semibold text-[var(--navy)]">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}</span>
+                        <span className="min-w-0"><span className="block truncate font-semibold">{athlete.first_name} {athlete.last_name}</span><span className="block truncate text-[8px] text-[var(--muted)]">{athlete.club_name || '—'}</span></span>
+                      </Link></td>
+                      <td className="px-2.5 py-1.5 text-[var(--ink)]"><span className="mr-1.5 text-sm" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span>{athlete.country || '—'}</td>
+                      <td className="px-2.5 py-1.5 text-[var(--muted)]">{age || athlete.age_group || 'Unknown'}{genderLabel !== '—' ? ` · ${genderLabel}` : ''}</td>
+                      <td className="px-2.5 py-1.5 text-[var(--muted)]">{normalizedTransplant(athlete.transplant_type)}</td>
+                      <td className="px-2.5 py-1.5 text-right"><span className="block font-mono text-[10px] font-bold text-[var(--ink)]">{swim?.time ?? '—'}</span><span className="block text-[8px] text-[var(--muted)]">{swim?.event ?? 'No swim recorded'}</span></td>
+                      <td className="px-1 py-1.5 text-right"><Link to={`/athletes/${athlete.id}`} aria-label={`View ${athlete.first_name} ${athlete.last_name}`}><ChevronRight size={13} className="text-[var(--muted)]" /></Link></td>
+                    </tr>;
+                  })}</tbody>
+                </table>
               </div>
-              {pageAthletes.length ? <div className="ta-table-shell">
-                <div className="min-w-[900px]">
-                <div className="ta-table-header grid w-full grid-cols-[86px_minmax(180px,1fr)_90px_100px_minmax(150px,1fr)_130px] items-center gap-4 px-5 py-3 font-mono text-xs font-semibold uppercase tracking-widest">
-                  <span>Country</span><span>Athlete</span><span>Gender</span><span>Age group</span><span>Transplant type</span><span className="text-right">Profile</span>
-                </div>
-                <div>{pageAthletes.map(athlete => {
-                  const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
-                  return <Link key={athlete.id} to={`/athletes/${athlete.id}`} className="ta-table-row group grid w-full grid-cols-[86px_minmax(180px,1fr)_90px_100px_minmax(150px,1fr)_130px] items-center gap-4 px-5 py-4">
-                  <span className="flex min-w-0 items-center gap-1.5" title={athlete.country || 'Country not provided'}><span className="ta-table-flag" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span><span className="font-mono text-[10px] font-semibold tracking-wider text-[var(--muted)]">{getCountryAlpha3(athlete.country_code ?? '') || '—'}</span></span>
-                  <span className="flex min-w-0 items-center gap-3 text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent-dark)]">
-                    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--navy)] font-mono text-xs font-bold text-white" aria-hidden="true">
-                      {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : `${athlete.first_name?.[0] ?? ''}${athlete.last_name?.[0] ?? ''}`}
-                    </span>
-                    <span className="min-w-0 truncate">{athlete.first_name} {athlete.last_name}</span>
-                  </span>
-                  <span className="text-sm text-[var(--muted)]">{athlete.gender || '—'}</span>
-                  <span className="font-mono text-xs text-[var(--muted)]">{athlete.age_group || 'Unknown'}</span>
-                  <span className="truncate text-sm text-[var(--muted)]">{athlete.transplant_type || '—'}</span>
-                  <span className="flex items-center justify-end gap-2 whitespace-nowrap text-xs font-semibold text-[var(--muted)] group-hover:text-[var(--accent-dark)]"><span>View profile</span><ArrowRight size={15} /></span>
-                  </Link>;
-                })}</div>
-                </div>
-              </div> : <EmptyState title="No athletes found" subtitle={athletes.length ? 'Try adjusting your search or filters.' : 'Swimmer profiles will appear here when swimmers join.'} action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear search and filters</Button> : undefined} />}
-              {filtered.length > 0 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete pages" />}
-            </>}
+              <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete pages" totalCount={filtered.length} pageSize={PAGE_SIZE} enhanced />
+            </> : <div className="border border-[var(--border)] bg-white px-4 py-8 text-center text-sm text-[var(--muted)]">No athletes match these filters.</div>}
       </div>
     </section>
   </div>;
