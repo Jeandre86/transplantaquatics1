@@ -66,8 +66,7 @@ export default function TransplantTypeRankingsPage() {
     });
   const results = [...bestByAthlete.values()].map((row, index) => ({ ...row, rank: index + 1 }));
   const leaderSeconds = results.length ? timeToSeconds(results[0].time) : 0;
-  const ageGroupOptions = [...new Set([...AGE_GROUPS, ...rankings.map(row => row.ageGroup)])]
-    .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
+  const ageGroupOptions = AGE_GROUPS;
   const eventOptions = [...new Set([...EVENTS, ...rankings.map(row => row.event)])]
     .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
 
@@ -95,7 +94,7 @@ export default function TransplantTypeRankingsPage() {
       <div className="border-b border-[var(--border)] bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2.5 px-4 py-2">
           <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-[10px] text-[var(--muted)]">Event:
-            <select value={event} onChange={e => setEvent(e.target.value as Event)} className="bg-transparent py-0.5 text-[10px] font-semibold text-[var(--ink)] outline-none">
+            <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none">
               {eventOptions.map(item => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
@@ -103,12 +102,12 @@ export default function TransplantTypeRankingsPage() {
             {(['Men', 'Women'] as const).map(item => <button key={item} type="button" aria-pressed={gender === item} onClick={() => setGender(item)} className={`px-3 py-1 text-[10px] ${gender === item ? 'bg-[var(--navy)] font-semibold text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{item}</button>)}
           </div>
           <label className="flex items-center gap-1.5 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)]">Age group:
-            <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="bg-transparent py-0.5 text-[10px] font-semibold text-[var(--ink)] outline-none">
+            <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none">
               {['All', ...ageGroupOptions].map(item => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-[10px] text-[var(--muted)]">Course:
-            <select value={course} onChange={e => setCourse(e.target.value as Course)} className="bg-transparent py-0.5 text-[10px] font-semibold text-[var(--ink)] outline-none">
+            <select value={course} onChange={e => setCourse(e.target.value as Course)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none">
               {COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
             </select>
           </label>

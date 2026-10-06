@@ -1,12 +1,15 @@
 export type TransplantType = 'Kidney' | 'Liver' | 'Heart' | 'Lung' | 'Pancreas' | 'Bone Marrow' | 'Donor';
-export type AgeGroup = '18-29' | '30-39' | '40-49' | '50-59' | '60-69' | '70-79';
+export const AGE_GROUPS = [
+  '5 and under', '6–8', '9–11', '12–14', '15–17', '18–29', '30–39',
+  '40–49', '50–59', '60–69', '70–79', '80+',
+] as const;
+export type AgeGroup = typeof AGE_GROUPS[number];
 export type Course = 'LCM' | 'SCM';
 export type Gender = 'Men' | 'Women';
 export type VerificationStatus = 'Verified' | 'Pending' | 'Unverified';
 export type Discipline = 'Freestyle' | 'Backstroke' | 'Breaststroke' | 'Butterfly' | 'Individual Medley';
 
 export const TRANSPLANT_TYPES: TransplantType[] = ['Kidney', 'Liver', 'Heart', 'Lung', 'Pancreas', 'Bone Marrow', 'Donor'];
-export const AGE_GROUPS: AgeGroup[] = ['18-29', '30-39', '40-49', '50-59', '60-69', '70-79'];
 export const COURSES: Course[] = ['LCM', 'SCM'];
 export const GENDERS: Gender[] = ['Men', 'Women'];
 

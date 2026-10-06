@@ -57,17 +57,17 @@ export default function RankingsPage() {
             <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)] sm:text-3xl">Top swims by event</h1>
             <div className="flex flex-wrap gap-3">
               <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Event:
-                <select value={event} onChange={e => setEvent(e.target.value as Event)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
                   {events.map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Age group:
-                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
                   {[ALL, ...ageGroups].map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Course:
-                <select value={course} onChange={e => setCourse(e.target.value as Course)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                <select value={course} onChange={e => setCourse(e.target.value as Course)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
                   {COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
                 </select>
               </label>

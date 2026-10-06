@@ -56,8 +56,7 @@ export default function GenderRankingsPage() {
   const filtered = [...bestByAthlete.values()].map((row, index) => ({ ...row, rank: index + 1 }));
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const pageRankings = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const ageGroups = [...new Set([...AGE_GROUPS, ...rankings.map(row => row.ageGroup)])]
-    .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
+  const ageGroups = AGE_GROUPS;
   const events = [...new Set([...EVENTS, ...rankings.map(row => row.event)])]
     .filter(item => !is25mEvent(item))
     .sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true }));
@@ -73,17 +72,17 @@ export default function GenderRankingsPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Event:
-                <select value={event} onChange={e => setEvent(e.target.value as Event)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                <select value={event} onChange={e => setEvent(e.target.value as Event)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
                   {events.map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Age group:
-                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
                   {[ALL, ...ageGroups].map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-2 text-xs text-[var(--muted)]">Course:
-                <select value={course} onChange={e => setCourse(e.target.value as Course)} className="border border-[var(--border)] bg-white px-2.5 py-2 text-xs text-[var(--ink)]">
+                <select value={course} onChange={e => setCourse(e.target.value as Course)} className="ta-filter-select appearance-none border border-[var(--border)] bg-white px-2.5 py-2 pr-8 text-xs text-[var(--ink)]">
                   {COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
                 </select>
               </label>

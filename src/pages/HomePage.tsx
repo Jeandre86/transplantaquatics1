@@ -43,6 +43,8 @@ export default function HomePage() {
   const [gender, setGender] = useState<Gender>('Women');
   const [event, setEvent] = useState<Event>('50m Freestyle');
   const [course, setCourse] = useState<Course>('LCM');
+  const [transplantEvent, setTransplantEvent] = useState<Event>('50m Freestyle');
+  const [transplantCourse, setTransplantCourse] = useState<Course>('LCM');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [databaseRankings, setDatabaseRankings] = useState<Ranking[]>([]);
   const [rankingsLoading, setRankingsLoading] = useState(true);
@@ -51,6 +53,18 @@ export default function HomePage() {
   const [athletesLoading, setAthletesLoading] = useState(true);
   const [athletesError, setAthletesError] = useState<string | null>(null);
   const { swims: fastestSwims, loading: fastestLoading, error: fastestError } = useFastestByTransplantType();
+
+  useEffect(() => {
+    if (fastestLoading || fastestError) return;
+    const combinations = [...new Map(fastestSwims
+      .filter(swim => TRANSPLANT_TYPES.slice(0, 4).includes(swim.transplantType as typeof TRANSPLANT_TYPES[number])
+        && swim.status === 'verified' && (swim.course === 'LCM' || swim.course === 'SCM') && !is25mEvent(swim.event))
+      .map(swim => [`${swim.event}|${swim.course}`, { event: swim.event as Event, course: swim.course as Course }] as const)).values()];
+    if (!combinations.length) return;
+    const selected = combinations[Math.floor(Math.random() * combinations.length)];
+    setTransplantEvent(selected.event);
+    setTransplantCourse(selected.course);
+  }, [fastestLoading, fastestError, fastestSwims]);
 
   useEffect(() => {
     let active = true;
@@ -215,11 +229,11 @@ export default function HomePage() {
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.5fr] lg:gap-12">
             <div><h2 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">Fastest by transplant type</h2><p className="mt-4 max-w-md text-sm leading-relaxed text-white/65">See how swimmers with the same transplant compare. Everyone is measured in one event, so the times are a fair comparison.</p><p className="mt-5 border-l-2 border-[var(--accent)] pl-3 text-xs leading-relaxed text-white/55">For discovery only. This isn’t an official ranking, and only verified swims are included.</p><Link to="/rankings/transplant-type" className="mt-6 inline-flex items-center gap-2 bg-[var(--accent)] px-4 py-3 text-xs font-bold text-[var(--navy)] transition-colors hover:bg-white">Find your transplant ranking <ArrowRight size={15} /></Link></div>
             <div>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><span className="text-xs font-semibold text-white/80">{event} · {course === 'LCM' ? 'Long course' : 'Short course'}</span><span className="font-mono text-[9px] text-white/45">Fastest verified swimmer per type</span></div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><span className="text-xs font-semibold text-white/80">{transplantEvent} · {transplantCourse === 'LCM' ? 'Long course' : 'Short course'}</span><span className="font-mono text-[9px] text-white/45">Fastest verified swimmer per type</span></div>
               <div className="divide-y divide-white/10 border-y border-white/10">
                 {TRANSPLANT_TYPES.slice(0, 4).map(type => {
-                  const swim = fastestSwims.filter(item => item.transplantType === type && item.event === event && item.course === course && item.status === 'verified').sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time))[0];
-                  const times = fastestSwims.filter(item => TRANSPLANT_TYPES.slice(0, 4).includes(item.transplantType as typeof TRANSPLANT_TYPES[number]) && item.event === event && item.course === course && item.status === 'verified').map(item => timeToSeconds(item.time)).filter(Number.isFinite);
+                  const swim = fastestSwims.filter(item => item.transplantType === type && item.event === transplantEvent && item.course === transplantCourse && item.status === 'verified').sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time))[0];
+                  const times = fastestSwims.filter(item => TRANSPLANT_TYPES.slice(0, 4).includes(item.transplantType as typeof TRANSPLANT_TYPES[number]) && item.event === transplantEvent && item.course === transplantCourse && item.status === 'verified').map(item => timeToSeconds(item.time)).filter(Number.isFinite);
                   const fastestTime = Math.min(...times, Number.POSITIVE_INFINITY);
                   const barWidth = swim && Number.isFinite(fastestTime) ? Math.max(12, fastestTime / timeToSeconds(swim.time) * 100) : 0;
                   return <div key={type} className="grid grid-cols-[10px_58px_minmax(0,1fr)_54px] items-center gap-2 py-3 sm:grid-cols-[10px_72px_minmax(0,1fr)_60px] sm:gap-3">

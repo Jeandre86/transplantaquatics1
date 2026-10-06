@@ -1,6 +1,7 @@
 import type { Ranking } from '../types';
 import { loadPublicSwimmerDirectory, loadPublicSubmittedResults } from './swimmerSubmissions';
 import { timeToSeconds } from './utils';
+import { normalizeCompetitionAgeGroup } from './competitionAge';
 
 export async function loadDatabaseRankings(): Promise<Ranking[]> {
   const [profiles, submittedResults] = await Promise.all([
@@ -14,6 +15,9 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
     if (!result.swimmer_id || !result.submitted_meets?.course) return;
     const profile = profileById.get(result.swimmer_id);
     if (!profile) return;
+    const ageGroup = normalizeCompetitionAgeGroup(result.age_group)
+      ?? normalizeCompetitionAgeGroup(profile.age_group);
+    if (!ageGroup) return;
 
     const athleteName = [profile.first_name, profile.last_name]
       .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
@@ -23,7 +27,7 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
       athleteName,
       country: profile.country ?? '',
       countryCode: profile.country_code ?? '',
-      ageGroup: result.age_group as Ranking['ageGroup'],
+      ageGroup,
       gender: profile.gender,
       event: result.event as Ranking['event'],
       course: result.submitted_meets.course as Ranking['course'],

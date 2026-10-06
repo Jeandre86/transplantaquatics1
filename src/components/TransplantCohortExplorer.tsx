@@ -41,7 +41,7 @@ export default function TransplantCohortExplorer() {
   }, [transplantType, ageGroup, gender, course, search]);
 
   const hasFilters = [transplantType, ageGroup, gender, course].some(value => value !== ALL) || Boolean(search.trim());
-  const ageGroupOptions = [...new Set([...AGE_GROUPS, ...rankings.map(row => row.ageGroup)])];
+  const ageGroupOptions = AGE_GROUPS;
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = rankings
     .filter(r => (transplantType === ALL || r.transplantType === transplantType)
@@ -86,22 +86,22 @@ export default function TransplantCohortExplorer() {
         <FilterBar className="mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
           <div className="flex flex-wrap items-center gap-2">
             <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 text-[10px] text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Transplant:
-              <select value={transplantType} onChange={event => setTransplantType(event.target.value)} className="h-10 bg-transparent text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
+              <select value={transplantType} onChange={event => setTransplantType(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
                 {[ALL, ...TRANSPLANT_TYPES].map(type => <option key={type} value={type}>{type}</option>)}
               </select>
             </label>
             <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--border)] px-2 text-[10px] text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Age group:
-              <select value={ageGroup} onChange={event => setAgeGroup(event.target.value)} className="h-10 bg-transparent text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
+              <select value={ageGroup} onChange={event => setAgeGroup(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
                 {[ALL, ...ageGroupOptions].map(group => <option key={group} value={group}>{group}</option>)}
               </select>
             </label>
             <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--border)] px-2 text-[10px] text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Gender:
-              <select value={gender} onChange={event => setGender(event.target.value)} className="h-10 bg-transparent text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
+              <select value={gender} onChange={event => setGender(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
                 {[ALL, ...GENDERS].map(option => <option key={option} value={option}>{option}</option>)}
               </select>
             </label>
             <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--border)] px-2 text-[10px] text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Course:
-              <select value={course} onChange={event => setCourse(event.target.value)} className="h-10 bg-transparent text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
+              <select value={course} onChange={event => setCourse(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-[10px] font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
                 {[ALL, ...COURSES].map(option => <option key={option} value={option}>{option === 'LCM' ? 'Long course' : option === 'SCM' ? 'Short course' : option}</option>)}
               </select>
             </label>

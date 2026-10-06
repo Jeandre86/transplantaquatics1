@@ -50,8 +50,11 @@ async function loadFastestByTransplantTypeUncached(): Promise<FastestTransplantS
   const fastestByEventCategory = new Map<string, FastestTransplantSwim>();
 
   for (const row of resultRows) {
+    // The home section advertises verified leaders; pending swims should not
+    // displace a slower verified result for the same event/category.
+    if (row.status !== 'verified') continue;
     const swimmerId = row.swimmer_id ?? row.athlete_id;
-    if (!swimmerId || !row.time || !row.event || !['verified', 'swimmer_submitted', 'imported_unverified'].includes(row.status)) continue;
+    if (!swimmerId || !row.time || !row.event) continue;
     const profile = profileById.get(swimmerId);
     if (!profile || !Number.isFinite(timeToSeconds(row.time))) continue;
 
