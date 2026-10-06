@@ -54,7 +54,7 @@ export default function RankingsPage() {
     <div className="bg-[var(--paper)]">
       <PageHeading eyebrow="Rankings" title="Top swims by event" description="The fastest verified swims in each event. One row per athlete." />
       <section className="bg-[var(--paper)]">
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:py-6">
+        <div className="mx-auto max-w-7xl px-4 pb-5 sm:pb-6">
           <div className="ta-filter-bar-full-bleed mb-5 flex flex-wrap items-end justify-between gap-4 border-y border-[var(--border)] bg-white py-3">
             <div className="flex flex-wrap gap-3">
               <label className="flex items-center gap-2 text-sm text-[var(--muted)]">Event:
