@@ -53,7 +53,9 @@ export default function TransplantTypeRankingsPage() {
 
   const typeCounts = new Map<TransplantType, Set<string>>();
   for (const type of TYPES) if (type !== ALL_EVENTS) typeCounts.set(type, new Set());
-  rankings.forEach(row => typeCounts.get(row.transplantType as TransplantType)?.add(row.athleteId));
+  rankings.forEach(row => {
+    if (row.transplantType) typeCounts.get(row.transplantType)?.add(row.athleteId);
+  });
 
   const bestByAthleteEvent = new Map<string, Ranking>();
   rankings

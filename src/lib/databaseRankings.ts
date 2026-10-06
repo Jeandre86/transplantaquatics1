@@ -61,7 +61,7 @@ export async function loadDatabaseRankings(): Promise<Ranking[]> {
     const transplantType = normalizeRankingTransplantType(profile?.transplant_type) ?? normalizeRankingTransplantType(result.transplant_type);
     const course = normalizeRankingCourse(result.course || result.submitted_meets?.course);
     const event = normalizeRankingEvent(result.event);
-    if (!gender || !transplantType || !course || !event) return;
+    if (!gender || !course || !event) return;
     const ageGroup = normalizeCompetitionAgeGroup(result.age_group)
       ?? normalizeCompetitionAgeGroup(profile?.age_group);
     if (!ageGroup) return;

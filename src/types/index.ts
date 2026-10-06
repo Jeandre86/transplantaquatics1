@@ -156,7 +156,7 @@ export interface Ranking {
   event: Event;
   course: Course;
   time: string;
-  transplantType: TransplantType;
+  transplantType: TransplantType | null;
   date: string;
   meetName?: string;
 }
