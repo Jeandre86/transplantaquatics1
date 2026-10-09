@@ -3,6 +3,7 @@ import { formatDate } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { Bookmark, Heart, MessageCircle, MoreHorizontal, Repeat2 } from 'lucide-react';
 import { useState } from 'react';
+import { trackArticleEvent } from '../lib/articleAnalytics';
 
 interface ArticleCardProps {
   article: Article;
@@ -26,6 +27,7 @@ function FeedArticleRow({ article }: { article: Article }) {
   });
 
   async function copyStoryLink() {
+    void trackArticleEvent(article.id, 'share');
     try { await navigator.clipboard.writeText(`${window.location.origin}${storyPath}`); } catch { window.prompt('Copy this story link:', `${window.location.origin}${storyPath}`); }
   }
 
@@ -37,12 +39,14 @@ function FeedArticleRow({ article }: { article: Article }) {
   function toggleLike() {
     const next = !liked;
     setLiked(next);
+    if (next) void trackArticleEvent(article.id, 'like');
     try { window.localStorage.setItem(`ta-story-liked-${article.slug}`, String(next)); } catch { /* local preview storage is optional */ }
   }
 
   function toggleSave() {
     const next = !saved;
     setSaved(next);
+    if (next) void trackArticleEvent(article.id, 'save');
     try { window.localStorage.setItem(`ta-story-saved-${article.slug}`, String(next)); } catch { /* local preview storage is optional */ }
   }
 
@@ -53,13 +57,6 @@ function FeedArticleRow({ article }: { article: Article }) {
       </Link>
 
       <div className="min-w-0 self-center">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-snug text-neutral-500">
-          <span className="font-semibold text-neutral-800">From the Pool Deck</span>
-          <span aria-hidden="true">by</span>
-          <span className="text-neutral-700">{article.author}</span>
-          <span aria-hidden="true">·</span>
-          <time dateTime={article.date}>{formatDate(article.date)}</time>
-        </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#007d89]">{article.category}</span>
           <span className="text-neutral-300" aria-hidden="true">·</span>

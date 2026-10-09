@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search } from 'lucide-react';
-import { AGE_GROUPS, GENDERS, TRANSPLANT_TYPES, type Ranking } from '../types';
-import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
-import { loadDatabaseRankings } from '../lib/databaseRankings';
-import { getFlagEmoji, timeToSeconds } from '../lib/utils';
+import { AGE_GROUPS, TRANSPLANT_TYPES } from '../types';
+import { loadPublicSwimmerDirectoryPage, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
+import { getFlagEmoji } from '../lib/utils';
 import { normalizeCompetitionAgeGroup } from '../lib/competitionAge';
 import Pagination from '../components/Pagination';
 import PageHeading from '../components/PageHeading';
 import { describeSupabaseError } from '../lib/supabase';
 import { SkeletonTable } from '../components/Skeleton';
 import { getSavedAvatar } from '../lib/avatars';
+import SortableTable from '../components/SortableTable';
+import SearchInput from '../components/SearchInput';
 
 const PAGE_SIZE = 25;
 const ALL = 'All';
@@ -34,9 +34,8 @@ function normalizedTransplant(value: string | null | undefined) {
   return value || 'Not shared';
 }
 
-function bestSwimLabel(swim?: Ranking) {
-  if (!swim) return null;
-  return { time: swim.time, event: swim.event };
+function bestSwimLabel(athlete: PublicSwimmerProfile) {
+  return athlete.best_swim_time ? { time: athlete.best_swim_time, event: athlete.best_swim_event ?? '' } : null;
 }
 
 export default function AthletesPage() {
@@ -45,68 +44,44 @@ export default function AthletesPage() {
   const [gender, setGender] = useState(ALL);
   const [ageGroup, setAgeGroup] = useState(ALL);
   const [transplant, setTransplant] = useState(ALL);
-  const [sortBy, setSortBy] = useState<'name' | 'country'>('name');
   const [page, setPage] = useState(1);
   const [athletes, setAthletes] = useState<PublicSwimmerProfile[]>([]);
-  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [countryOptions, setCountryOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
+  useEffect(() => setPage(1), [search, country, gender, ageGroup, transplant]);
+
   useEffect(() => {
     let active = true;
-    Promise.allSettled([loadPublicSwimmerDirectory(), loadDatabaseRankings()]).then(([directoryResult, rankingsResult]) => {
-      if (!active) return;
-      if (directoryResult.status === 'rejected') {
-        setLoadError(`The athlete directory could not be loaded from Supabase. ${describeSupabaseError(directoryResult.reason)}`);
-        return;
-      }
-      setAthletes(directoryResult.value);
-      if (rankingsResult.status === 'fulfilled') setRankings(rankingsResult.value);
-    }).finally(() => { if (active) setLoading(false); });
+    setLoading(true);
+    setLoadError('');
+    loadPublicSwimmerDirectoryPage({ search, country, gender, ageGroup, transplant, page, pageSize: PAGE_SIZE })
+      .then(result => {
+        if (!active) return;
+        setAthletes(result.rows);
+        setTotalCount(result.totalCount);
+        setCountryOptions(result.countryOptions);
+      })
+      .catch(error => { if (active) setLoadError(`The athlete directory could not be loaded from Supabase. ${describeSupabaseError(error)}`); })
+      .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [search, country, gender, ageGroup, transplant, page]);
 
-  const countries = useMemo(() => [...new Set(athletes.map(athlete => athlete.country).filter((value): value is string => Boolean(value)))].sort(), [athletes]);
-  const bestSwims = useMemo(() => {
-    const best = new Map<string, Ranking>();
-    rankings.slice().sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time)).forEach(swim => {
-      if (!best.has(swim.athleteId)) best.set(swim.athleteId, swim);
-    });
-    return best;
-  }, [rankings]);
-  const filtered = useMemo(() => athletes.filter(athlete => {
-    const query = search.trim().toLowerCase();
-    const fullName = `${athlete.first_name} ${athlete.last_name}`;
-    const searchable = `${fullName} ${athlete.country ?? ''} ${athlete.club_name ?? ''}`.toLowerCase();
-    return (!query || searchable.includes(query))
-      && (country === ALL || athlete.country === country)
-      && (gender === ALL || normalizedGender(athlete.gender) === gender)
-      && (ageGroup === ALL || normalizeCompetitionAgeGroup(athlete.age_group) === ageGroup)
-      && (transplant === ALL || normalizedTransplant(athlete.transplant_type) === transplant);
-  }).sort((a, b) => {
-    if (sortBy === 'country') {
-      const countryOrder = String(a.country ?? '').localeCompare(String(b.country ?? ''), undefined, { sensitivity: 'base' });
-      if (countryOrder) return countryOrder;
-    }
-    return `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`, undefined, { sensitivity: 'base' });
-  }), [athletes, search, country, gender, ageGroup, transplant, sortBy]);
-
-  useEffect(() => setPage(1), [search, country, gender, ageGroup, transplant, sortBy]);
-  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
-  const pageAthletes = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.ceil(totalCount / PAGE_SIZE);
+  const pageAthletes = athletes;
 
   return <div className="bg-[var(--paper)]">
     <PageHeading eyebrow="Athletes" title="Find your people." description="Swimmers from every country, age group and transplant background." />
-    <section className="border-b border-[var(--border)] bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-4">
+    <section className="border-b border-[var(--border)] bg-white md:h-24">
+      <div className="mx-auto max-w-7xl px-4 py-4 md:flex md:h-full md:items-center md:py-0">
         <div className="grid gap-2 sm:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto] sm:items-center">
-          <div className="relative min-w-0">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by athlete, club or country" aria-label="Search by athlete, club or country" className="h-[42px] w-full border border-[var(--border)] bg-[var(--paper)] pl-8 pr-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-dark)]" />
+          <div className="min-w-0">
+            <SearchInput value={search} onChange={setSearch} placeholder="Search by athlete, club or country" />
           </div>
           {[
-            { label: 'Country', value: country, set: setCountry, options: [ALL, ...countries] },
-            { label: 'Gender', value: gender, set: setGender, options: [ALL, ...GENDERS] },
+            { label: 'Country', value: country, set: setCountry, options: [ALL, ...countryOptions] },
             { label: 'Age group', value: ageGroup, set: setAgeGroup, options: [ALL, ...AGE_GROUPS] },
             { label: 'Transplant', value: transplant, set: setTransplant, options: [ALL, ...TRANSPLANT_TYPES] },
           ].map(filter => <label key={filter.label} className="flex h-[42px] items-center gap-1.5 border border-[var(--border)] bg-white px-3 text-sm text-[var(--muted)]">
@@ -116,53 +91,54 @@ export default function AthletesPage() {
             </select>
           </label>)}
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--muted)]">
-          <span className="font-semibold text-[var(--ink)]">{loading ? 'Loading athletes…' : `${filtered.length.toLocaleString()} athletes`}</span>
-          <label className="inline-flex h-[42px] items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-3 text-sm text-[var(--muted)]">
-            <span>Sort:</span>
-            <select value={sortBy} onChange={event => setSortBy(event.target.value as 'name' | 'country')} className="appearance-none bg-transparent pr-5 text-sm font-semibold text-[var(--ink)] outline-none">
-              <option value="name">Name, surname A–Z</option>
-              <option value="country">Country A–Z</option>
-            </select>
-          </label>
-        </div>
       </div>
     </section>
 
     <section>
       <div className="mx-auto max-w-7xl px-4 py-4 sm:py-5">
+        <div className="mb-4 flex justify-end" role="group" aria-label="Filter athletes by gender">
+          <div className="inline-flex border border-[var(--border)] bg-white p-1">
+            {[ALL, 'Men', 'Women'].map(option => <button
+              key={option}
+              type="button"
+              aria-pressed={gender === option}
+              onClick={() => setGender(option)}
+              className={`min-h-9 px-4 text-sm transition-colors ${gender === option ? 'bg-[var(--navy)] font-semibold text-white' : 'text-[var(--ink)] hover:bg-[var(--ice)]'}`}
+            >{option}</button>)}
+          </div>
+        </div>
         {loading ? <SkeletonTable rows={8} columns={6} />
           : loadError ? <p role="alert" className="border border-red-200 bg-white p-5 text-sm text-red-800">{loadError}</p>
-            : filtered.length ? <>
+            : athletes.length ? <>
               <div className="ta-table-shell">
-                <table className="border-collapse bg-white text-left text-sm">
+                <SortableTable showSortIndicator initialSort={{ column: 0, direction: 'asc' }}><table className="border-collapse bg-white text-left text-sm">
                   <thead><tr className="ta-table-header">
-                    <th className="w-[30%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Athlete <span className="text-[var(--accent)]">↓</span></th>
-                    <th className="w-[18%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Country ↕</th>
-                    <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Age group ↕</th>
-                    <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Transplant ↕</th>
-                    <th className="whitespace-nowrap px-3 py-3 text-right font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Best swim ↕</th>
+                    <th className="w-[30%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Athlete</th>
+                    <th className="w-[18%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Country</th>
+                    <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Age group</th>
+                    <th className="w-[15%] whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Transplant</th>
+                    <th className="whitespace-nowrap px-3 py-3 text-right font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Best swim</th>
                   </tr></thead>
                   <tbody>{pageAthletes.map(athlete => {
-                    const swim = bestSwimLabel(bestSwims.get(athlete.id));
+                    const swim = bestSwimLabel(athlete);
                     const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
                     const age = normalizeCompetitionAgeGroup(athlete.age_group);
                     const genderLabel = normalizedGender(athlete.gender);
                     const initials = `${athlete.first_name?.[0] ?? ''}${athlete.last_name?.[0] ?? ''}`;
                     return <tr key={athlete.id} className="ta-table-row">
-                      <td className="px-3 py-4 sm:px-5"><Link to={`/athletes/${athlete.id}`} className="flex min-w-52 items-center gap-2.5 text-[var(--ink)] hover:text-[var(--accent-dark)]">
+                      <td data-sort-value={`${athlete.last_name} ${athlete.first_name}`} className="px-3 py-4 sm:px-5"><Link to={`/athletes/${athlete.id}`} className="flex min-w-52 items-center gap-2.5 text-[var(--ink)] hover:text-[var(--accent-dark)]">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] text-[10px] font-semibold text-[var(--navy)] sm:h-11 sm:w-11">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}</span>
                         <span className="min-w-0"><span className="block truncate font-semibold">{athlete.first_name} {athlete.last_name}</span><span className="block truncate text-xs text-[var(--muted)]">{athlete.club_name || '—'}</span></span>
                       </Link></td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--ink)] sm:px-5"><span className="mr-1.5 text-base" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span>{athlete.country || '—'}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{age || athlete.age_group || 'Unknown'}{genderLabel !== '—' ? ` · ${genderLabel}` : ''}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{normalizedTransplant(athlete.transplant_type)}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-right sm:px-5"><span className="block font-mono text-base font-bold text-[var(--navy)]">{swim?.time ?? '—'}</span><span className="block text-[10px] text-[var(--muted)]">{swim?.event ?? 'No swim recorded'}</span></td>
+                      <td data-sort-value={athlete.country ?? ''} className="whitespace-nowrap px-3 py-4 text-sm text-[var(--ink)] sm:px-5"><span className="mr-1.5 text-base" aria-hidden="true">{getFlagEmoji(athlete.country_code ?? '')}</span>{athlete.country || '—'}</td>
+                      <td data-sort-value={`${age || athlete.age_group || 'Unknown'} ${genderLabel}`} className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{age || athlete.age_group || 'Unknown'}{genderLabel !== '—' ? ` · ${genderLabel}` : ''}</td>
+                      <td data-sort-value={normalizedTransplant(athlete.transplant_type)} className="whitespace-nowrap px-3 py-4 text-sm text-[var(--muted)] sm:px-5">{normalizedTransplant(athlete.transplant_type)}</td>
+                      <td data-sort-value={swim?.time ?? ''} className="whitespace-nowrap px-3 py-4 text-right sm:px-5"><span className="block font-mono text-base font-bold text-[var(--navy)]">{swim?.time ?? '—'}</span><span className="block text-[10px] text-[var(--muted)]">{swim?.event ?? 'No swim recorded'}</span></td>
                     </tr>;
                   })}</tbody>
-                </table>
+                </table></SortableTable>
               </div>
-              <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete pages" totalCount={filtered.length} pageSize={PAGE_SIZE} enhanced />
+              <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete pages" totalCount={totalCount} pageSize={PAGE_SIZE} enhanced />
             </> : <div className="border border-[var(--border)] bg-white px-4 py-8 text-center text-sm text-[var(--muted)]">No athletes match these filters.</div>}
       </div>
     </section>

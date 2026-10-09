@@ -45,6 +45,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {[
                 { to: '/countries',          label: 'Countries' },
+                { to: '/rankings/transplant-type', label: 'Rank by transplant type' },
                 { to: '/clubs',              label: 'Clubs' },
                 { to: '/calendar',           label: 'Meet calendar' },
                 /*{ to: '/compare',            label: 'Compare Athletes' },*/

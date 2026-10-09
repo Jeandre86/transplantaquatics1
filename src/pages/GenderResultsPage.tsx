@@ -13,7 +13,6 @@ import PageHeading from '../components/PageHeading';
 import Pagination from '../components/Pagination';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
-import VerificationLegend from '../components/VerificationLegend';
 
 const ALL = 'All';
 const PAGE_SIZE = 10;
@@ -26,12 +25,11 @@ export default function GenderResultsPage() {
   const [event, setEvent] = useState(ALL);
   const [ageGroup, setAgeGroup] = useState(ALL);
   const [course, setCourse] = useState(ALL);
-  const [verified, setVerified] = useState(ALL);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     setPage(1);
-  }, [search, country, event, ageGroup, course, verified]);
+  }, [search, country, event, ageGroup, course]);
 
   if (!gender) return <Navigate to="/results" replace />;
 
@@ -43,7 +41,6 @@ export default function GenderResultsPage() {
     if (event !== ALL && result.event !== event) return false;
     if (ageGroup !== ALL && result.ageGroup !== ageGroup) return false;
     if (course !== ALL && result.course !== course) return false;
-    if (verified !== ALL && result.verified.toLowerCase() !== verified.toLowerCase()) return false;
     if (country !== ALL) {
       const athlete = athletes.find(entry => entry.id === result.athleteId);
       if (!athlete || athlete.country !== country) return false;
@@ -57,16 +54,14 @@ export default function GenderResultsPage() {
     event: [ALL, ...EVENTS],
     ageGroup: [ALL, ...AGE_GROUPS],
     course: [ALL, ...COURSES],
-    verified: [ALL, 'Verified', 'Pending', 'Unverified'],
   };
-  const hasFilters = [search, country, event, ageGroup, course, verified].some(value => value !== ALL && value !== '');
+  const hasFilters = [search, country, event, ageGroup, course].some(value => value !== ALL && value !== '');
   const clearFilters = () => {
     setSearch('');
     setCountry(ALL);
     setEvent(ALL);
     setAgeGroup(ALL);
     setCourse(ALL);
-    setVerified(ALL);
   };
 
   return (
@@ -94,11 +89,8 @@ export default function GenderResultsPage() {
               <FilterSelect label="Event" value={event} options={options.event} onChange={setEvent} />
               <FilterSelect label="Age Group" value={ageGroup} options={options.ageGroup} onChange={setAgeGroup} />
               <FilterSelect label="Course" value={course} options={options.course} onChange={setCourse} />
-              <FilterSelect label="Status" value={verified} options={options.verified} onChange={setVerified} />
             </div>
           </FilterBar>
-
-          <div className="mb-4"><VerificationLegend /></div>
 
           <p className="mb-3 font-mono text-xs text-neutral-600">
             {filtered.length === 0 ? '0 results found' : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} results`}

@@ -1,7 +1,7 @@
 import type { PersonalBest, Gender, AgeGroup } from '../types';
-import VerificationBadge from './VerificationBadge';
 import TimeStandard from './TimeStandard';
 import { formatDate } from '../lib/utils';
+import SortableTable from './SortableTable';
 
 interface PersonalBestTableProps {
   pbs: PersonalBest[];
@@ -10,11 +10,11 @@ interface PersonalBestTableProps {
 }
 
 export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBestTableProps) {
-  const headers = ['Event', 'Course', 'Time', 'WTG', 'Date', 'Meet', 'Status'];
+  const headers = ['Event', 'Course', 'Time', 'WTG', 'Date', 'Meet'];
 
   return (
     <div className="ta-table-shell overflow-x-auto">
-      <table className="w-full border-collapse">
+      <SortableTable><table className="w-full border-collapse">
         <thead>
           <tr className="ta-table-header">
             {headers.map(h => (
@@ -50,11 +50,10 @@ export default function PersonalBestTable({ pbs, gender, ageGroup }: PersonalBes
               </td>
               <td className="px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{formatDate(pb.date)}</td>
               <td className="px-3 py-4 text-xs text-[var(--muted)] max-w-[180px] truncate sm:px-5">{pb.meet || '—'}</td>
-              <td className="px-3 py-4 sm:px-5"><VerificationBadge status={pb.verified} /></td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></SortableTable>
     </div>
   );
 }

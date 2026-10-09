@@ -1,3 +1,4 @@
+import SortableTable from '../components/SortableTable';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CalendarDays, Camera, ChartNoAxesCombined, MapPin, Medal, Music2, Settings2, Timer, ShieldCheck, Eye, EyeOff, MoreVertical } from 'lucide-react';
@@ -568,7 +569,7 @@ export default function ProfilePage() {
               </div>
               {athleteResults.length ? (
                 <div className="ta-table-scroll">
-                  <table className="w-full border-collapse text-left">
+                  <SortableTable><table className="w-full border-collapse text-left">
                     <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Course</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet</th></tr></thead>
                     <tbody>{athleteResults.map(result => (
                       <tr key={result.id} className="ta-table-row">
@@ -578,7 +579,7 @@ export default function ProfilePage() {
                         <td className="max-w-40 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.meet || '—'}</td>
                       </tr>
                     ))}</tbody>
-                  </table>
+                  </table></SortableTable>
                 </div>
               ) : (
                 <div className="py-8 text-center">
@@ -598,10 +599,10 @@ export default function ProfilePage() {
           <div className="mt-6 space-y-5">
             <ProfilePanel title="Times" action={<span className="font-mono text-xs text-[var(--muted)]">{allAthleteResults.length} swims</span>}>
               {allAthleteResults.length ? <div className="ta-table-scroll">
-                <table className="w-full border-collapse text-left">
+                <SortableTable><table className="w-full border-collapse text-left">
                   <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Course</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Date</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet</th></tr></thead>
                   <tbody>{allAthleteResults.map(result => <tr key={result.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{result.event || '—'}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--blue)]">{result.time || '—'}</td><td className="px-3 py-3 font-mono text-xs text-[var(--muted)]">{result.course || '—'}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{result.date || '—'}</td><td className="max-w-56 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.meet || '—'}</td></tr>)}</tbody>
-                </table>
+                </table></SortableTable>
               </div> : <div className="py-12 text-center"><Timer size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No swims linked yet</p><p className="mt-1 text-sm text-[var(--muted)]">Once your results are connected to your account, your times will appear here.</p></div>}
             </ProfilePanel>
           </div>
@@ -690,10 +691,10 @@ export default function ProfilePage() {
                 <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Your place within {user.club || 'your club'} for each event, season by season.</p>
                 <label className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">Season<select value={selectedSeason} onChange={event => setSelectedSeason(event.target.value)} className="mt-1 block border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-sm font-semibold normal-case tracking-normal text-[var(--ink)]">{AVAILABLE_SEASONS.map(season => <option key={season} value={season}>{season} season</option>)}</select></label>
               </div>
-              {clubSeasonRows.length ? <div className="ta-table-scroll"><table className="w-full border-collapse text-left">
+              {clubSeasonRows.length ? <div className="ta-table-scroll"><SortableTable><table className="w-full border-collapse text-left">
                 <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Club rank</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Category</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Best time</th></tr></thead>
                 <tbody>{clubSeasonRows.map((row, index) => <tr key={`${row.event}-${row.ageGroup}-${row.gender}-${row.course}-${index}`} className="ta-table-row"><td className="px-3 py-3 font-mono text-sm font-bold text-[var(--blue)]">#{row.rank}</td><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.event}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{row.gender} · {row.ageGroup} · {row.course}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--navy)]">{row.time}</td></tr>)}</tbody>
-              </table></div> : <div className="py-12 text-center"><ChartNoAxesCombined size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No club rankings for {selectedSeason || 'this season'} yet</p><p className="mx-auto mt-1 max-w-xl text-sm text-[var(--muted)]">Club standings will appear once your results and results from other swimmers in your club are available for this season.</p></div>}
+              </table></SortableTable></div> : <div className="py-12 text-center"><ChartNoAxesCombined size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No club rankings for {selectedSeason || 'this season'} yet</p><p className="mx-auto mt-1 max-w-xl text-sm text-[var(--muted)]">Club standings will appear once your results and results from other swimmers in your club are available for this season.</p></div>}
             </ProfilePanel>
           </div>
         )}

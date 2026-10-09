@@ -3,9 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, CircleAlert, Plus, Trash2, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { COURSES, EVENTS, type Course } from '../types';
-import { getCompetitionAgeGroup, getSubmissionPoints, getWorldRecordBaseline } from '../lib/competitionAge';
+import { getCompetitionAgeGroup } from '../lib/competitionAge';
+import { records as importedRecords } from '../data/records';
+import { loadWorldRecords } from '../lib/worldRecords';
+import { buildTransplantPointBaselines, scoreTransplantSwim, type TransplantPointInput } from '../lib/transplantPoints';
 import { loadMeetCatalog, type MeetCatalogEdition } from '../lib/meetCatalog';
-import { findOrCreateSubmittedMeet, findSubmittedMeet, loadManagedSwimmers, loadMeetResults, saveSwimmerResult, type SubmittedMeetDraft, type SubmittedSwimmerResult, type SwimmerProfile } from '../lib/swimmerSubmissions';
+import { findOrCreateSubmittedMeet, findSubmittedMeet, loadManagedSwimmers, loadMeetResults, loadPublicSubmittedResults, saveSwimmerResult, type SubmittedMeetDraft, type SubmittedSwimmerResult, type SwimmerProfile } from '../lib/swimmerSubmissions';
 import { Skeleton } from '../components/Skeleton';
 
 type Step = 1 | 2 | 3;
@@ -13,6 +16,7 @@ interface MeetForm {
   catalogMeetId: string | null;
   name: string;
   meetDate: string;
+  meetEndDate: string;
   location: string;
   course: Course;
   isWorldTransplantGames: boolean;
@@ -42,7 +46,7 @@ export default function SubmitResultPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
-  const [meet, setMeet] = useState<MeetForm>({ catalogMeetId: null, name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' });
+  const [meet, setMeet] = useState<MeetForm>({ catalogMeetId: null, name: '', meetDate: '', meetEndDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' });
   const [meetCatalog, setMeetCatalog] = useState<MeetCatalogEdition[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState('');
@@ -90,7 +94,7 @@ export default function SubmitResultPage() {
   const selectCatalogMeet = (catalogMeetId: string) => {
     const selected = meetCatalog.find(entry => entry.id === catalogMeetId);
     if (!selected) {
-      setMeet(current => ({ ...current, catalogMeetId: null, name: '', meetDate: '', location: '', isWorldTransplantGames: false, openingCeremonyDate: '' }));
+      setMeet(current => ({ ...current, catalogMeetId: null, name: '', meetDate: '', meetEndDate: '', location: '', isWorldTransplantGames: false, openingCeremonyDate: '' }));
       return;
     }
     const isWorldTransplantGames = isCatalogWorldTransplantGames(selected);
@@ -100,6 +104,7 @@ export default function SubmitResultPage() {
       catalogMeetId: selected.id,
       name: selected.name,
       meetDate: selected.meet_date ?? '',
+      meetEndDate: selected.end_date ?? '',
       location,
       isWorldTransplantGames,
       openingCeremonyDate: isWorldTransplantGames ? selected.meet_date ?? '' : '',
@@ -109,6 +114,7 @@ export default function SubmitResultPage() {
     catalogMeetId: meet.catalogMeetId,
     name: meet.name,
     meetDate: meet.meetDate,
+    endDate: meet.meetEndDate || null,
     location: meet.location,
     course: meet.course,
     isWorldTransplantGames: meet.isWorldTransplantGames,
@@ -116,7 +122,7 @@ export default function SubmitResultPage() {
   });
   const eventSelectionsAreUnique = new Set(entries.filter(entry => entry.event).map(entry => entry.event)).size === entries.filter(entry => entry.event).length;
   const entriesAreValid = entries.length > 0 && eventSelectionsAreUnique && entries.every(entry => entry.event && TIME_PATTERN.test(entry.time.trim()));
-  const meetIsValid = Boolean(meet.name.trim() && meet.meetDate && meet.location.trim() && meet.course && (!meet.isWorldTransplantGames || meet.openingCeremonyDate));
+  const meetIsValid = Boolean(meet.name.trim() && meet.meetDate && (!meet.meetEndDate || meet.meetEndDate >= meet.meetDate) && meet.location.trim() && meet.course && (!meet.isWorldTransplantGames || meet.openingCeremonyDate));
   const wtgClubValid = !meet.isWorldTransplantGames || Boolean(selectedSwimmer?.clubId || selectedSwimmer?.clubRequestPending);
   const existingByEvent = useMemo(() => new Map(existingResults.map(result => [result.event, result])), [existingResults]);
 
@@ -158,17 +164,47 @@ export default function SubmitResultPage() {
       const ageReferenceDate = meet.isWorldTransplantGames ? meet.openingCeremonyDate : meet.meetDate;
       const ageGroup = getCompetitionAgeGroup(selectedSwimmer.dateOfBirth, ageReferenceDate);
       if (!ageGroup) throw new Error('We could not calculate the swimmer’s age group for this meet. Check their date of birth and the meet date.');
+      let pointRecords = importedRecords;
+      try {
+        const loadedRecords = await loadWorldRecords();
+        if (loadedRecords.length) pointRecords = loadedRecords;
+      } catch {
+        // Imported records remain available as a local fallback.
+      }
+      let existingPublicResults: SubmittedSwimmerResult[] = [];
+      try {
+        existingPublicResults = await loadPublicSubmittedResults();
+      } catch {
+        // Scoring still works from official records if public results are unavailable.
+      }
+      const verifiedInputs: TransplantPointInput[] = existingPublicResults.map(result => ({
+        ageGroup: result.age_group,
+        gender: result.gender,
+        event: result.event,
+        course: result.course || result.submitted_meets?.course || '',
+        time: result.time,
+        transplantType: result.transplant_type,
+        status: result.status,
+      }));
+      const pointBaselines = buildTransplantPointBaselines(pointRecords, verifiedInputs);
 
       const saved = await Promise.all(entries.map(entry => {
-        const recordTime = getWorldRecordBaseline(ageGroup, selectedSwimmer.gender, entry.event, meet.course);
-        const recordCandidate = Boolean(meet.isWorldTransplantGames && recordTime && seconds(entry.time) < recordTime);
+        const scored = scoreTransplantSwim({
+          ageGroup,
+          gender: selectedSwimmer.gender,
+          event: entry.event,
+          course: meet.course,
+          time: entry.time,
+          transplantType: selectedSwimmer.transplantType,
+        }, pointBaselines);
+        const recordCandidate = Boolean(meet.isWorldTransplantGames && scored.basis === 'TA record' && scored.baselineSeconds && seconds(entry.time) < scored.baselineSeconds);
         return saveSwimmerResult({
           meetId,
           swimmer: selectedSwimmer,
           event: entry.event,
           time: entry.time,
           ageGroup,
-          points: getSubmissionPoints({ ageGroup, gender: selectedSwimmer.gender, event: entry.event, course: meet.course, time: entry.time }),
+          points: scored.points,
           recordCandidate,
         });
       }));
@@ -213,6 +249,7 @@ export default function SubmitResultPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Meet name<input required readOnly={Boolean(selectedCatalogMeet)} value={meet.name} onChange={event => setMeet(current => ({ ...current, name: event.target.value }))} placeholder="e.g. National Swimming Championships" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] read-only:text-[var(--muted)]" /></label>
           <label className="text-xs font-semibold text-[var(--muted)]">Meet date<input required type="date" readOnly={Boolean(selectedCatalogMeet?.meet_date)} value={meet.meetDate} onChange={event => setMeet(current => ({ ...current, meetDate: event.target.value, openingCeremonyDate: current.isWorldTransplantGames && !current.openingCeremonyDate ? event.target.value : current.openingCeremonyDate }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] read-only:text-[var(--muted)]" /></label>
+          <label className="text-xs font-semibold text-[var(--muted)]">Meet end date <span className="font-normal">(optional)</span><input type="date" min={meet.meetDate || undefined} readOnly={Boolean(selectedCatalogMeet?.end_date)} value={meet.meetEndDate} onChange={event => setMeet(current => ({ ...current, meetEndDate: event.target.value }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] read-only:text-[var(--muted)]" /></label>
           <label className="text-xs font-semibold text-[var(--muted)]">Course<select value={meet.course} onChange={event => setMeet(current => ({ ...current, course: event.target.value as Course }))} className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)]">{COURSES.map(course => <option key={course} value={course}>{course}</option>)}</select></label>
           <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Location<input required readOnly={Boolean(selectedCatalogMeet && meet.location)} value={meet.location} onChange={event => setMeet(current => ({ ...current, location: event.target.value }))} placeholder="City, country" className="mt-1.5 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] read-only:text-[var(--muted)]" /></label>
           {!selectedCatalogMeet && <label className="flex cursor-pointer items-start gap-3 border border-[var(--border)] p-3 sm:col-span-2">
@@ -256,14 +293,14 @@ export default function SubmitResultPage() {
 
         <button type="button" onClick={() => setEntries(current => [...current, newEntry()])} disabled={entries.length >= RESULT_EVENTS.length} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:underline disabled:opacity-40"><Plus size={16} /> Add another event</button>
 
-        <div className="border-t border-[var(--border)] pt-5"><p className="text-xs leading-relaxed text-[var(--muted)]">PTS use the 2026 World Aquatics base time for each event, gender, and course. Junior 25m events use the matching World Transplant Games age-group record when available. Dates of birth remain private. Results display as swimmer-submitted, and WTG record candidates remain pending verification.</p></div>
+        <div className="border-t border-[var(--border)] pt-5"><p className="text-xs leading-relaxed text-[var(--muted)]">Points compare each swim with the Transplant Aquatics record for its age group, event, gender, and course. Where no record exists, the fastest verified swim provides a provisional baseline. Points are unavailable until a baseline exists. Dates of birth remain private. Results display as swimmer-submitted, and World Transplant Games record candidates remain pending verification.</p></div>
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between"><button type="button" onClick={() => setStep(1)} className="inline-flex items-center justify-center gap-2 border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]"><ArrowLeft size={15} /> Back</button><button type="button" onClick={() => void submitResults()} disabled={!entriesAreValid || saving} className="inline-flex items-center justify-center gap-2 px-0 py-3 text-sm font-semibold text-[var(--blue)] transition-colors hover:text-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving results…' : `Submit ${entries.length} ${entries.length === 1 ? 'result' : 'results'}`} <ArrowRight size={16} /></button></div>
       </section>}
 
       {step === 3 && <section className="bg-white p-5 sm:p-7">
         <div className="mx-auto max-w-2xl text-center"><span className="mx-auto flex size-14 items-center justify-center rounded-full bg-[var(--ice)] text-[var(--blue)]"><Check size={25} /></span><p className="mt-4 font-mono text-xs uppercase tracking-[0.16em] text-[var(--blue)]">Saved</p><h2 className="mt-2 text-2xl font-extrabold text-[var(--ink)]">Results submitted</h2><p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">Your results now appear as swimmer-submitted. A result faster than a WTG record is marked as a record candidate until verified.</p></div>
-        <div className="mx-auto mt-6 max-w-3xl divide-y divide-[var(--border)] border-y border-[var(--border)]">{savedResults.map(result => <div key={result.id} className="grid gap-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"><div><p className="font-semibold text-[var(--ink)]">{result.event}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{result.age_group} · {meet.course} · {result.status === 'verified' ? 'Verified' : 'Swimmer-submitted'}</p></div><span className="font-mono text-lg font-bold text-[var(--blue)]">{result.time}</span><div className="flex flex-wrap items-center gap-2">{result.points !== null && <span className="bg-[var(--ice)] px-2 py-1 font-mono text-xs font-bold text-[var(--navy)]">{result.points.toLocaleString()} PTS</span>}{result.record_candidate && <span className="inline-flex items-center gap-1 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-800"><Trophy size={13} /> Record candidate · pending verification</span>}{result.points === null && <span className="text-xs text-[var(--muted)]">PTS unavailable for this category</span>}</div></div>)}</div>
-        <div className="mt-6 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => navigate('/')} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]">Back to dashboard</button><button type="button" onClick={() => { setStep(1); setMeet({ catalogMeetId: null, name: '', meetDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' }); setEntries([newEntry()]); setExistingResults([]); setSavedResults([]); setError(''); }} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)]">Submit another meet</button></div>
+        <div className="mx-auto mt-6 max-w-3xl divide-y divide-[var(--border)] border-y border-[var(--border)]">{savedResults.map(result => <div key={result.id} className="grid gap-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"><div><p className="font-semibold text-[var(--ink)]">{result.event}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{result.age_group} · {meet.course}</p></div><span className="font-mono text-lg font-bold text-[var(--blue)]">{result.time}</span><div className="flex flex-wrap items-center gap-2">{result.points !== null && <span className="bg-[var(--ice)] px-2 py-1 font-mono text-xs font-bold text-[var(--navy)]">{result.points.toLocaleString()} PTS</span>}{result.record_candidate && <span className="inline-flex items-center gap-1 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-800"><Trophy size={13} /> Record candidate</span>}{result.points === null && <span className="text-xs text-[var(--muted)]">PTS unavailable for this category</span>}</div></div>)}</div>
+        <div className="mt-6 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => navigate('/')} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]">Back to dashboard</button><button type="button" onClick={() => { setStep(1); setMeet({ catalogMeetId: null, name: '', meetDate: '', meetEndDate: '', location: '', course: 'LCM', isWorldTransplantGames: false, openingCeremonyDate: '' }); setEntries([newEntry()]); setExistingResults([]); setSavedResults([]); setError(''); }} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)]">Submit another meet</button></div>
       </section>}
     </div>
   </main>;

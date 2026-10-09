@@ -1,5 +1,6 @@
 import type { Result } from '../types';
 import { timeToSeconds } from '../lib/utils';
+import SortableTable from './SortableTable';
 
 interface SeasonProgressionTableProps {
   results: Result[];
@@ -41,7 +42,7 @@ export default function SeasonProgressionTable({ results }: SeasonProgressionTab
 
   return (
     <div className="ta-table-shell overflow-x-auto">
-      <table className="w-full border-collapse">
+      <SortableTable><table className="w-full border-collapse">
         <thead>
           <tr className="ta-table-header">
             <th
@@ -117,7 +118,7 @@ export default function SeasonProgressionTable({ results }: SeasonProgressionTab
             );
           })}
         </tbody>
-      </table>
+      </table></SortableTable>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState';
 import { FREE_MEMBER_STORIES_PER_MONTH, getMemberStoryReads, recordMemberStoryRead } from '../lib/storyAccess';
 import { articleHtmlToText, sanitizeArticleHtml } from '../lib/articleContent';
 import AdSlot from '../components/AdSlot';
+import { trackArticleEvent } from '../lib/articleAnalytics';
 
 type StoryComment = { id: string; text: string; createdAt: string };
 
@@ -52,6 +53,7 @@ export default function ArticlePage() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const commentsRef = useRef<HTMLElement>(null);
+  const readEndRef = useRef<HTMLDivElement>(null);
   const storyKey = article?.slug ?? slug ?? 'missing';
   const likedKey = `ta-story-liked-${storyKey}`;
   const savedKey = `ta-story-saved-${storyKey}`;
@@ -74,6 +76,33 @@ export default function ArticlePage() {
   }, [likedKey, savedKey, commentsKey]);
 
   useEffect(() => {
+    if (!article || !canReadFullStory) return;
+    void trackArticleEvent(article.id, 'view');
+  }, [article?.id, canReadFullStory]);
+
+  useEffect(() => {
+    if (!article || !canReadFullStory || typeof IntersectionObserver === 'undefined') return;
+    const startedAt = Date.now();
+    let reachedEnd = false;
+    let tracked = false;
+    const trackIfReady = () => {
+      if (reachedEnd && !tracked && Date.now() - startedAt >= 10_000) {
+        tracked = true;
+        void trackArticleEvent(article.id, 'read_complete');
+      }
+    };
+    const timer = window.setTimeout(trackIfReady, 10_000);
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        reachedEnd = true;
+        trackIfReady();
+      }
+    }, { threshold: 0.1 });
+    if (readEndRef.current) observer.observe(readEndRef.current);
+    return () => { window.clearTimeout(timer); observer.disconnect(); };
+  }, [article?.id, canReadFullStory]);
+
+  useEffect(() => {
     if (location.hash === '#comments') {
       commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -92,6 +121,7 @@ export default function ArticlePage() {
   }
 
   async function copyStoryLink() {
+    if (article) void trackArticleEvent(article.id, 'share');
     const url = `${window.location.origin}/from-the-pool-deck/${storyKey}`;
     try {
       await navigator.clipboard.writeText(url);
@@ -105,12 +135,14 @@ export default function ArticlePage() {
   function toggleLiked() {
     const next = !liked;
     setLiked(next);
+    if (next && article) void trackArticleEvent(article.id, 'like');
     try { window.localStorage.setItem(likedKey, String(next)); } catch { /* local preview storage is optional */ }
   }
 
   function toggleSaved() {
     const next = !saved;
     setSaved(next);
+    if (next && article) void trackArticleEvent(article.id, 'save');
     try { window.localStorage.setItem(savedKey, String(next)); } catch { /* local preview storage is optional */ }
   }
 
@@ -244,6 +276,7 @@ export default function ArticlePage() {
                   {i === 3 && <blockquote className="my-10 border-l-4 border-[#00c2d7] py-2 pl-6 text-2xl font-semibold leading-snug text-neutral-900">“Every split matters. Every lane tells a story.”<footer className="mt-3 font-mono text-xs font-normal uppercase tracking-widest text-[#007d89]">— Transplant Aquatics</footer></blockquote>}
                 </div>)}
               </div>}
+              <div ref={readEndRef} aria-hidden="true" className="h-px" />
               <div className="mt-12 border-y border-neutral-200 py-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-2">

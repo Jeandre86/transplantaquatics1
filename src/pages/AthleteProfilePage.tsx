@@ -1,3 +1,4 @@
+import SortableTable from '../components/SortableTable';
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ExternalLink, Globe, ArrowLeft, Heart } from 'lucide-react';
@@ -7,22 +8,19 @@ import { rankings } from '../data/rankings';
 import { getFlagEmoji, getAgeFromDOB, formatDate, timeToSeconds } from '../lib/utils';
 import TransplantBadge from '../components/TransplantBadge';
 import PersonalBestTable from '../components/PersonalBestTable';
-import ResultsTable from '../components/ResultsTable';
+import AthleteMeetResults from '../components/AthleteMeetResults';
 import MedalDisplay from '../components/MedalDisplay';
 import SeasonProgressionTable from '../components/SeasonProgressionTable';
 import EmptyState from '../components/EmptyState';
 import Eyebrow from '../components/Eyebrow';
-import Pagination from '../components/Pagination';
 import { getSavedAvatar } from '../lib/avatars';
-import { loadPublicSwimmerDirectory, loadPublicSwimmerResults, type PublicSwimmerProfile, type PublicSwimmerResult } from '../lib/swimmerSubmissions';
+import { loadPublicSwimmerProfile, loadPublicSwimmerResults, type PublicSwimmerProfile, type PublicSwimmerResult } from '../lib/swimmerSubmissions';
 import { describeSupabaseError, supabase } from '../lib/supabase';
-import type { AgeGroup, PersonalBest, Result } from '../types';
+import { resolveTransplantMedals } from '../lib/transplantMedals';
+import type { AgeGroup, PersonalBest } from '../types';
 import type { Medal } from '../types';
-import DatabaseResultsTable from '../components/DatabaseResultsTable';
 import PageLoading from '../components/PageLoading';
 import { SkeletonTable } from '../components/Skeleton';
-
-const RESULT_PAGE_SIZE = 10;
 
 type Tab = 'Overview' | 'Medals';
 type ConfirmedWtgRecord = { id: string; event: string; age_group: string; gender: string; competition_category: string; course: string; holder_name: string; time_ms: number; source_evidence: string; confirmed_at: string; superseded_at: string | null };
@@ -35,7 +33,6 @@ function displayMilliseconds(milliseconds: number) {
 export default function AthleteProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab]                   = useState<Tab>('Overview');
-  const [resultPage, setResultPage]     = useState(1);
   const [registeredAthlete, setRegisteredAthlete] = useState<PublicSwimmerProfile | null>(null);
   const [registeredResults, setRegisteredResults] = useState<PublicSwimmerResult[]>([]);
   const [databaseMedals, setDatabaseMedals] = useState<Medal[]>([]);
@@ -44,7 +41,6 @@ export default function AthleteProfilePage() {
   const [registeredLoading, setRegisteredLoading] = useState(false);
   const [medalsLoading, setMedalsLoading] = useState(false);
   const [registeredError, setRegisteredError] = useState('');
-  useEffect(() => setResultPage(1), [id, tab]);
 
   const athlete = athletes.find(a => a.id === id);
 
@@ -66,8 +62,6 @@ export default function AthleteProfilePage() {
     if(supabase){
       supabase.from('wtg_record_history').select('id,event,age_group,gender,competition_category,course,holder_name,time_ms,source_evidence,confirmed_at,superseded_at').eq('swimmer_id',id).order('confirmed_at',{ascending:false})
         .then(({data,error})=>{if(!active)return;if(error)setWtgRecordError(describeSupabaseError(error));else setWtgRecords((data??[]) as ConfirmedWtgRecord[]);});
-      supabase.from('transplant_medals').select('competition,year,medal,swimmer_results(event)').eq('swimmer_id',id).order('year',{ascending:false})
-        .then(({data,error})=>{if(!active)return;if(error)setRegisteredError(`Medal totals could not be loaded. ${describeSupabaseError(error)}`);else setDatabaseMedals((data??[]).map((row:Record<string,unknown>)=>{const linked=row.swimmer_results as {event?:string}|{event?:string}[]|null;const event=Array.isArray(linked)?linked[0]?.event:linked?.event;return {competition:String(row.competition),year:Number(row.year),color:String(row.medal) as Medal['color'],event:String(event??'Unknown event') as Medal['event']};}));setMedalsLoading(false);},()=>{if(!active)return;setRegisteredError('Medal totals could not be loaded.');setMedalsLoading(false);});
     }
     if (athlete) {
       setRegisteredAthlete(null);
@@ -77,23 +71,45 @@ export default function AthleteProfilePage() {
         .finally(() => { if (active) setRegisteredLoading(false); });
       return () => { active = false; };
     }
-    loadPublicSwimmerDirectory().then(async profiles => {
-      const profile = profiles.find(entry => entry.id === id) ?? null;
+    Promise.all([loadPublicSwimmerProfile(id), loadPublicSwimmerResults(id)]).then(([profile, swimmerResults]) => {
       if (!active) return;
       setRegisteredAthlete(profile);
-      if (profile) {
-        const swimmerResults = await loadPublicSwimmerResults(profile.id);
-        if (active) setRegisteredResults(swimmerResults);
-      }
+      setRegisteredResults(swimmerResults);
     }).catch(error => {
       if (active) setRegisteredError(`This athlete profile or its results could not be loaded. ${describeSupabaseError(error)}`);
     }).finally(() => { if (active) setRegisteredLoading(false); });
     return () => { active = false; };
   }, [id, athlete]);
 
+  useEffect(() => {
+    if (!supabase || !id) { setMedalsLoading(false); return; }
+    let active = true;
+    setMedalsLoading(true);
+    const resultIds = [...new Set(registeredResults.map(result => result.id))];
+    const linkedQuery = resultIds.length
+      ? supabase.from('transplant_medals').select('result_id,competition,year,medal,swimmer_results(event)').in('result_id', resultIds)
+      : Promise.resolve({ data: [], error: null });
+    Promise.resolve(linkedQuery).then(linked => {
+      if (!active) return;
+      if (linked.error) {
+        setRegisteredError(`Medal totals could not be loaded. ${describeSupabaseError(linked.error)}`);
+        return;
+      }
+      const storedRows = (linked.data ?? []).map(row => {
+        const related = row.swimmer_results as { event?: string } | { event?: string }[] | null;
+        const event = Array.isArray(related) ? related[0]?.event : related?.event;
+        return { ...row, swimmer_id: id, event: event ?? null } as { result_id: string; swimmer_id: string; competition: string; year: number; medal: string; event: string | null };
+      });
+      const medals = resolveTransplantMedals(registeredResults, storedRows, id);
+      setDatabaseMedals([...medals.values()].map(({ competition, year, color, event }) => ({ competition, year, color, event })));
+    }).catch(error => { if (active) setRegisteredError(`Medal totals could not be loaded. ${describeSupabaseError(error)}`); })
+      .finally(() => { if (active) setMedalsLoading(false); });
+    return () => { active = false; };
+  }, [id, registeredResults]);
+
   if (!athlete) {
     if (registeredLoading) return <PageLoading />;
-    if (registeredAthlete) return <RegisteredAthleteProfile athlete={registeredAthlete} results={registeredResults} medals={databaseMedals} loading={registeredLoading || medalsLoading} error={registeredError} />;
+    if (registeredAthlete) return <RegisteredAthleteProfile athlete={registeredAthlete} results={registeredResults} medals={databaseMedals} worldRecords={wtgRecords} loading={registeredLoading || medalsLoading} error={registeredError} />;
     return (
       <div className="max-w-7xl mx-auto px-4 py-20">
         <EmptyState
@@ -130,20 +146,6 @@ export default function AthleteProfilePage() {
       meet: result.meet_name ?? 'Meet details unavailable',
       verified: result.status === 'verified' ? 'Verified' : result.status === 'imported_unverified' ? 'Unverified' : 'Pending',
     }));
-  const databaseResultsForTable: Result[] = registeredResults.map(result => ({
-    id: result.id,
-    event: result.event as Result['event'],
-    course: (result.course ?? '') as Result['course'],
-    time: result.time,
-    date: result.meet_date ?? '',
-    meet: result.meet_name ?? 'Meet details unavailable',
-    ageGroup: result.age_group as Result['ageGroup'],
-    gender: athlete.gender,
-    verified: result.status === 'verified' ? 'Verified' : result.status === 'imported_unverified' ? 'Unverified' : 'Pending',
-    isPB: databasePersonalBests.some(best => best.event === result.event && best.course === result.course && best.time === result.time),
-    isSB: false,
-    athleteId: athlete.id,
-  }));
   const ranking        = rankings.find(r => r.athleteId === athlete.id);
   const medalCounts = athlete.medals.reduce((counts, medal) => {
     counts[medal.color] += 1;
@@ -436,11 +438,11 @@ export default function AthleteProfilePage() {
             </section>
             <section>
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Competition history</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Previous results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{registeredResults.length} result{registeredResults.length === 1 ? '' : 's'}</span></div>
-              {registeredLoading ? <SkeletonTable rows={6} columns={7} /> : registeredError ? <EmptyState title="Results unavailable" subtitle={registeredError} /> : registeredResults.length > 0 ? <><ResultsTable results={databaseResultsForTable.slice((resultPage - 1) * RESULT_PAGE_SIZE, resultPage * RESULT_PAGE_SIZE)} /><Pagination page={resultPage} pageCount={Math.ceil(registeredResults.length / RESULT_PAGE_SIZE)} onPageChange={setResultPage} label="Athlete result pages" /></> : <EmptyState title="No results yet" subtitle="Competition results for this athlete have not been added to the database yet." />}
+              {registeredLoading ? <SkeletonTable rows={6} columns={7} /> : registeredError ? <EmptyState title="Results unavailable" subtitle={registeredError} /> : registeredResults.length > 0 ? <AthleteMeetResults athlete={{ id: athlete.id, first_name: athlete.firstName, last_name: athlete.lastName, country: athlete.country, country_code: athlete.countryCode, gender: athlete.gender, transplant_type: athlete.transplantType }} results={registeredResults} medals={databaseMedals} worldRecords={wtgRecords} /> : <EmptyState title="No results yet" subtitle="Competition results for this athlete have not been added to the database yet." />}
             </section>
             <section>
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Officially confirmed achievements</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">World Transplant Games Records</h2></div><span className="font-mono text-xs text-[var(--muted)]">{wtgRecords.length} record{wtgRecords.length===1?'':'s'}</span></div>
-              {wtgRecordError?<EmptyState title="WTG records unavailable" subtitle={wtgRecordError} />:wtgRecords.length?<div className="ta-table-shell"><table className="w-full border-collapse"><thead><tr className="ta-table-header">{['Event','Age','Gender','Course','Time','Status','Meet date'].map(column=><th key={column} className="whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">{column}</th>)}</tr></thead><tbody>{wtgRecords.map(record=><tr key={record.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold sm:px-5">{record.event}</td><td className="px-3 py-3 text-sm">{record.age_group}</td><td className="px-3 py-3 text-sm">{record.gender}</td><td className="px-3 py-3 text-sm">{record.course}</td><td className="px-3 py-3 font-mono text-sm font-bold">{displayMilliseconds(record.time_ms)}</td><td className="px-3 py-3 text-xs">{record.superseded_at?'Former WTG record':'Current WTG record'}</td><td className="px-3 py-3 text-xs">{new Date(record.confirmed_at).toLocaleDateString()}</td></tr>)}</tbody></table></div>:<EmptyState title="No confirmed WTG records" subtitle="Officially confirmed World Transplant Games records will appear here and stay in this athlete’s history after they are broken." />}
+              {wtgRecordError?<EmptyState title="WTG records unavailable" subtitle={wtgRecordError} />:wtgRecords.length?<div className="ta-table-shell"><SortableTable><table className="w-full border-collapse"><thead><tr className="ta-table-header">{['Event','Age','Gender','Course','Time','Status','Meet date'].map(column=><th key={column} className="whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">{column}</th>)}</tr></thead><tbody>{wtgRecords.map(record=><tr key={record.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold sm:px-5">{record.event}</td><td className="px-3 py-3 text-sm">{record.age_group}</td><td className="px-3 py-3 text-sm">{record.gender}</td><td className="px-3 py-3 text-sm">{record.course}</td><td className="px-3 py-3 font-mono text-sm font-bold">{displayMilliseconds(record.time_ms)}</td><td className="px-3 py-3 text-xs">{record.superseded_at?'Former WTG record':'Current WTG record'}</td><td className="px-3 py-3 text-xs">{new Date(record.confirmed_at).toLocaleDateString()}</td></tr>)}</tbody></table></SortableTable></div>:<EmptyState title="No confirmed WTG records" subtitle="Officially confirmed World Transplant Games records will appear here and stay in this athlete’s history after they are broken." />}
             </section>
           </div>
           </div>
@@ -458,19 +460,16 @@ export default function AthleteProfilePage() {
   );
 }
 
-function RegisteredAthleteProfile({ athlete, results, medals, loading, error }: { athlete: PublicSwimmerProfile; results: PublicSwimmerResult[]; medals: Medal[]; loading: boolean; error: string }) {
-  const [page, setPage] = useState(1);
+function RegisteredAthleteProfile({ athlete, results, medals, worldRecords, loading, error }: { athlete: PublicSwimmerProfile; results: PublicSwimmerResult[]; medals: Medal[]; worldRecords: ConfirmedWtgRecord[]; loading: boolean; error: string }) {
   const [tab, setTab] = useState<'Overview' | 'Personal Bests' | 'Medals'>('Overview');
   const avatarUrl = getSavedAvatar(athlete.first_name, athlete.last_name);
   const clubPath = athlete.club_id || athlete.club_name?.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  useEffect(() => { setPage(1); setTab('Overview'); }, [athlete.id]);
-  const pageCount = Math.ceil(results.length / RESULT_PAGE_SIZE);
+  useEffect(() => { setTab('Overview'); }, [athlete.id]);
   const medalCounts = medals.reduce((counts, medal) => {
     if (medal.color in counts) counts[medal.color as keyof typeof counts] += 1;
     return counts;
   }, { Gold: 0, Silver: 0, Bronze: 0 });
   const totalMedals = medalCounts.Gold + medalCounts.Silver + medalCounts.Bronze;
-  const visibleResults = results.slice((page - 1) * RESULT_PAGE_SIZE, page * RESULT_PAGE_SIZE);
   const bestByEvent = new Map<string, PublicSwimmerResult>();
   results.forEach(result => {
     const key = `${result.event || 'Event unavailable'}|${result.course || 'Course unavailable'}`;
@@ -534,27 +533,7 @@ function RegisteredAthleteProfile({ athlete, results, medals, loading, error }: 
             </div>
             <div>
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4"><div><Eyebrow>Competition history</Eyebrow><h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--ink)]">Results</h2></div><span className="font-mono text-xs text-[var(--muted)]">{results.length} result{results.length === 1 ? '' : 's'}</span></div>
-              <DatabaseResultsTable results={visibleResults.map(result => ({
-                ...result,
-                athlete_id: athlete.id,
-                swimmer_id: athlete.id,
-                swimmer_name: `${athlete.first_name} ${athlete.last_name}`,
-                country: athlete.country ?? '',
-                country_code: athlete.country_code,
-                gender: athlete.gender,
-                transplant_type: athlete.transplant_type,
-                record_candidate: false,
-                record_candidate_status: 'not_candidate' as const,
-                meet_id: null,
-                submitted_meets: {
-                  name: result.meet_name ?? '',
-                  meet_date: result.meet_date ?? '',
-                  location: result.location ?? '',
-                  course: result.course ?? '',
-                  is_world_transplant_games: result.is_world_transplant_games,
-                },
-              }))} showAthlete={false} />
-              <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Athlete results pages" />
+              <AthleteMeetResults athlete={athlete} results={results} medals={medals} worldRecords={worldRecords} />
             </div>
           </div>
           : tab === 'Personal Bests' ? <div>

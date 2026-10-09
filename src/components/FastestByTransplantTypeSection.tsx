@@ -1,3 +1,4 @@
+import SortableTable from './SortableTable';
 import { Link } from 'react-router-dom';
 import { TRANSPLANT_TYPES } from '../types';
 import { getFlagEmoji, getTransplantColor, timeToSeconds } from '../lib/utils';
@@ -21,9 +22,9 @@ export default function FastestByTransplantTypeSection() {
         <div role="alert" className="border border-red-300 bg-red-50 px-5 py-6 text-sm text-red-800">Fastest swims could not be loaded: {error}</div>
       ) : (
         <div className="ta-table-shell overflow-x-auto">
-          <table className="w-full border-collapse">
+          <SortableTable><table className="w-full border-collapse">
             <thead><tr className="ta-table-header">
-              {['Transplant type', 'Athlete', 'Event', 'Time', 'Course', 'Status'].map(label => <th key={label} className={`whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' ? 'text-right' : ''}`}>{label}</th>)}
+              {['Transplant type', 'Athlete', 'Event', 'Time', 'Course'].map(label => <th key={label} className={`whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' ? 'text-right' : ''}`}>{label}</th>)}
             </tr></thead>
             <tbody>{TRANSPLANT_TYPES.map(type => {
               const fastest = swims
@@ -36,10 +37,9 @@ export default function FastestByTransplantTypeSection() {
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{fastest ? `${fastest.event} · ${fastest.gender}` : '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-base font-bold text-[var(--navy)] sm:px-5">{fastest?.time ?? '—'}</td>
                 <td className="whitespace-nowrap px-3 py-4 font-mono text-xs text-[var(--muted)] sm:px-5">{fastest?.course ?? '—'}</td>
-                <td className="whitespace-nowrap px-3 py-4 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] sm:px-5">{fastest ? (fastest.status === 'verified' ? 'Verified' : fastest.status === 'imported_unverified' ? 'Imported · unverified' : 'Pending verification') : 'No results'}</td>
               </tr>;
             })}</tbody>
-          </table>
+          </table></SortableTable>
         </div>
       )}
     </section>

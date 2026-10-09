@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import SortableTable from '../components/SortableTable';
+import Pagination from '../components/Pagination';
 import { AGE_GROUPS, COURSES, EVENTS } from '../types';
 import type { Course, Event, Gender, Ranking, TransplantType } from '../types';
 import { formatDate, getCountryAlpha3, getFlagEmoji, is25mEvent, timeToSeconds } from '../lib/utils';
@@ -12,9 +14,10 @@ import PageHeading from '../components/PageHeading';
 
 const TYPE_LABELS: Record<TransplantType, string> = {
   Kidney: 'Kidney', Liver: 'Liver', Heart: 'Heart', Lung: 'Lung',
-  Pancreas: 'Pancreas', 'Bone Marrow': 'Bone marrow', Donor: 'Living donor',
+  Pancreas: 'Pancreas', 'Bone Marrow': 'Bone marrow', Donor: 'Donor',
 };
 const ALL_EVENTS = 'All';
+const PAGE_SIZE = 25;
 const TYPES: Array<TransplantType | typeof ALL_EVENTS> = [ALL_EVENTS, 'Kidney', 'Liver', 'Heart', 'Lung', 'Pancreas', 'Bone Marrow', 'Donor'];
 
 function meetLabel(row: Ranking) {
@@ -42,6 +45,10 @@ export default function TransplantTypeRankingsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(1);
+
+  useEffect(() => setPage(1), [transplantType, ageGroup, gender, event, course]);
+
   useEffect(() => {
     let active = true;
     loadDatabaseRankings()
@@ -50,12 +57,6 @@ export default function TransplantTypeRankingsPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
-
-  const typeCounts = new Map<TransplantType, Set<string>>();
-  for (const type of TYPES) if (type !== ALL_EVENTS) typeCounts.set(type, new Set());
-  rankings.forEach(row => {
-    if (row.transplantType) typeCounts.get(row.transplantType)?.add(row.athleteId);
-  });
 
   const bestByAthleteEvent = new Map<string, Ranking>();
   rankings
@@ -84,6 +85,8 @@ export default function TransplantTypeRankingsPage() {
     if (!leaders.has(category)) leaders.set(category, timeToSeconds(row.time));
     return { ...row, rank };
   });
+  const pageCount = Math.ceil(results.length / PAGE_SIZE);
+  const pageResults = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const ageGroupOptions = AGE_GROUPS;
   const eventOptions = [...new Set([...EVENTS, ...rankings.map(row => row.event)])]
     .filter(item => !is25mEvent(item))
@@ -91,35 +94,27 @@ export default function TransplantTypeRankingsPage() {
 
   return (
     <div className="bg-[var(--paper)]">
-      <PageHeading eyebrow="Rankings / By transplant type" title="Rank by transplant type" description="See how you compare with swimmers who’ve had the same transplant. Pick a type, then an event.">
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Transplant type">
-            {TYPES.map(type => {
-              const selected = transplantType === type;
-              const count = type === ALL_EVENTS ? rankings.length : typeCounts.get(type)?.size ?? 0;
-              return <button key={type} type="button" aria-pressed={selected} onClick={() => setTransplantType(type)} className={`inline-flex items-center gap-2 border px-2.5 py-1.5 text-sm transition-colors ${selected ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--navy)]' : count ? 'border-white/25 text-white hover:border-white/60' : 'border-white/10 text-white/55 hover:border-white/40'}`}>
-                <span>{type === ALL_EVENTS ? 'All' : TYPE_LABELS[type]}</span>{type !== ALL_EVENTS && <span className="font-mono">{count}</span>}
-              </button>;
-            })}
-          </div>
-      </PageHeading>
+      <PageHeading eyebrow="Rankings / By transplant type" title="Rank by transplant type" description="See how you compare with swimmers who’ve had the same transplant. Pick a type, then an event." />
 
-      <div className="border-b border-[var(--border)] bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2.5 px-4 py-2">
-            <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-sm text-[var(--muted)]">Event:
+      <div className="border-b border-[var(--border)] bg-white md:h-24">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2.5 px-4 py-2 md:h-full md:py-0">
+          <label className="flex items-center gap-1.5 border border-[var(--border)] bg-white px-2 py-1 text-sm text-[var(--muted)]">Event:
             <select value={event} onChange={e => setEvent(e.target.value as Event | typeof ALL_EVENTS)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-sm font-semibold text-[var(--ink)] outline-none">
               <option value={ALL_EVENTS}>All</option>
               {eventOptions.map(item => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <div className="inline-flex border border-[var(--border)] p-0.5" role="group" aria-label="Gender">
-            {([ALL_EVENTS, 'Men', 'Women'] as const).map(item => <button key={item} type="button" aria-pressed={gender === item} onClick={() => setGender(item)} className={`px-3 py-1 text-sm ${gender === item ? 'bg-[var(--navy)] font-semibold text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{item}</button>)}
-          </div>
-          <label className="flex items-center gap-1.5 border border-[var(--border)] px-2 py-1 text-sm text-[var(--muted)]">Age group:
+          <label className="flex items-center gap-1.5 border border-[var(--border)] bg-white px-2 py-1 text-sm text-[var(--muted)]">Transplant:
+            <select value={transplantType} onChange={e => setTransplantType(e.target.value as TransplantType | typeof ALL_EVENTS)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-sm font-semibold text-[var(--ink)] outline-none">
+              {TYPES.map(type => <option key={type} value={type}>{type === ALL_EVENTS ? 'All' : TYPE_LABELS[type]}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5 border border-[var(--border)] bg-white px-2 py-1 text-sm text-[var(--muted)]">Age group:
             <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-sm font-semibold text-[var(--ink)] outline-none">
               {['All', ...ageGroupOptions].map(item => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 py-1 text-sm text-[var(--muted)]">Course:
+          <label className="flex items-center gap-1.5 border border-[var(--border)] bg-white px-2 py-1 text-sm text-[var(--muted)]">Course:
             <select value={course} onChange={e => setCourse(e.target.value as Course | typeof ALL_EVENTS)} className="ta-filter-select appearance-none bg-transparent py-0.5 pr-6 text-sm font-semibold text-[var(--ink)] outline-none">
               <option value={ALL_EVENTS}>All</option>{COURSES.map(item => <option key={item} value={item}>{item === 'LCM' ? 'Long course' : 'Short course'}</option>)}
             </select>
@@ -128,18 +123,29 @@ export default function TransplantTypeRankingsPage() {
       </div>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+        <div className="mb-4 flex justify-end" role="group" aria-label="Filter rankings by gender">
+          <div className="inline-flex border border-[var(--border)] bg-white p-1">
+            {[ALL_EVENTS, 'Men', 'Women'].map(item => <button
+              key={item}
+              type="button"
+              aria-pressed={gender === item}
+              onClick={() => setGender(item as Gender | typeof ALL_EVENTS)}
+              className={`min-h-9 px-4 text-sm transition-colors ${gender === item ? 'bg-[var(--navy)] font-semibold text-white' : 'text-[var(--ink)] hover:bg-[var(--ice)]'}`}
+            >{item}</button>)}
+          </div>
+        </div>
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">{transplantType} · {gender} · {event === ALL_EVENTS ? 'All events' : event}</h2>
+          <h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">{transplantType === ALL_EVENTS ? 'All transplants' : TYPE_LABELS[transplantType]} · {gender} · {event === ALL_EVENTS ? 'All events' : event}</h2>
           {!loading && !loadError && <p className="text-[10px] text-[var(--muted)]">{results.length} swims · {event === ALL_EVENTS ? 'each athlete’s best time per event' : 'each athlete’s best verified time'}</p>}
         </div>
         {loading ? <SkeletonTable rows={6} columns={event === ALL_EVENTS ? 8 : 7} />
           : loadError ? <div role="alert" className="border border-red-300 bg-red-50 px-5 py-6 text-sm text-red-800">Athlete rankings could not be loaded from the database. {loadError}</div>
             : results.length ? <div className="ta-table-shell">
-              <table className={`border-collapse text-sm ${event === ALL_EVENTS ? 'min-w-[900px]' : 'min-w-[780px]'}`}>
+              <SortableTable><table className={`border-collapse text-sm ${event === ALL_EVENTS ? 'min-w-[900px]' : 'min-w-[780px]'}`}>
                 <thead><tr className="ta-table-header">
                   {['Rank', 'Athlete', ...(event === ALL_EVENTS ? ['Event'] : []), 'Age group', 'Date / meet', 'Behind leader', 'Time', ''].map((label, index) => <th key={`${label}-${index}`} className={`whitespace-nowrap px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' || label === 'Behind leader' || label === '' ? 'text-right' : 'text-left'} ${index === 0 ? 'w-12' : ''}`}>{label}</th>)}
                 </tr></thead>
-                <tbody>{results.map(row => {
+                <tbody>{pageResults.map(row => {
                   const nameParts = row.athleteName.trim().split(/\s+/);
                   const lastName = nameParts.length > 1 ? nameParts.pop()! : '';
                   const firstName = nameParts.join(' ');
@@ -149,11 +155,11 @@ export default function TransplantTypeRankingsPage() {
                   const category = event === ALL_EVENTS ? row.event : ALL_EVENTS;
                   const behind = formatBehind(timeToSeconds(row.time) - (leaders.get(category) ?? timeToSeconds(row.time)));
                   return <tr key={`${row.athleteId}-${row.rank}`} className="ta-table-row">
-                    <td className="whitespace-nowrap px-3 py-4 font-mono text-base font-bold text-[var(--accent-dark)] sm:px-5">{row.rank}</td>
+                    <td className="whitespace-nowrap px-3 py-4 font-mono text-lg font-black text-[var(--accent-dark)] sm:px-5">{row.rank}</td>
                     <td className="px-3 py-4 sm:px-5">
                       <Link to={`/athletes/${row.athleteId}`} className="flex min-w-48 items-center gap-2.5 hover:underline">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ice)] text-[10px] font-semibold text-[var(--navy)] sm:h-11 sm:w-11">{avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initials}</span>
-                        <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--ink)]">{row.athleteName}</span><span className="mt-1 block text-xs text-[var(--muted)]">{countryFlag} {row.countryCode ? getCountryAlpha3(row.countryCode) : '—'}</span></span>
+                        <span className="min-w-0"><span className="block truncate text-base font-medium text-[var(--ink)]">{row.athleteName}</span><span className="mt-1 block text-xs text-[var(--muted)]">{countryFlag} {row.countryCode ? getCountryAlpha3(row.countryCode) : '—'}</span></span>
                       </Link>
                     </td>
                     {event === ALL_EVENTS && <td className="whitespace-nowrap px-3 py-4 text-sm text-[var(--ink)] sm:px-5">{row.event}</td>}
@@ -164,8 +170,9 @@ export default function TransplantTypeRankingsPage() {
                     <td className="px-2 py-4 text-right sm:px-4"><ChevronRight size={15} className="inline text-[var(--muted)]" aria-hidden="true" /></td>
                   </tr>;
                 })}</tbody>
-              </table>
+              </table></SortableTable>
             </div> : <div className="border-t border-[var(--muted)] bg-white px-4 py-8 text-sm text-[var(--muted)]">No swimmers match these filters yet.</div>}
+        {!loading && !loadError && results.length > 0 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Transplant type rankings pages" totalCount={results.length} pageSize={PAGE_SIZE} enhanced />}
       </main>
     </div>
   );

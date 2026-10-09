@@ -1,7 +1,7 @@
 import { AGE_GROUPS, type AgeGroup, type Gender } from '../types';
 import { records } from '../data/records';
 import { timeToSeconds } from './utils';
-import { getWorldAquaticsPoints, pointsFromBaseTime } from './worldAquaticsPoints';
+import { pointsFromBaseTime } from './worldAquaticsPoints';
 
 export const COMPETITION_AGE_GROUPS: readonly AgeGroup[] = AGE_GROUPS;
 
@@ -93,8 +93,6 @@ export function getWorldRecordBaseline(ageGroup: string, gender: Gender, event: 
 }
 
 export function getSubmissionPoints(input: { ageGroup: string; gender: Gender; event: string; course: string; time: string }): number | null {
-  const points = getWorldAquaticsPoints(input);
-  if (points !== null) return points;
   return pointsFromBaseTime(getWorldRecordBaseline(input.ageGroup, input.gender, input.event, input.course), input.time);
 }
 

@@ -1,4 +1,6 @@
+import SortableTable from './SortableTable';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Download, Pencil, Search, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
 import { describeSupabaseError, supabase } from '../lib/supabase';
 import { countries } from '../data/countries';
@@ -60,7 +62,7 @@ function timeToMilliseconds(value: string): number | null {
 
 const fieldClass = 'w-full border border-[var(--navy-light)] bg-[var(--navy)] px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]';
 
-export default function AdminSwimmersManager({ swimmers, canManage, onChanged }: { swimmers: Record<string, unknown>[]; canManage: boolean; onChanged: () => Promise<void> }) {
+export default function AdminSwimmersManager({ swimmers, canManage, onChanged, view = 'all' }: { swimmers: Record<string, unknown>[]; canManage: boolean; onChanged: () => Promise<void>; view?: 'all' | 'unclaimed' | 'duplicates' }) {
   const [query, setQuery] = useState('');
   const [countryFilter, setCountryFilter] = useState('All');
   const [genderFilter, setGenderFilter] = useState('All');
@@ -68,7 +70,8 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
   const [accountFilter, setAccountFilter] = useState('All');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [editing, setEditing] = useState<Swimmer | null>(null);
-  const [draft, setDraft] = useState({ first_name: '', last_name: '', date_of_birth: '', country: '', country_code: '', gender: '', transplant_type: '' });
+  const [unlinkConfirmation, setUnlinkConfirmation] = useState('');
+  const [draft, setDraft] = useState({ first_name: '', last_name: '', date_of_birth: '', country: '', country_code: '', gender: '', transplant_type: '', club_name: '' });
   const [deleting, setDeleting] = useState<Swimmer | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkConfirmation, setBulkConfirmation] = useState('');
@@ -85,20 +88,33 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
   const [error, setError] = useState('');
 
   const rows = swimmers as unknown as Swimmer[];
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    rows.forEach(swimmer => { const name = `${swimmer.first_name} ${swimmer.last_name}`.trim().toLocaleLowerCase().replace(/\s+/g, ' '); if (name) counts.set(name, (counts.get(name) ?? 0) + 1); });
+    return new Set([...counts].filter(([, count]) => count > 1).map(([name]) => name));
+  }, [rows]);
   const countriesInList = useMemo(() => [...new Set(rows.map(swimmer => swimmer.country?.trim()).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b)), [rows]);
   const transplantTypesInList = useMemo(() => [...new Set(rows.map(swimmer => swimmer.transplant_type?.trim()).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b)), [rows]);
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = query.trim().toLowerCase().replace(/\s+/g, ' ');
+    const searchTerms = needle.split(' ').filter(Boolean);
     return rows.filter(swimmer => {
-      const matchesSearch = !needle || [swimmer.first_name, swimmer.last_name, swimmer.country, swimmer.country_code, swimmer.gender, swimmer.transplant_type, swimmer.club_name, swimmer.source_key, ...(swimmer.source_keys ?? [])].some(value => String(value ?? '').toLowerCase().includes(needle));
+      const searchableText = [swimmer.first_name, swimmer.last_name, swimmer.country, swimmer.country_code, swimmer.gender, swimmer.transplant_type, swimmer.club_name, swimmer.source_key, ...(swimmer.source_keys ?? [])]
+        .map(value => String(value ?? '').toLowerCase())
+        .join(' ')
+        .replace(/\s+/g, ' ');
+      const matchesSearch = !needle || searchableText.includes(needle) || searchTerms.every(term => searchableText.includes(term));
       const isClaimed = Boolean(swimmer.account_id || swimmer.is_claimed);
+      const normalizedName = `${swimmer.first_name} ${swimmer.last_name}`.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+      const matchesView = view === 'all' || (view === 'unclaimed' && !isClaimed) || (view === 'duplicates' && duplicateNames.has(normalizedName));
       return matchesSearch
+        && matchesView
         && (countryFilter === 'All' || (countryFilter === '' ? !swimmer.country?.trim() : swimmer.country === countryFilter))
         && (genderFilter === 'All' || (genderFilter === '' ? !swimmer.gender : swimmer.gender === genderFilter))
         && (transplantFilter === 'All' || (transplantFilter === '' ? !swimmer.transplant_type : swimmer.transplant_type === transplantFilter))
         && (accountFilter === 'All' || (accountFilter === 'Claimed' ? isClaimed : !isClaimed));
     });
-  }, [rows, query, countryFilter, genderFilter, transplantFilter, accountFilter]);
+  }, [rows, query, countryFilter, genderFilter, transplantFilter, accountFilter, view, duplicateNames]);
 
   const filtersActive = Boolean(query.trim()) || countryFilter !== 'All' || genderFilter !== 'All' || transplantFilter !== 'All' || accountFilter !== 'All';
   const clearFilters = () => { setQuery(''); setCountryFilter('All'); setGenderFilter('All'); setTransplantFilter('All'); setAccountFilter('All'); };
@@ -106,12 +122,6 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
   const selectedDeletable = selectedSwimmers.filter(swimmer => !swimmer.admin_directory_reconciled);
   const visibleDeletable = filtered.filter(swimmer => !swimmer.admin_directory_reconciled);
   const allVisibleSelected = visibleDeletable.length > 0 && visibleDeletable.every(swimmer => selectedIds.has(swimmer.id));
-  const mergeNameMatches = selectedSwimmers.length >= 2
-    && selectedSwimmers.every(swimmer => !swimmer.admin_directory_reconciled)
-    && selectedSwimmers.every(swimmer =>
-      swimmer.first_name.trim().toLowerCase() === selectedSwimmers[0].first_name.trim().toLowerCase()
-      && swimmer.last_name.trim().toLowerCase() === selectedSwimmers[0].last_name.trim().toLowerCase()
-    );
   const selectedAccountIds = [...new Set(selectedSwimmers.map(swimmer => swimmer.account_id).filter((id): id is string => Boolean(id)))];
   const linkedPrimary = selectedSwimmers.find(swimmer => swimmer.account_id && swimmer.is_account_holder)
     ?? selectedSwimmers.find(swimmer => swimmer.account_id)
@@ -137,7 +147,8 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
 
   const openEdit = (swimmer: Swimmer) => {
     setEditing(swimmer);
-    setDraft({ first_name: swimmer.first_name ?? '', last_name: swimmer.last_name ?? '', date_of_birth: swimmer.date_of_birth ?? '', country: swimmer.country ?? '', country_code: normalizeCountryCode(swimmer.country, swimmer.country_code), gender: swimmer.gender ?? '', transplant_type: swimmer.transplant_type ?? '' });
+    setUnlinkConfirmation('');
+    setDraft({ first_name: swimmer.first_name ?? '', last_name: swimmer.last_name ?? '', date_of_birth: swimmer.date_of_birth ?? '', country: swimmer.country ?? '', country_code: normalizeCountryCode(swimmer.country, swimmer.country_code), gender: swimmer.gender ?? '', transplant_type: swimmer.transplant_type ?? '', club_name: swimmer.club_name ?? '' });
     setError('');
   };
 
@@ -145,7 +156,7 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
     if (!supabase || !editing) return;
     setBusyId(editing.id); setError('');
     try {
-      const { error: saveError } = await supabase.rpc('admin_update_swimmer_profile', {
+      const { data: savedDateOfBirth, error: saveError } = await supabase.rpc('admin_update_swimmer_profile', {
         p_swimmer_id: editing.id,
         p_first_name: draft.first_name.trim(),
         p_last_name: draft.last_name.trim(),
@@ -154,9 +165,31 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
         p_country_code: normalizeCountryCode(draft.country, draft.country_code) || null,
         p_gender: draft.gender || null,
         p_transplant_type: draft.transplant_type.trim() || null,
+        p_club_name: draft.club_name.trim() || null,
       });
       if (saveError) throw saveError;
+
+      const persistedDateOfBirth = String(savedDateOfBirth ?? '').slice(0, 10);
+      if (persistedDateOfBirth !== (draft.date_of_birth || '')) {
+        throw new Error('The database did not confirm the date of birth. Re-run the latest admin swimmer profile edit SQL, then try again.');
+      }
+
+      await onChanged();
       setEditing(null);
+    } catch (reason) { setError(describeSupabaseError(reason)); }
+    finally { setBusyId(''); }
+  };
+
+  const unlinkAccount = async () => {
+    if (!supabase || !editing || unlinkConfirmation.trim().toUpperCase() !== 'UNLINK') return;
+    setBusyId(editing.id); setError('');
+    try {
+      const { error: unlinkError } = await supabase.rpc('admin_unlink_swimmer_account', {
+        p_swimmer_id: editing.id,
+        p_confirmation_name: `${editing.first_name} ${editing.last_name}`.trim(),
+      });
+      if (unlinkError) throw unlinkError;
+      setEditing(null); setUnlinkConfirmation('');
       await onChanged();
     } catch (reason) { setError(describeSupabaseError(reason)); }
     finally { setBusyId(''); }
@@ -422,33 +455,32 @@ export default function AdminSwimmersManager({ swimmers, canManage, onChanged }:
     {error && <p role="alert" className="mt-4 border border-red-300/20 bg-red-950/20 p-3 text-sm text-red-200">{error}</p>}
     {!filtered.length ? <div className="mt-5"><EmptyState title={rows.length ? 'No swimmers match' : 'No swimmers yet'} subtitle={rows.length ? 'Try changing or clearing your search and filters.' : 'Swimmer and donor profiles will appear here.'} onDark /></div> : <>
       <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-white/40">{filtered.length.toLocaleString()} of {rows.length.toLocaleString()} profiles</p>
-      <div className="ta-table-scroll mt-2"><table className="w-full min-w-[1000px] text-left text-sm"><thead><tr className="border-b border-[var(--navy-light)] text-[10px] uppercase tracking-widest text-white/50"><th className="w-10 px-3 py-3"><input type="checkbox" aria-label="Select all visible unclaimed swimmers" checked={allVisibleSelected} onChange={event => toggleVisibleSelection(event.target.checked)} disabled={!canManage || !visibleDeletable.length || Boolean(busyId)} className="accent-[var(--accent)]" /></th>{['Swimmer','Country','Gender','Transplant type','Date of birth','Account','Review','Actions'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead><tbody>{filtered.map(swimmer => <tr key={swimmer.id} className="border-b border-[var(--navy-light)] last:border-0">
+      <div className="ta-table-scroll mt-2"><SortableTable><table className="w-full min-w-[1000px] text-left text-sm"><thead><tr className="border-b border-[var(--navy-light)] text-[10px] uppercase tracking-widest text-white/50"><th className="w-10 px-3 py-3"><input type="checkbox" aria-label="Select all visible unclaimed swimmers" checked={allVisibleSelected} onChange={event => toggleVisibleSelection(event.target.checked)} disabled={!canManage || !visibleDeletable.length || Boolean(busyId)} className="accent-[var(--accent)]" /></th>{['Swimmer','Country','Gender','Transplant type','Date of birth','Account','Review','Actions'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead><tbody>{filtered.map(swimmer => <tr key={swimmer.id} className="border-b border-[var(--navy-light)] last:border-0">
         <td className="px-3 py-3"><input type="checkbox" aria-label={`Select ${swimmer.first_name} ${swimmer.last_name}`} checked={selectedIds.has(swimmer.id)} onChange={event => toggleSwimmerSelection(swimmer.id, event.target.checked)} disabled={!canManage || Boolean(busyId) || Boolean(swimmer.admin_directory_reconciled)} title={swimmer.admin_directory_reconciled ? 'This athlete is awaiting admin database reconciliation' : undefined} className="accent-[var(--accent)]" /></td>
-        <td className="px-3 py-3"><p className="font-semibold text-white">{swimmer.first_name} {swimmer.last_name}</p><p className="mt-1 max-w-56 truncate font-mono text-[9px] text-white/35" title={swimmer.source_key ?? ''}>{swimmer.source_key ?? 'Account profile'}</p></td>
+        <td className="px-3 py-3"><Link to={`/athletes/${swimmer.id}`} className="font-semibold text-white hover:text-[var(--accent)]">{swimmer.first_name} {swimmer.last_name}</Link><p className="mt-1 max-w-56 truncate font-mono text-[9px] text-white/35" title={swimmer.source_key ?? ''}>{swimmer.source_key ?? 'Account profile'}</p></td>
         <td className="px-3 py-3 text-white/70">{swimmer.country || '—'}{normalizeCountryCode(swimmer.country, swimmer.country_code) ? <span className="ml-1 font-mono text-[10px] text-white/40">{normalizeCountryCode(swimmer.country, swimmer.country_code)}</span> : ''}</td>
         <td className="px-3 py-3 text-white/70">{swimmer.gender || '—'}</td><td className="px-3 py-3 text-white/70">{swimmer.transplant_type || '—'}</td><td className="px-3 py-3 text-white/70">{swimmer.date_of_birth || '—'}</td>
         <td className="px-3 py-3 text-white/70">{swimmer.admin_directory_reconciled ? 'Admin sync pending' : swimmer.account_id ? 'Linked account' : swimmer.is_claimed ? 'Claimed' : 'Unclaimed'}</td><td className="px-3 py-3 text-white/70">{swimmer.identity_review_required ? 'Review' : '—'}</td>
         <td className="px-3 py-3"><div className="flex items-center gap-3"><button type="button" disabled={!canManage || Boolean(busyId) || Boolean(swimmer.admin_directory_reconciled)} onClick={() => openEdit(swimmer)} title={swimmer.admin_directory_reconciled ? 'Admin directory data is pending reconciliation' : 'Edit swimmer'} className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] disabled:opacity-40"><Pencil size={13} />Edit</button><button type="button" disabled={!canManage || Boolean(busyId) || Boolean(swimmer.admin_directory_reconciled)} onClick={() => { setDeleting(swimmer); setConfirmation(''); setError(''); }} title={swimmer.admin_directory_reconciled ? 'Admin directory data is pending reconciliation' : 'Delete swimmer profile'} className="inline-flex items-center gap-1 text-xs font-semibold text-red-200 disabled:opacity-35"><Trash2 size={13} />Delete</button></div></td>
-      </tr>)}</tbody></table></div>
+      </tr>)}</tbody></table></SortableTable></div>
     </>}
 
-    {editing && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-swimmer-title"><div className="max-h-[90vh] w-full max-w-2xl overflow-auto border border-[var(--navy-light)] bg-[var(--navy-mid)] p-5 sm:p-6"><div className="flex items-start justify-between gap-3"><div><h3 id="edit-swimmer-title" className="text-lg font-bold text-white">Edit swimmer</h3><p className="mt-1 text-sm text-white/50">Update the profile fields used by the athlete directory.</p></div><button type="button" onClick={() => setEditing(null)} aria-label="Close editor" className="p-1 text-white/60 hover:text-white"><X size={18} /></button></div><div className="mt-5 grid gap-4 sm:grid-cols-2">
+    {editing && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-swimmer-title"><div className="max-h-[90vh] w-full max-w-2xl overflow-auto border border-[var(--navy-light)] bg-[var(--navy-mid)] p-5 sm:p-6"><div className="flex items-start justify-between gap-3"><div><h3 id="edit-swimmer-title" className="text-lg font-bold text-white">Edit swimmer</h3><p className="mt-1 text-sm text-white/50">Update the profile fields used by the athlete directory.</p></div><button type="button" onClick={() => setEditing(null)} aria-label="Close editor" className="p-1 text-white/60 hover:text-white"><X size={18} /></button></div>{error && <p role="alert" className="mt-4 border border-red-300/20 bg-red-950/20 p-3 text-sm text-red-200">{error}</p>}<div className="mt-5 grid gap-4 sm:grid-cols-2">
       <label className="text-xs text-white/60">First name<input className={`${fieldClass} mt-1`} value={draft.first_name} onChange={event => setDraft({ ...draft, first_name: event.target.value })} /></label><label className="text-xs text-white/60">Last name<input className={`${fieldClass} mt-1`} value={draft.last_name} onChange={event => setDraft({ ...draft, last_name: event.target.value })} /></label>
       <label className="text-xs text-white/60">Date of birth<input type="date" className={`${fieldClass} mt-1`} value={draft.date_of_birth} onChange={event => setDraft({ ...draft, date_of_birth: event.target.value })} /></label><label className="text-xs text-white/60">Country<select className={`${fieldClass} mt-1`} value={draft.country} onChange={event => {
         const selected = countries.find(country => country.name === event.target.value);
         setDraft(current => ({ ...current, country: event.target.value, country_code: selected?.code ?? '' }));
       }}><option value="">Select country</option>{draft.country && !countries.some(country => country.name === draft.country) && <option value={draft.country}>{draft.country} (current)</option>}{countries.map(country => <option key={country.code} value={country.name}>{country.flag} {country.name}</option>)}</select></label>
       <label className="text-xs text-white/60">Country code<input maxLength={3} readOnly aria-readonly="true" className={`${fieldClass} mt-1 opacity-75`} value={draft.country_code} placeholder="Select a country" /></label><label className="text-xs text-white/60">Gender<select className={`${fieldClass} mt-1`} value={draft.gender} onChange={event => setDraft({ ...draft, gender: event.target.value })}><option value="">Not set</option><option value="Men">Men</option><option value="Women">Women</option></select></label>
-      <label className="text-xs text-white/60 sm:col-span-2">Transplant type<input className={`${fieldClass} mt-1`} value={draft.transplant_type} onChange={event => setDraft({ ...draft, transplant_type: event.target.value })} /></label>
-    </div><div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => setEditing(null)} className="border border-[var(--navy-light)] px-4 py-2 text-sm text-white/70">Cancel</button><button type="button" disabled={Boolean(busyId) || !draft.first_name.trim() || !draft.last_name.trim()} onClick={() => void saveEdit()} className="bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--navy)] disabled:opacity-40">{busyId ? 'Saving…' : 'Save swimmer'}</button></div></div></div>}
+      <label className="text-xs text-white/60">Club<input className={`${fieldClass} mt-1`} value={draft.club_name} onChange={event => setDraft({ ...draft, club_name: event.target.value })} /></label><label className="text-xs text-white/60">Transplant type<input className={`${fieldClass} mt-1`} value={draft.transplant_type} onChange={event => setDraft({ ...draft, transplant_type: event.target.value })} /></label>
+    </div>{(editing.account_id || editing.is_claimed) && <div className="mt-5 border border-amber-300/20 bg-amber-300/5 p-4"><p className="text-sm font-semibold text-white">Account link</p><p className="mt-1 text-xs leading-5 text-white/60">{editing.account_id ? `Linked account ID: ${editing.account_id}` : 'This profile is marked as claimed.'} Unlinking keeps the swimmer profile and results, clears its account and claim status, and closes existing claim requests.</p>{unlinkConfirmation === '' ? <button type="button" onClick={() => setUnlinkConfirmation('confirm')} className="mt-3 border border-amber-300/40 px-3 py-2 text-xs font-bold text-amber-100">Unlink account</button> : <div className="mt-3"><label className="block text-xs text-white/65">Type <strong className="text-white">UNLINK</strong> to confirm<input autoComplete="off" className={`${fieldClass} mt-2`} value={unlinkConfirmation === 'confirm' ? '' : unlinkConfirmation} onChange={event => setUnlinkConfirmation(event.target.value)} /></label><div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => setUnlinkConfirmation('')} className="border border-[var(--navy-light)] px-3 py-2 text-xs text-white/70">Cancel</button><button type="button" disabled={Boolean(busyId) || unlinkConfirmation.trim().toUpperCase() !== 'UNLINK'} onClick={() => void unlinkAccount()} className="bg-amber-300 px-3 py-2 text-xs font-bold text-[var(--navy)] disabled:opacity-40">{busyId === editing.id ? 'Unlinking…' : 'Confirm unlink'}</button></div></div>}</div>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => setEditing(null)} className="border border-[var(--navy-light)] px-4 py-2 text-sm text-white/70">Cancel</button><button type="button" disabled={Boolean(busyId) || !draft.first_name.trim() || !draft.last_name.trim()} onClick={() => void saveEdit()} className="bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--navy)] disabled:opacity-40">{busyId === editing.id ? 'Saving…' : 'Save swimmer'}</button></div></div></div>}
 
     {deleting && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-swimmer-title"><div className="w-full max-w-lg border border-red-300/30 bg-[var(--navy-mid)] p-5 sm:p-6"><h3 id="delete-swimmer-title" className="text-lg font-bold text-white">Delete {deleting.first_name} {deleting.last_name}?</h3><p className="mt-2 text-sm leading-6 text-white/60">This permanently removes the swimmer profile, even when it is claimed or linked to an account. Meet results remain visible without a profile link. The login account itself is not deleted. Archive source keys will be excluded from future imports.</p>{deleting.account_id && <p className="mt-2 border border-amber-300/20 bg-amber-300/5 p-3 text-xs leading-5 text-amber-100">This profile is linked to a login account. Deleting it will remove the swimmer profile from that account; the account can still sign in.</p>}{archive && <p className="mt-2 flex items-center gap-2 text-xs text-[var(--accent)]"><Download size={13} />A cleaned swimmers.json download will start after deletion.</p>}<label className="mt-4 block text-xs text-white/60">Type <strong className="text-white">{deleting.first_name} {deleting.last_name}</strong> to confirm<input autoComplete="off" className={`${fieldClass} mt-2`} value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setDeleting(null)} className="border border-[var(--navy-light)] px-4 py-2 text-sm text-white/70">Cancel</button><button type="button" disabled={Boolean(busyId) || confirmation.trim().toLowerCase() !== `${deleting.first_name} ${deleting.last_name}`.trim().toLowerCase()} onClick={() => void removeSwimmer()} className="bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">{busyId ? 'Deleting…' : 'Delete swimmer'}</button></div></div></div>}
     {bulkDeleting && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-delete-swimmers-title"><div className="max-h-[90vh] w-full max-w-xl overflow-auto border border-red-300/30 bg-[var(--navy-mid)] p-5 sm:p-6"><h3 id="bulk-delete-swimmers-title" className="text-lg font-bold text-white">Delete {selectedDeletable.length} selected profiles?</h3><p className="mt-2 text-sm leading-6 text-white/60">This removes every selected profile, including claimed or account-linked profiles. Historical results remain without a profile link. Login accounts are not deleted, and archive source keys are excluded from future imports.</p>{archive && <p className="mt-2 flex items-center gap-2 text-xs text-[var(--accent)]"><Download size={13} />A cleaned swimmers.json download will start after deletion.</p>}<div className="mt-4 max-h-40 overflow-auto border border-[var(--navy-light)] p-3 text-sm text-white/75">{selectedDeletable.map(swimmer => <p key={swimmer.id}>{swimmer.first_name} {swimmer.last_name}{swimmer.account_id ? ' · linked account' : ''}</p>)}</div><label className="mt-4 block text-xs text-white/60">Type <strong className="text-white">DELETE</strong> to confirm<input autoComplete="off" className={`${fieldClass} mt-2`} value={bulkConfirmation} onChange={event => setBulkConfirmation(event.target.value)} /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setBulkDeleting(false)} disabled={Boolean(busyId)} className="border border-[var(--navy-light)] px-4 py-2 text-sm text-white/70 disabled:opacity-40">Cancel</button><button type="button" disabled={Boolean(busyId) || bulkConfirmation.trim().toUpperCase() !== 'DELETE'} onClick={() => void removeSelectedSwimmers()} className="bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">{busyId === 'bulk' ? 'Deleting…' : `Delete ${selectedDeletable.length} profiles`}</button></div></div></div>}
     {bulkMerging && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="merge-swimmers-title">
       <div className="max-h-[90vh] w-full max-w-xl overflow-auto border border-[var(--accent)]/30 bg-[var(--navy-mid)] p-5 sm:p-6">
         <h3 id="merge-swimmers-title" className="text-lg font-bold text-white">Merge {selectedSwimmers.length} swimmer profiles</h3>
-        <p className="mt-2 text-sm leading-6 text-white/60">All non-duplicate results, medals, profile details and archive identifiers move to one swimmer. Exact duplicate results are combined; conflicting times for the same event and age group must be reviewed first. Login accounts themselves are never deleted.</p>
-        {!mergeNameMatches && <p className="mt-3 border border-amber-300/25 bg-amber-300/5 p-3 text-xs leading-5 text-amber-100">The selected names differ. Confirm these records belong to the same swimmer; the kept profile’s name will remain.</p>}
+        <p className="mt-2 text-sm leading-6 text-white/60">Results from every age group, medals, profile details and archive identifiers move to one swimmer. Different times for the same meet, event and age group are kept as separate results; exact duplicates are combined. Login accounts themselves are never deleted.</p>
         {multipleLinkedAccounts && <p className="mt-3 border border-amber-300/25 bg-amber-300/5 p-3 text-xs leading-5 text-amber-100">Several different login accounts are linked to these profiles. Choose which linked profile to keep. Other login accounts remain active, but their swimmer-profile links will be removed. The original profile and account links are recorded in the admin activity log.</p>}
         <fieldset className="mt-4 space-y-2">
           <legend className="mb-2 text-xs font-semibold text-white/65">Choose the profile to keep</legend>

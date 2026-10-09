@@ -3,6 +3,9 @@ import { getCompetitionAgeGroup } from './competitionAge';
 import { supabase } from './supabase';
 import { normalizeCountryCode } from './utils';
 import { clearCachedRequest, loadCached } from './requestCache';
+import { records as importedRecords } from '../data/records';
+import { loadWorldRecords } from './worldRecords';
+import { buildTransplantPointBaselines, scoreTransplantSwim, type PointBasis, type TransplantPointInput } from './transplantPoints';
 
 export interface SwimmerProfile {
   id: string;
@@ -34,18 +37,56 @@ export interface PublicSwimmerProfile {
   age_group: string;
   club_id: string | null;
   club_name: string | null;
+  best_swim_time?: string | null;
+  best_swim_event?: string | null;
+  record_count?: number;
+}
+
+export interface PublicSwimmerDirectoryPage {
+  rows: PublicSwimmerProfile[];
+  totalCount: number;
+  countryCount: number;
+  countryOptions: string[];
+  resultCount: number;
+}
+
+export interface PublicResultsFilters {
+  search: string;
+  country: string;
+  event: string;
+  ageGroup: string;
+  gender: string;
+  swimType: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface PublicResultsFilterOptions {
+  countries: string[];
+  events: string[];
+  ageGroups: string[];
+}
+
+export interface PublicResultsPage {
+  rows: SubmittedSwimmerResult[];
+  totalCount: number;
+  options: PublicResultsFilterOptions;
 }
 
 export interface PublicSwimmerResult {
   id: string;
+  meet_id: string | null;
   event: string;
   time: string;
   age_group: string;
   points: number | null;
+  placing: number | null;
   status: 'swimmer_submitted' | 'imported_unverified' | 'verified' | 'rejected';
   created_at: string;
   meet_name: string | null;
+  meet_year: number | null;
   meet_date: string | null;
+  meet_end_date: string | null;
   location: string | null;
   course: string | null;
   is_world_transplant_games: boolean;
@@ -56,6 +97,7 @@ export interface SubmittedMeetDraft {
   catalogMeetId: string | null;
   name: string;
   meetDate: string;
+  endDate: string | null;
   openingCeremonyDate: string | null;
   location: string;
   course: 'LCM' | 'SCM';
@@ -81,6 +123,8 @@ export interface SubmittedSwimmerResult {
   course?: string | null;
   age_group: string;
   points: number | null;
+  placing?: number | null;
+  points_basis?: PointBasis | null;
   record_candidate: boolean;
   record_candidate_status: 'not_candidate' | 'pending_verification' | 'verified' | 'rejected';
   status: 'swimmer_submitted' | 'imported_unverified' | 'verified' | 'rejected';
@@ -91,12 +135,17 @@ export interface SubmittedSwimmerResult {
   country_code: string | null;
   gender: string;
   transplant_type: string;
+  is_relay?: boolean;
+  relay_team?: string | null;
+  relay_members?: unknown[];
   current_age_group?: string;
   represented_club_id?: string | null;
   represented_club_name?: string | null;
   submitted_meets?: {
     name: string;
-    meet_date: string;
+    meet_date: string | null;
+    end_date?: string | null;
+    meet_year?: number | null;
     location: string;
     course: string;
     is_world_transplant_games: boolean;
@@ -119,6 +168,10 @@ function normalizeSubmittedResult(row: Record<string, unknown>): SubmittedSwimme
     // has not been applied yet.
     athlete_id: typeof row.athlete_id === 'string' ? row.athlete_id : swimmerId,
   } as SubmittedSwimmerResult;
+}
+
+function normalizeSwimmerIdentity(value: string | null | undefined) {
+  return (value ?? '').trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ');
 }
 
 export function loadPublicSwimmerDirectory(): Promise<PublicSwimmerProfile[]> {
@@ -151,58 +204,114 @@ export function loadPublicSwimmerDirectory(): Promise<PublicSwimmerProfile[]> {
   });
 }
 
-export async function loadPublicSwimmerResults(swimmerId: string): Promise<PublicSwimmerResult[]> {
-  const { data, error } = await client().rpc('get_public_swimmer_results', { p_swimmer_id: swimmerId });
-  if (!error) return (data ?? []) as PublicSwimmerResult[];
+export function loadPublicSwimmerProfile(swimmerId: string): Promise<PublicSwimmerProfile | null> {
+  return loadCached(`public-swimmer-profile:${swimmerId}`, async () => {
+    const { data, error } = await client().rpc('get_public_swimmer_profile', { p_swimmer_id: swimmerId });
+    if (error) throw error;
+    return (data ?? null) as PublicSwimmerProfile | null;
+  });
+}
 
-  // Older Supabase deployments may not have the public results RPC yet. Read
-  // the same public rows directly until the repair migration is applied.
-  if (error.code !== 'PGRST202') throw error;
-
-  const { data: resultRows, error: resultsError } = await client()
-    .from('swimmer_results')
-    .select('id,event,time,age_group,points,status,created_at,meet_id')
-    .eq('swimmer_id', swimmerId)
-    .neq('status', 'rejected')
-    .order('created_at', { ascending: false });
-  if (resultsError) throw resultsError;
-
-  const meetIds = [...new Set((resultRows ?? []).map((row) => row.meet_id).filter((id): id is string => Boolean(id)))];
-  const meetsById = new Map<string, { name: string; meet_date: string; location: string; course: string; is_world_transplant_games: boolean }>();
-  if (meetIds.length) {
-    const { data: meetRows, error: meetsError } = await client()
-      .from('submitted_meets')
-      .select('id,name,meet_date,location,course,is_world_transplant_games')
-      .in('id', meetIds);
-    if (meetsError) throw meetsError;
-    for (const meet of meetRows ?? []) {
-      meetsById.set(meet.id, {
-        name: meet.name,
-        meet_date: meet.meet_date,
-        location: meet.location,
-        course: meet.course,
-        is_world_transplant_games: meet.is_world_transplant_games,
-      });
-    }
-  }
-
-  return (resultRows ?? []).map((row) => {
-    const meet = row.meet_id ? meetsById.get(row.meet_id) : undefined;
+export function loadPublicSwimmerDirectoryPage(filters: {
+  search?: string; country?: string; gender?: string; ageGroup?: string; transplant?: string;
+  page?: number; pageSize?: number; sortBy?: 'name' | 'featured';
+} = {}): Promise<PublicSwimmerDirectoryPage> {
+  const args = {
+    p_search: filters.search?.trim() || null,
+    p_country: filters.country && filters.country !== 'All' ? filters.country : null,
+    p_gender: filters.gender && filters.gender !== 'All' ? filters.gender : null,
+    p_age_group: filters.ageGroup && filters.ageGroup !== 'All' ? filters.ageGroup : null,
+    p_transplant: filters.transplant && filters.transplant !== 'All' ? filters.transplant : null,
+    p_page: filters.page ?? 1,
+    p_page_size: filters.pageSize ?? 25,
+    p_sort_by: filters.sortBy ?? 'name',
+  };
+  const key = `public-swimmer-directory-page:${JSON.stringify(args)}`;
+  return loadCached(key, async () => {
+    const { data, error } = await client().rpc('get_public_swimmer_directory_page', args);
+    if (error) throw error;
+    const page = (data ?? {}) as Partial<PublicSwimmerDirectoryPage>;
     return {
-      id: row.id,
-      event: row.event,
-      time: row.time,
-      age_group: row.age_group,
-      points: row.points,
-      status: row.status,
-      created_at: row.created_at,
-      meet_name: meet?.name ?? null,
-      meet_date: meet?.meet_date ?? null,
-      location: meet?.location ?? null,
-      course: meet?.course ?? null,
-      is_world_transplant_games: meet?.is_world_transplant_games ?? false,
-      represented_club_name: null,
-    } satisfies PublicSwimmerResult;
+      rows: Array.isArray(page.rows) ? page.rows : [],
+      totalCount: Number(page.totalCount ?? 0),
+      countryCount: Number(page.countryCount ?? 0),
+      countryOptions: Array.isArray(page.countryOptions) ? page.countryOptions : [],
+      resultCount: Number(page.resultCount ?? 0),
+    };
+  });
+}
+
+export function loadPublicResultsPage(filters: PublicResultsFilters): Promise<PublicResultsPage> {
+  const args = {
+    p_search: filters.search.trim() || null,
+    p_country: filters.country,
+    p_event: filters.event,
+    p_age_group: filters.ageGroup,
+    p_gender: filters.gender,
+    p_swim_type: filters.swimType,
+    p_page: filters.page,
+    p_page_size: filters.pageSize,
+  };
+  return loadCached(`public-results-page:${JSON.stringify(args)}`, async () => {
+    const [pageResponse, optionsResponse] = await Promise.all([
+      client().rpc('get_public_results_page', args),
+      loadCached('public-results-filter-options', async () => {
+        const { data, error } = await client().rpc('get_public_results_filter_options');
+        if (error) throw error;
+        return data as PublicResultsFilterOptions;
+      }),
+    ]);
+    if (pageResponse.error) throw pageResponse.error;
+    const page = (pageResponse.data ?? {}) as { rows?: Record<string, unknown>[]; totalCount?: number };
+    return {
+      rows: (page.rows ?? []).map(normalizeSubmittedResult),
+      totalCount: Number(page.totalCount ?? 0),
+      options: optionsResponse,
+    };
+  });
+}
+
+export async function loadClaimableSwimmerProfiles(): Promise<PublicSwimmerProfile[]> {
+  const { data, error } = await client().rpc('get_claimable_swimmer_profiles');
+  if (error) throw error;
+  return (data ?? []) as PublicSwimmerProfile[];
+}
+
+export async function loadPublicSwimmerResults(swimmerId: string): Promise<PublicSwimmerResult[]> {
+  return loadCached(`public-swimmer-results:${swimmerId}`, async () => {
+  const { data, error } = await client().rpc('get_public_swimmer_profile_results', { p_swimmer_id: swimmerId });
+  if (error) throw error;
+  const rows = ((data ?? []) as Record<string, unknown>[]).map(normalizeSubmittedResult);
+  let pointRecords = importedRecords;
+  try {
+    const loadedRecords = await loadWorldRecords();
+    if (loadedRecords.length) pointRecords = loadedRecords;
+  } catch { /* Keep profile results available without the records service. */ }
+  const inputs: TransplantPointInput[] = rows.map(result => ({
+    ageGroup: result.age_group, gender: result.gender, event: result.event,
+    course: result.course || result.submitted_meets?.course || '', time: result.time,
+    transplantType: result.transplant_type, status: result.status,
+  }));
+  const baselines = buildTransplantPointBaselines(pointRecords, inputs);
+  return rows.map((result, index) => ({
+    id: result.id,
+    meet_id: result.meet_id,
+    event: result.event,
+    time: result.time,
+    age_group: result.age_group,
+    points: scoreTransplantSwim(inputs[index], baselines).points,
+    placing: result.placing ?? null,
+    status: result.status,
+    created_at: result.created_at,
+    meet_name: result.submitted_meets?.name ?? null,
+    meet_year: result.submitted_meets?.meet_year ?? null,
+    meet_date: result.submitted_meets?.meet_date ?? null,
+    meet_end_date: result.submitted_meets?.end_date ?? null,
+    location: result.submitted_meets?.location ?? null,
+    course: result.course || result.submitted_meets?.course || null,
+    is_world_transplant_games: result.submitted_meets?.is_world_transplant_games ?? false,
+    represented_club_name: result.represented_club_name ?? null,
+  }));
   });
 }
 
@@ -284,6 +393,7 @@ export async function findSubmittedMeet(meet: SubmittedMeetDraft): Promise<strin
         .ilike('location', meet.location.trim())
         .eq('is_world_transplant_games', meet.isWorldTransplantGames);
     }
+    query = meet.endDate ? query.eq('end_date', meet.endDate) : query.is('end_date', null);
     query = meet.openingCeremonyDate ? query.eq('opening_ceremony_date', meet.openingCeremonyDate) : query.is('opening_ceremony_date', null);
     return query.maybeSingle();
   };
@@ -301,6 +411,7 @@ export async function findOrCreateSubmittedMeet(meet: SubmittedMeetDraft): Promi
     catalog_meet_id: meet.catalogMeetId,
     name: meet.name.trim(),
     meet_date: meet.meetDate,
+    end_date: meet.endDate,
     opening_ceremony_date: meet.openingCeremonyDate,
     location: meet.location.trim(),
     course: meet.course,
@@ -401,7 +512,7 @@ export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> 
 export function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> {
   return loadCached('public-submitted-results', async () => {
     const pageSize = 1000;
-    const fields = 'id,swimmer_id,athlete_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
+    const fields = 'id,swimmer_id,athlete_id,event,time,age_group,points,placing,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,end_date,meet_year,location,course,is_world_transplant_games)';
     const first = await client().from('swimmer_results').select(fields, { count: 'exact' })
       .neq('status', 'rejected').order('created_at', { ascending: false }).order('id', { ascending: false })
       .range(0, pageSize - 1);
@@ -442,7 +553,7 @@ export function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> 
         });
       });
     }
-    return rows.map(result => {
+    const enrichedRows = rows.map(result => {
       const athlete = result.swimmer_id ? countryBySwimmer.get(result.swimmer_id) : undefined;
       return {
         ...result,
@@ -450,5 +561,103 @@ export function loadPublicSubmittedResults(): Promise<SubmittedSwimmerResult[]> 
         country_code: result.country_code?.trim() || athlete?.country_code || null,
       };
     });
+
+    // Rank swims against Transplant Aquatics age-group records. If a category
+    // has no official record yet, verified results establish its provisional
+    // baseline. Stored points from the old World Aquatics scale are ignored.
+    let pointRecords = importedRecords;
+    try {
+      const loadedRecords = await loadWorldRecords();
+      if (loadedRecords.length) pointRecords = loadedRecords;
+    } catch {
+      // Keep public results usable when the records endpoint is unavailable.
+    }
+    const pointInputs: TransplantPointInput[] = enrichedRows.map(result => ({
+      ageGroup: result.age_group,
+      gender: result.gender,
+      event: result.event,
+      course: result.course || result.submitted_meets?.course || '',
+      time: result.time,
+      transplantType: result.transplant_type,
+      status: result.status,
+    }));
+    const pointBaselines = buildTransplantPointBaselines(pointRecords, pointInputs);
+    const scoredRows = enrichedRows.map((result, index) => {
+      const score = scoreTransplantSwim(pointInputs[index], pointBaselines);
+      return { ...result, points: score.points, points_basis: score.basis };
+    });
+
+    const relayFields = 'id,swimmer_id,swimmer_name,country,event,age_group,gender,course,time_original,race_status,is_relay,relay_team,relay_members,published_at,meet_catalog(name,category,meet_date,host_city,host_country)';
+    const relayPageSize = 1000;
+    const firstRelayPage = await client().from('imported_official_performances').select(relayFields, { count: 'exact' })
+      .eq('is_relay', true).order('published_at', { ascending: false }).range(0, relayPageSize - 1);
+    if (firstRelayPage.error) throw firstRelayPage.error;
+    const relayRows = [...(firstRelayPage.data ?? [])];
+    const relayCount = firstRelayPage.count ?? relayRows.length;
+    const relayOffsets = Array.from({ length: Math.ceil((relayCount - relayRows.length) / relayPageSize) }, (_, index) => relayPageSize * (index + 1));
+    for (let batch = 0; batch < relayOffsets.length; batch += 4) {
+      const pages = await Promise.all(relayOffsets.slice(batch, batch + 4).map(async offset => {
+        const { data, error } = await client().from('imported_official_performances').select(relayFields)
+          .eq('is_relay', true).order('published_at', { ascending: false }).range(offset, offset + relayPageSize - 1);
+        if (error) throw error;
+        return data ?? [];
+      }));
+      pages.forEach(page => relayRows.push(...page));
+    }
+    const officialRelays: SubmittedSwimmerResult[] = relayRows.map(row => {
+      const meet = Array.isArray(row.meet_catalog) ? row.meet_catalog[0] : row.meet_catalog;
+      const country = typeof row.country === 'string' ? row.country : '';
+      const publishedAt = String(row.published_at ?? new Date(0).toISOString());
+      const meetDate = typeof meet?.meet_date === 'string' ? meet.meet_date : null;
+      const host = [meet?.host_city, meet?.host_country].filter(Boolean).join(', ');
+      return {
+        id: `official-relay-${row.id}`,
+        athlete_id: null,
+        swimmer_id: null,
+        event: String(row.event ?? ''),
+        time: String(row.time_original ?? row.race_status ?? '—'),
+        course: typeof row.course === 'string' ? row.course : null,
+        age_group: typeof row.age_group === 'string' && row.age_group ? row.age_group : '—',
+        points: null,
+        record_candidate: false,
+        record_candidate_status: 'not_candidate',
+        status: 'verified',
+        created_at: meetDate ?? publishedAt,
+        meet_id: null,
+        swimmer_name: String(row.relay_team || row.swimmer_name || 'Relay team'),
+        country,
+        country_code: normalizeCountryCode(country, '') || null,
+        gender: String(row.gender ?? ''),
+        transplant_type: '',
+        is_relay: true,
+        relay_team: typeof row.relay_team === 'string' ? row.relay_team : null,
+        relay_members: Array.isArray(row.relay_members) ? row.relay_members : [],
+        represented_club_id: null,
+        represented_club_name: null,
+        submitted_meets: {
+          name: String(meet?.name ?? 'Official meet result'),
+          meet_date: meetDate,
+          location: host,
+          course: typeof row.course === 'string' ? row.course : '',
+          is_world_transplant_games: meet?.category === 'World Transplant Games',
+        },
+      };
+    });
+    const profiles = await loadPublicSwimmerDirectory();
+    const profilesByIdentity = new Map<string, PublicSwimmerProfile[]>();
+    profiles.forEach(profile => {
+      const key = [normalizeSwimmerIdentity(`${profile.first_name} ${profile.last_name}`), normalizeSwimmerIdentity(profile.country), normalizeSwimmerIdentity(profile.gender)].join('|');
+      const matches = profilesByIdentity.get(key) ?? [];
+      matches.push(profile);
+      profilesByIdentity.set(key, matches);
+    });
+    const linkedRows = scoredRows.map(result => {
+      if (result.swimmer_id || result.athlete_id) return result;
+      const key = [normalizeSwimmerIdentity(result.swimmer_name), normalizeSwimmerIdentity(result.country), normalizeSwimmerIdentity(result.gender)].join('|');
+      const matches = profilesByIdentity.get(key);
+      if (!matches || matches.length !== 1) return result;
+      return { ...result, swimmer_id: matches[0].id, athlete_id: matches[0].id };
+    });
+    return [...linkedRows, ...officialRelays];
   });
 }

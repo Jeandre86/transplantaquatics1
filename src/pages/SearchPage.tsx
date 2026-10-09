@@ -1,161 +1,159 @@
 import { useEffect, useState } from 'react';
-import { athletes } from '../data/athletes';
+import { Link } from 'react-router-dom';
+import { Search, X, ArrowRight } from 'lucide-react';
 import { records } from '../data/records';
 import { countries } from '../data/countries';
 import { usePublishedArticles } from '../hooks/usePublishedArticles';
-import SearchInput from '../components/SearchInput';
-import AthleteCard from '../components/AthleteCard';
-import RecordCard from '../components/RecordCard';
-import CountryCard from '../components/CountryCard';
-import ArticleCard from '../components/ArticleCard';
-import Eyebrow from '../components/Eyebrow';
-import type { Country } from '../types';
-import Pagination from '../components/Pagination';
-import PageHeading from '../components/PageHeading';
+import { getFlagEmoji } from '../lib/utils';
+import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
 import EmptyState from '../components/EmptyState';
+import Pagination from '../components/Pagination';
 
+type SearchCategory = 'All' | 'Athletes' | 'Records' | 'Countries' | 'Stories';
+const CATEGORIES: SearchCategory[] = ['All', 'Athletes', 'Records', 'Countries', 'Stories'];
 const PAGE_SIZE = 10;
 
 export default function SearchPage() {
   const { articles } = usePublishedArticles();
+  const [athletes, setAthletes] = useState<PublicSwimmerProfile[]>([]);
+  const [athletesLoading, setAthletesLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [athletePage, setAthletePage] = useState(1);
-  const [recordPage, setRecordPage] = useState(1);
-  const [countryPage, setCountryPage] = useState(1);
-  const [articlePage, setArticlePage] = useState(1);
-
+  const [category, setCategory] = useState<SearchCategory>('All');
+  const [page, setPage] = useState(1);
   const q = query.toLowerCase().trim();
+
   useEffect(() => {
-    setAthletePage(1);
-    setRecordPage(1);
-    setCountryPage(1);
-    setArticlePage(1);
-  }, [q]);
+    let active = true;
+    loadPublicSwimmerDirectory()
+      .then(directory => { if (active) setAthletes(directory); })
+      .catch(() => { if (active) setAthletes([]); })
+      .finally(() => { if (active) setAthletesLoading(false); });
+    return () => { active = false; };
+  }, []);
 
-  const matchedAthletes = q
-    ? athletes.filter(a =>
-        `${a.firstName} ${a.lastName}`.toLowerCase().includes(q) ||
-        a.country.toLowerCase().includes(q) ||
-        a.transplantType.toLowerCase().includes(q)
-      )
-    : [];
+  useEffect(() => { setCategory('All'); setPage(1); }, [q]);
 
-  const matchedRecords = q
-    ? records.filter(r =>
-        r.event.toLowerCase().includes(q) ||
-        r.athleteName.toLowerCase().includes(q) ||
-        r.country.toLowerCase().includes(q)
-      )
-    : [];
+  const matchedAthletes = q ? athletes.filter(athlete =>
+    `${athlete.first_name} ${athlete.last_name}`.toLowerCase().includes(q)
+    || (athlete.country ?? '').toLowerCase().includes(q)
+    || String(athlete.transplant_type ?? '').toLowerCase().includes(q)
+  ) : [];
+  const matchedRecords = q ? records.filter(record =>
+    record.event.toLowerCase().includes(q)
+    || record.athleteName.toLowerCase().includes(q)
+    || record.country.toLowerCase().includes(q)
+  ) : [];
+  const matchedCountries = q ? countries.filter(country => country.name.toLowerCase().includes(q)) : [];
+  const matchedArticles = q ? articles.filter(article =>
+    article.title.toLowerCase().includes(q)
+    || article.excerpt.toLowerCase().includes(q)
+    || article.category.toLowerCase().includes(q)
+  ) : [];
 
-  const matchedCountries = q
-    ? countries.filter(c => c.name.toLowerCase().includes(q))
-    : [];
+  const counts: Record<SearchCategory, number> = {
+    All: matchedAthletes.length + matchedRecords.length + matchedCountries.length + matchedArticles.length,
+    Athletes: matchedAthletes.length,
+    Records: matchedRecords.length,
+    Countries: matchedCountries.length,
+    Stories: matchedArticles.length,
+  };
+  const hasResults = counts.All > 0;
+  const showAll = category === 'All';
+  const showAthletes = showAll || category === 'Athletes';
+  const showRecords = showAll || category === 'Records';
+  const showCountries = showAll || category === 'Countries';
+  const showStories = showAll || category === 'Stories';
+  const selectedCount = category === 'All' ? counts.All : counts[category];
+  const pageCount = Math.ceil(selectedCount / PAGE_SIZE);
+  const visibleItems = <T,>(items: T[]) => showAll ? items.slice(0, 5) : items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const matchedArticles = q
-    ? articles.filter(a =>
-        a.title.toLowerCase().includes(q) ||
-        a.excerpt.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q)
-      )
-    : [];
-
-  const hasResults = matchedAthletes.length + matchedRecords.length + matchedCountries.length + matchedArticles.length > 0;
-  const athletePageCount = Math.ceil(matchedAthletes.length / PAGE_SIZE);
-  const recordPageCount = Math.ceil(matchedRecords.length / PAGE_SIZE);
-  const countryPageCount = Math.ceil(matchedCountries.length / PAGE_SIZE);
-  const articlePageCount = Math.ceil(matchedArticles.length / PAGE_SIZE);
+  const sectionHeader = (label: string, count: number, target: SearchCategory) => (
+    <div className="mb-1.5 flex items-center justify-between border-b border-[var(--border)] pb-1.5">
+      <h2 className="text-sm font-bold text-[var(--ink)]">{label} <span className="font-normal text-[var(--muted)]">({count})</span></h2>
+      {showAll && count > 0 && <button type="button" onClick={() => setCategory(target)} className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--accent-dark)] hover:underline">See all <ArrowRight size={14} /></button>}
+    </div>
+  );
 
   return (
-    <div style={{ backgroundColor: 'var(--paper)' }} className="min-h-screen">
-      {/* Search hero */}
-      <PageHeading eyebrow="Search" title="Find athletes, records, countries and stories.">
-        <div className="max-w-2xl"><SearchInput value={query} onChange={setQuery} placeholder="Search Transplant Aquatics..." large /></div>
-      </PageHeading>
-
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        {!q && (
-          <div className="text-center py-16">
-            <div className="font-mono text-xs tracking-widest uppercase text-neutral-400 mb-4">
-              Search across
-            </div>
-            <div className="flex flex-wrap justify-center gap-4">
-              {['Athletes', 'Records', 'Countries', 'Stories'].map(label => (
-                <span
-                  key={label}
-                  className="font-mono text-sm border border-neutral-300 px-4 py-2 text-neutral-500"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
+    <div className="min-h-screen bg-[var(--paper)]">
+      <section className="border-b border-[var(--navy-light)] bg-[var(--navy)]">
+        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder="Search athletes, records, countries or stories"
+              aria-label="Search athletes, records, countries or stories"
+              className="h-[42px] w-full border border-[var(--accent-dark)] bg-white pl-9 pr-10 text-sm text-[var(--ink)] outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            />
+            {query && <button type="button" onClick={() => setQuery('')} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--muted)] hover:text-[var(--ink)]"><X size={15} /></button>}
           </div>
-        )}
-
-        {q && !hasResults && (
-          <EmptyState title={`No results for “${query}”`} subtitle="Try a different name, country, event, record or story title." />
-        )}
-
-        {q && hasResults && (
-          <div className="space-y-12">
-            {matchedAthletes.length > 0 && (
-              <section>
-                <Eyebrow className="mb-5">Athletes ({matchedAthletes.length})</Eyebrow>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {matchedAthletes.slice((athletePage - 1) * PAGE_SIZE, athletePage * PAGE_SIZE).map(a => (
-                    <AthleteCard key={a.id} athlete={a} />
-                  ))}
-                </div>
-                <Pagination page={athletePage} pageCount={athletePageCount} onPageChange={setAthletePage} label="Search athlete pages" />
-              </section>
-            )}
-
-            {matchedRecords.length > 0 && (
-              <section>
-                <Eyebrow className="mb-5">Records ({matchedRecords.length})</Eyebrow>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {matchedRecords.slice((recordPage - 1) * PAGE_SIZE, recordPage * PAGE_SIZE).map(r => (
-                    <RecordCard key={r.id} record={r} />
-                  ))}
-                </div>
-                <Pagination page={recordPage} pageCount={recordPageCount} onPageChange={setRecordPage} label="Search record pages" />
-              </section>
-            )}
-
-            {matchedCountries.length > 0 && (
-              <section>
-                <Eyebrow className="mb-5">Countries ({matchedCountries.length})</Eyebrow>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {matchedCountries.slice((countryPage - 1) * PAGE_SIZE, countryPage * PAGE_SIZE).map(c => (
-                    <CountryCard
-                      key={c.code}
-                      country={c}
-                      selected={selectedCountry?.code === c.code}
-                      onClick={() => setSelectedCountry(selectedCountry?.code === c.code ? null : c)}
-                    />
-                  ))}
-                </div>
-                <Pagination page={countryPage} pageCount={countryPageCount} onPageChange={setCountryPage} label="Search country pages" />
-              </section>
-            )}
-
-            {matchedArticles.length > 0 && (
-              <section>
-                <Eyebrow className="mb-5">Stories ({matchedArticles.length})</Eyebrow>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
-                  {matchedArticles.slice((articlePage - 1) * PAGE_SIZE, articlePage * PAGE_SIZE).map(a => (
-                    <div key={a.id} className="pr-0 md:pr-8 last:pr-0">
-                      <ArticleCard article={a} />
-                    </div>
-                  ))}
-                </div>
-                <Pagination page={articlePage} pageCount={articlePageCount} onPageChange={setArticlePage} label="Search story pages" />
-              </section>
-            )}
+          <div className="mt-3 flex gap-5 overflow-x-auto" role="tablist" aria-label="Search result categories">
+            {CATEGORIES.map(item => <button
+              key={item}
+              type="button"
+              role="tab"
+              aria-selected={category === item}
+              onClick={() => { setCategory(item); setPage(1); }}
+              className={`shrink-0 border-b-2 px-1 pb-2 text-sm transition-colors ${category === item ? 'border-[var(--accent)] font-semibold text-white' : 'border-transparent text-white/65 hover:text-white'}`}
+            >{item} <span className="ml-1 font-mono text-sm text-white/55">{counts[item]}</span></button>)}
           </div>
-        )}
-      </div>
+        </div>
+      </section>
+
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-4 sm:py-7">
+        {!q ? <div className="py-12 text-center text-sm text-[var(--muted)]">Search across athletes, records, countries and stories.</div>
+          : !hasResults && !showAll ? <EmptyState title={`No results for “${query}”`} subtitle="Try a different name, country, event, record or story title." />
+            : <div className={showAll ? 'grid gap-x-6 gap-y-5 lg:grid-cols-5' : 'space-y-7'}>
+              {showAthletes && (showAll || matchedAthletes.length > 0) && <section className={showAll ? 'lg:col-span-3 lg:row-span-2' : ''}>
+                {sectionHeader('Athletes', matchedAthletes.length, 'Athletes')}
+                  {matchedAthletes.length ? <div className="divide-y divide-[var(--border)] border-b border-[var(--border)]">
+                  {visibleItems(matchedAthletes).map(athlete => {
+                    return <Link key={athlete.id} to={`/athletes/${athlete.id}`} className="flex items-center gap-3 bg-white px-3 py-2.5 transition-colors hover:bg-[var(--ice)]">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ice)] text-sm font-semibold text-[var(--navy)]">{`${athlete.first_name[0] ?? ''}${athlete.last_name[0] ?? ''}`}</span>
+                      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[var(--ink)]">{athlete.first_name} {athlete.last_name}</span><span className="block truncate text-sm text-[var(--muted)]">{getFlagEmoji(athlete.country_code ?? '')} {athlete.country ?? 'Country not listed'}{athlete.club_name ? ` · ${athlete.club_name}` : ''}</span></span>
+                    </Link>;
+                  })}
+                </div> : <p className="border border-[var(--border)] bg-white px-3 py-5 text-sm text-[var(--muted)]">{athletesLoading ? 'Loading athletes…' : 'No athletes found.'}</p>}
+              </section>}
+
+              <div className={showAll ? 'space-y-5 lg:col-span-2' : 'contents'}>
+                {showRecords && (showAll || matchedRecords.length > 0) && <section>
+                  {sectionHeader('Records', matchedRecords.length, 'Records')}
+                  {matchedRecords.length ? <div className="divide-y divide-[var(--border)] border-b border-[var(--border)]">
+                    {visibleItems(matchedRecords).map(record => <Link key={record.id} to={record.athleteId ? `/athletes/${record.athleteId}` : '/records'} className="flex items-center gap-3 bg-white px-3 py-2.5 transition-colors hover:bg-[var(--ice)]">
+                      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[var(--ink)]">{record.event}</span><span className="block truncate text-sm text-[var(--muted)]">{record.athleteName} · {record.gender} · {record.ageGroup}</span></span>
+                      <span className="shrink-0 font-mono text-sm font-bold text-[var(--ink)]">{record.time}</span>
+                    </Link>)}
+                  </div> : <p className="border border-[var(--border)] bg-white px-3 py-5 text-sm text-[var(--muted)]">No records found.</p>}
+                </section>}
+
+                {showCountries && (showAll || matchedCountries.length > 0) && <section>
+                  {sectionHeader('Countries', matchedCountries.length, 'Countries')}
+                  {matchedCountries.length ? <div className="divide-y divide-[var(--border)] border-b border-[var(--border)]">
+                    {visibleItems(matchedCountries).map(country => {
+                      const swimmerCount = athletes.filter(athlete => athlete.country === country.name).length;
+                      return <Link key={country.code} to={`/countries/${encodeURIComponent(country.code)}`} className="flex items-center gap-3 bg-white px-3 py-2.5 transition-colors hover:bg-[var(--ice)]">
+                        <span className="text-sm" aria-hidden="true">{country.flag}</span>
+                        <span className="flex-1 text-sm font-semibold text-[var(--ink)]">{country.name}</span>
+                        <span className="text-sm text-[var(--muted)]">{swimmerCount} swimmers</span>
+                      </Link>;
+                    })}
+                  </div> : <p className="border border-[var(--border)] bg-white px-3 py-5 text-sm text-[var(--muted)]">No countries found.</p>}
+                </section>}
+              </div>
+
+              {showStories && (!showAll || matchedArticles.length > 0) && <section className={showAll ? 'lg:col-span-5' : ''}>
+                {sectionHeader('Stories', matchedArticles.length, 'Stories')}
+                {matchedArticles.length ? <div className="grid gap-3 sm:grid-cols-2">
+                  {visibleItems(matchedArticles).map(article => <Link key={article.id} to={`/from-the-pool-deck/${article.slug}`} className="border border-[var(--border)] bg-white p-3 transition-colors hover:bg-[var(--ice)]"><span className="text-sm font-semibold uppercase tracking-wider text-[var(--accent-dark)]">{article.category}</span><span className="mt-1 block text-sm font-semibold text-[var(--ink)]">{article.title}</span><span className="mt-1 block text-sm leading-relaxed text-[var(--muted)]">{article.excerpt}</span></Link>)}
+                </div> : <p className="border border-[var(--border)] bg-white px-3 py-5 text-sm text-[var(--muted)]">No stories found.</p>}
+              </section>}
+            </div>}
+        {q && hasResults && category !== 'All' && selectedCount > 0 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label={`Search ${category.toLowerCase()} pages`} totalCount={selectedCount} pageSize={PAGE_SIZE} enhanced />}
+      </main>
     </div>
   );
 }

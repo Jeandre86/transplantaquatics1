@@ -3,6 +3,7 @@ import type { Ranking } from '../types';
 import { formatDate, getCountryAlpha3, getFlagEmoji, timeToSeconds } from '../lib/utils';
 import { getTransplantPoints } from '../lib/transplantPoints';
 import { getSavedAvatar } from '../lib/avatars';
+import SortableTable from './SortableTable';
 import TimeStandard from './TimeStandard';
 
 interface RankingTableProps {
@@ -96,7 +97,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
     <div className={genderCard ? `ta-table-shell${paperSurface ? ' ta-table-shell-paper' : ''}` : light ? 'ta-table-scroll' : 'ta-table-shell'}>
       {genderCard && title && <h3 className={`px-4 ${paperSurface ? 'pt-4' : 'pt-5'} text-xl font-semibold text-[var(--ink)]`}>{title}</h3>}
       <div className={genderCard ? `ta-table-scroll ${paperSurface ? 'pt-3' : 'pt-4'}` : undefined}>
-      <table className="w-full border-collapse">
+      <SortableTable><table className="w-full border-collapse">
         <thead>
           <tr className="ta-table-header">
             <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left w-10 sm:px-5">{genderCard ? '' : '#'}</th>
@@ -106,7 +107,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
             {(genderCard || showEventColumn) && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Event</th>}
             {showDate && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Date</th>}
             <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5">Time</th>
-            {showPoints && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="World Aquatics base times are used; matching WTG records are used for junior 25m events">PTS</th>}
+            {showPoints && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="Points are based on Transplant Aquatics age-group records, with verified swims providing provisional baselines when no record exists">PTS</th>}
             {showGap && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden md:table-cell sm:px-5">Gap</th>}
             {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-center hidden lg:table-cell sm:px-5">WTG</th>}
             {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden lg:table-cell sm:px-5">Pct</th>}
@@ -212,8 +213,8 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
                     className="font-mono text-sm font-bold"
                     style={{ color: transplantPoints === null ? 'var(--muted)' : 'var(--navy)' }}
                     title={transplantPoints === null
-                      ? 'No World Aquatics or matching WTG baseline is available for this event and category.'
-                      : 'PTS use the World Aquatics event, gender, and course base time; junior 25m events use a matching WTG record.'}
+                      ? 'No Transplant Aquatics record or verified swim baseline is available for this age group, event, gender, and course.'
+                      : 'Points compare this swim with the Transplant Aquatics record for the same age group, event, gender, and course. Verified swims provide a provisional baseline when no record exists.'}
                   >
                     {transplantPoints === null ? '—' : transplantPoints.toLocaleString()}
                   </span>
@@ -254,7 +255,7 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
             );
           })}
         </tbody>
-      </table>
+      </table></SortableTable>
       </div>
     </div>
   );

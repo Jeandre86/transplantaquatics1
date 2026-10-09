@@ -1,5 +1,5 @@
 import { lazy, Suspense, useLayoutEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import PageLoading from './components/PageLoading';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
@@ -45,7 +45,6 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const CoachClubPage = lazy(() => import('./pages/CoachClubPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
-const ClaimProfilePage = lazy(() => import('./pages/ClaimProfilePage'));
 const WriterPage = lazy(() => import('./pages/WriterPage'));
 
 function HomeRoute() {
@@ -58,6 +57,29 @@ function HomeRoute() {
       {auth.isLoggedIn ? <DashboardPage /> : <HomePage />}
     </Suspense>
   );
+}
+
+function AdminRoute() {
+  const auth = useAuth();
+
+  if (auth.isLoading) return <PageLoading />;
+
+  return (
+    <Suspense fallback={<PageLoading />}>
+      {auth.isLoggedIn ? <AdminPage /> : <LoginPage adminMode />}
+    </Suspense>
+  );
+}
+
+function AdminLegacyRoute() {
+  const { legacySection = '' } = useParams();
+  const oldTab: Record<string, string> = {
+    'results-imports': 'new', 'historical-archive': 'archive', 'profile-claims': 'claims',
+    'article-review': 'article-review', 'article-library': 'articles', 'write-article': 'editor',
+    'about-page': 'pages', 'ads-and-campaigns': 'campaigns', writers: 'team',
+    'data-queries': 'quality',
+  };
+  return <Navigate replace to={`/admin?tab=${oldTab[legacySection] ?? 'overview'}`} />;
 }
 
 export default function App() {
@@ -91,9 +113,9 @@ export default function App() {
           <Route path="clubs" element={<ClubsPage />} />
           <Route path="clubs/:id" element={<ClubPage />} />
           <Route path="coach/club" element={<Suspense fallback={<PageLoading />}><CoachClubPage /></Suspense>} />
-          <Route path="admin" element={<Suspense fallback={<PageLoading />}><AdminPage /></Suspense>} />
+          <Route path="admin" element={<AdminRoute />} />
+          <Route path="admin/:legacySection" element={<AdminLegacyRoute />} />
           <Route path="writer" element={<Suspense fallback={<PageLoading />}><WriterPage /></Suspense>} />
-          <Route path="claim-profile" element={<Suspense fallback={<PageLoading />}><ClaimProfilePage /></Suspense>} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="submit" element={<SubmitResultPage />} />
           <Route path="games" element={<WTGPage />} />
@@ -101,6 +123,7 @@ export default function App() {
           </Route>
           {/* Standalone auth route — no main nav */}
           <Route path="/login" element={<Suspense fallback={<PageLoading />}><LoginPage /></Suspense>} />
+          <Route path="/writer/login" element={<Suspense fallback={<PageLoading />}><LoginPage writerMode /></Suspense>} />
         </Routes>
       </RouteErrorBoundary>
     </BrowserRouter>

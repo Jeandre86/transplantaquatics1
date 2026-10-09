@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { countries } from '../data/countries';
 import { TRANSPLANT_TYPES, type Gender, type TransplantType } from '../types';
 import { loadClubRecords } from '../lib/clubs';
 import { supabase } from '../lib/supabase';
-import { deleteManagedSwimmer, loadManagedSwimmers, saveManagedSwimmer, type SwimmerProfile, type SwimmerProfileDraft } from '../lib/swimmerSubmissions';
+import { deleteManagedSwimmer, loadClaimableSwimmerProfiles, loadManagedSwimmers, saveManagedSwimmer, type PublicSwimmerProfile, type SwimmerProfile, type SwimmerProfileDraft } from '../lib/swimmerSubmissions';
+import { isClaimEvidenceSufficient } from '../lib/adminImports';
+import { describeSupabaseError } from '../lib/supabase';
 import { Skeleton } from './Skeleton';
 
 type SwimmerFormValues = Omit<SwimmerProfileDraft, 'id'>;
@@ -48,7 +50,83 @@ export default function ManagedSwimmers() {
   const isOver17 = Boolean(user?.ageGroup && !MINOR_AGE_GROUPS.includes(user.ageGroup));
   const [dependentsVisible, setDependentsVisible] = useState(() => !isOver17);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [claimProfiles, setClaimProfiles] = useState<PublicSwimmerProfile[]>([]);
+  const [claimSearch, setClaimSearch] = useState('');
+  const [claimSelected, setClaimSelected] = useState<PublicSwimmerProfile | null>(null);
+  const [claimEvidence, setClaimEvidence] = useState('');
+  const [claimStatus, setClaimStatus] = useState<string | null>(null);
+  const [claimLoading, setClaimLoading] = useState(false);
+  const [claimSaving, setClaimSaving] = useState(false);
+  const [claimError, setClaimError] = useState('');
+  const [createOwnProfile, setCreateOwnProfile] = useState(false);
   const holder = useMemo(() => profiles.find(profile => profile.isAccountHolder), [profiles]);
+  const claimMatches = useMemo(() => {
+    const query = claimSearch.trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (query.length < 2) return [];
+    const tokens = query.split(/\s+/).filter(Boolean);
+    const distance = (left: string, right: string) => {
+      const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+      for (let i = 1; i <= left.length; i += 1) {
+        let diagonal = row[0]; row[0] = i;
+        for (let j = 1; j <= right.length; j += 1) {
+          const above = row[j];
+          row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (left[i - 1] === right[j - 1] ? 0 : 1));
+          diagonal = above;
+        }
+      }
+      return row[right.length];
+    };
+    const normalize = (value: string) => value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return claimProfiles.map(profile => {
+      const first = normalize(profile.first_name);
+      const last = normalize(profile.last_name);
+      const full = `${first} ${last}`;
+      const fields = [first, last, full, normalize(profile.country ?? ''), normalize(profile.club_name ?? '')];
+      const score = tokens.reduce((total, token) => {
+        const exact = fields.some(field => field.includes(token));
+        if (exact) return total + 3;
+        const close = [first, last].some(field => field.split(/\s+/).some(word => token.length >= 4 && distance(token, word) <= 1));
+        return total + (close ? 1 : 0);
+      }, 0);
+      return { profile, score };
+    }).filter(match => match.score >= tokens.length * 2)
+      .sort((left, right) => right.score - left.score || left.profile.last_name.localeCompare(right.profile.last_name) || left.profile.first_name.localeCompare(right.profile.first_name))
+      .slice(0, 10).map(match => match.profile);
+  }, [claimProfiles, claimSearch]);
+
+  useEffect(() => {
+    if (holder || user?.accountRole === 'parent_guardian' || user?.registrantRelationship || !supabase) return;
+    const db = supabase;
+    let cancelled = false;
+    setClaimLoading(true);
+    Promise.all([
+      loadClaimableSwimmerProfiles(),
+      db.auth.getUser().then(({ data, error: authError }) => {
+        if (authError) throw authError;
+        if (!data.user) return null;
+        return db.from('profile_claims').select('status').eq('claimant_id', data.user.id).in('status', ['pending', 'approved', 'disputed']).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      }),
+    ]).then(([directory, claimResult]) => {
+      if (claimResult?.error) throw claimResult.error;
+      if (!cancelled) {
+        setClaimProfiles(directory);
+        setClaimStatus(claimResult?.data?.status ?? null);
+      }
+    }).catch(reason => { if (!cancelled) setClaimError(describeSupabaseError(reason)); })
+      .finally(() => { if (!cancelled) setClaimLoading(false); });
+    return () => { cancelled = true; };
+  }, [holder, user?.accountRole, user?.registrantRelationship]);
+
+  const submitClaim = async () => {
+    if (!supabase || !claimSelected) return;
+    setClaimSaving(true); setClaimError('');
+    try {
+      const { error: submitError } = await supabase.rpc('submit_profile_claim', { p_swimmer_profile_id: claimSelected.id, p_evidence: claimEvidence, p_evidence_file_path: null });
+      if (submitError) throw submitError;
+      setClaimStatus('pending'); setClaimSelected(null); setClaimEvidence('');
+    } catch (reason) { setClaimError(describeSupabaseError(reason)); }
+    finally { setClaimSaving(false); }
+  };
 
   useEffect(() => {
     loadClubRecords().then(records => {
@@ -238,8 +316,21 @@ export default function ManagedSwimmers() {
       {loading ? <div role="status" aria-label="Loading swimmer profiles" className="space-y-4"><Skeleton className="h-5 w-2/5" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : <>
         {user?.accountRole !== 'parent_guardian' && !user?.registrantRelationship && <div className="border-b border-[var(--border)] pb-6">
           <h3 className="mb-3 font-semibold text-[var(--ink)]">My swimmer profile</h3>
-          {fields(holderForm, setHolderForm, 'holder')}
-          <div className="mt-4 flex flex-wrap items-center gap-4"><button type="button" disabled={saving} onClick={() => void save(holderForm, holder?.id)} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)] disabled:opacity-60">{saving ? 'Saving…' : holder ? 'Save my details' : 'Create my swimmer profile'}</button>{holder && <Link to={`/athletes/${holder.id}`} className="text-sm font-semibold text-[var(--blue)] hover:underline">View athlete profile</Link>}</div>
+          {!holder && claimStatus && <div role="status" className="mb-4 border border-[var(--border)] bg-[var(--paper)] p-4 text-sm text-[var(--ink)]"><p className="font-semibold">{claimStatus === 'approved' ? 'Your profile claim was approved.' : claimStatus === 'disputed' ? 'Your profile claim needs further review.' : 'Your profile claim is being reviewed.'}</p><p className="mt-1 text-[var(--muted)]">We’ll link the existing swimmer profile to your account after review. The imported results will stay with it.</p></div>}
+          {!holder && !claimStatus && <div className="mb-4 border border-[var(--border)] bg-[var(--paper)] p-4">
+            <h4 className="font-semibold text-[var(--ink)]">Already have results in Transplant Aquatics?</h4>
+            <p className="mt-1 text-sm text-[var(--muted)]">Search for your existing swimmer profile first. A name match won’t claim it automatically; an admin reviews every request.</p>
+            {!createOwnProfile && <>
+              <label className="relative mt-3 block"><Search size={16} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" /><input value={claimSearch} onChange={event => { setClaimSearch(event.target.value); setClaimSelected(null); }} placeholder="Search first and last name, country or club" className="w-full border border-[var(--border)] bg-white py-2.5 pl-9 pr-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-dark)]" /></label>
+              {claimLoading ? <p className="mt-3 text-sm text-[var(--muted)]">Looking for profiles…</p> : claimSearch.trim().length >= 2 && <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">{claimMatches.length ? claimMatches.map(profile => <button type="button" key={profile.id} onClick={() => setClaimSelected(profile)} className={`flex w-full items-center justify-between gap-3 border bg-white p-3 text-left ${claimSelected?.id === profile.id ? 'border-[var(--accent-dark)]' : 'border-[var(--border)]'}`}><span><span className="block text-sm font-semibold text-[var(--ink)]">{profile.first_name} {profile.last_name}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{[profile.country, profile.club_name, profile.transplant_type].filter(Boolean).join(' · ') || 'More details not available'}</span></span><span className="text-xs font-semibold text-[var(--blue)]">{claimSelected?.id === profile.id ? <Check size={16} /> : 'This is me'}</span></button>) : <p className="py-2 text-sm text-[var(--muted)]">No close matches. You can create a new swimmer profile below.</p>}</div>}
+              {claimSelected && <div className="mt-3 border-l-2 border-[var(--accent)] bg-white p-3"><p className="text-sm font-semibold text-[var(--ink)]">Request this profile</p><p className="mt-1 text-xs text-[var(--muted)]">Tell the reviewers how they can confirm it’s yours. Include a meet, team, club, or other useful detail. Please don’t enter sensitive documents here.</p><textarea rows={3} value={claimEvidence} onChange={event => setClaimEvidence(event.target.value)} placeholder="At least 20 characters of supporting detail" className="mt-3 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)]" /><button type="button" disabled={claimSaving || !isClaimEvidenceSufficient(claimEvidence)} onClick={() => void submitClaim()} className="mt-3 bg-[var(--navy)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{claimSaving ? 'Submitting…' : 'Submit for review'}</button></div>}
+              <button type="button" onClick={() => { setCreateOwnProfile(true); setClaimSelected(null); }} className="mt-3 text-sm font-semibold text-[var(--blue)] hover:underline">I’m new to Transplant Aquatics →</button>
+            </>}
+            {createOwnProfile && <button type="button" onClick={() => setCreateOwnProfile(false)} className="text-sm font-semibold text-[var(--blue)] hover:underline">← Search existing profiles</button>}
+            {claimError && <p role="alert" className="mt-3 text-sm text-red-700">{claimError}</p>}
+          </div>}
+          {(holder || !claimStatus && createOwnProfile) && <>{fields(holderForm, setHolderForm, 'holder')}
+          <div className="mt-4 flex flex-wrap items-center gap-4"><button type="button" disabled={saving} onClick={() => void save(holderForm, holder?.id)} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)] disabled:opacity-60">{saving ? 'Saving…' : holder ? 'Save my details' : 'Create my swimmer profile'}</button>{holder && <Link to={`/athletes/${holder.id}`} className="text-sm font-semibold text-[var(--blue)] hover:underline">View athlete profile</Link>}</div></>}
         </div>}
         <div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

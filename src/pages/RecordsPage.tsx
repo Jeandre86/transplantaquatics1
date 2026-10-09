@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Record as WorldRecord } from '../types';
 import { loadWorldRecords } from '../lib/worldRecords';
 import RecordsTable from '../components/RecordsTable';
+import RelayRecordsTable, { getRelayAgeCategory } from '../components/RelayRecordsTable';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import PageHeading from '../components/PageHeading';
@@ -14,13 +15,19 @@ import { Search } from 'lucide-react';
 const ALL = 'All';
 const PAGE_SIZE = 25;
 const RECORD_TYPES = ['Athlete records', 'Donor records'] as const;
+const SWIM_TYPES = ['Individual', 'Relay'] as const;
+
+function isRelayRecord(record: WorldRecord) {
+  return [record.event, record.ageGroup, record.category].some(value => value?.toLowerCase().includes('relay'));
+}
 
 export default function RecordsPage() {
   const [records, setRecords] = useState<WorldRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
-  const [filterEvent, setFilterEvent] = useState('100m Backstroke');
+  const [swimType, setSwimType] = useState<(typeof SWIM_TYPES)[number]>('Individual');
+  const [filterEvent, setFilterEvent] = useState(ALL);
   const [filterCourse, setFilterCourse] = useState('LCM');
   const [filterHolderType, setFilterHolderType] = useState<(typeof RECORD_TYPES)[number]>('Athlete records');
   const [search, setSearch] = useState('');
@@ -43,19 +50,21 @@ export default function RecordsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, filterEvent, filterCourse, filterHolderType]);
+  }, [search, filterEvent, filterCourse, filterHolderType, swimType]);
+
+  const recordsForSwimType = useMemo(() => records.filter(record => isRelayRecord(record) === (swimType === 'Relay')), [records, swimType]);
 
   useEffect(() => {
-    if (records.length && !records.some(record => record.event === filterEvent)) setFilterEvent(records[0].event);
+    if (filterEvent !== ALL && recordsForSwimType.length && !recordsForSwimType.some(record => record.event === filterEvent)) setFilterEvent(ALL);
     if (records.length && !records.some(record => record.course === filterCourse)) setFilterCourse(records[0].course);
-  }, [records, filterEvent, filterCourse]);
+  }, [records, recordsForSwimType, filterEvent, filterCourse]);
 
-  const events = [...new Set(records.map(r => r.event))]
+  const events = [...new Set(recordsForSwimType.map(r => r.event))]
     .sort((a, b) => Number(is25mEvent(a)) - Number(is25mEvent(b)) || a.localeCompare(b, undefined, { numeric: true }));
   const courses = [...new Set(records.map(r => r.course))].sort();
 
   const query = search.trim().toLowerCase();
-  const filtered = records.filter(r => {
+  const filtered = recordsForSwimType.filter(r => {
     const isDonor = r.category?.trim().toLowerCase() === 'donor';
     if (filterHolderType === 'Donor records' && !isDonor) return false;
     if (filterHolderType === 'Athlete records' && isDonor) return false;
@@ -66,17 +75,17 @@ export default function RecordsPage() {
     return true;
   }).sort((a, b) => Number(is25mEvent(a.event)) - Number(is25mEvent(b.event)));
   const hasActiveFilters = Boolean(search.trim()) || [filterEvent, filterCourse]
-    .some(value => value !== ALL);
+    .some(value => value !== ALL) || swimType !== 'Individual';
 
   const clearFilters = () => {
-    setFilterEvent(events[0] ?? ALL);
+    setFilterEvent(ALL);
     setFilterCourse(courses[0] ?? ALL);
     setFilterHolderType('Athlete records');
+    setSwimType('Individual');
     setSearch('');
   };
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const pageRecords = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const ageGroupCount = new Set(filtered.map(record => record.ageGroup)).size;
 
   return (
     <div style={{ backgroundColor: 'var(--paper)' }}>
@@ -91,10 +100,15 @@ export default function RecordsPage() {
             </div>
             <label className="inline-flex h-10 items-center gap-1.5 border border-[var(--border)] bg-white px-3 text-sm text-[var(--muted)]">Event:
               <select value={filterEvent} onChange={event => setFilterEvent(event.target.value)} className="min-w-0 bg-transparent pr-1 font-medium text-[var(--ink)] outline-none">
-                {events.map(event => <option key={event} value={event}>{event}</option>)}
+                {[ALL, ...events].map(event => <option key={event} value={event}>{event}</option>)}
               </select>
             </label>
-            <label className="inline-flex h-10 items-center gap-1.5 border border-[var(--border)] bg-white px-3 text-sm text-[var(--muted)]">Type:
+            <label className="inline-flex h-10 items-center gap-1.5 border border-[var(--border)] bg-white px-3 text-sm text-[var(--muted)]">Swim type:
+              <select value={swimType} onChange={event => setSwimType(event.target.value as (typeof SWIM_TYPES)[number])} className="min-w-0 bg-transparent pr-1 font-medium text-[var(--ink)] outline-none">
+                {SWIM_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </label>
+            <label className="inline-flex h-10 items-center gap-1.5 border border-[var(--border)] bg-white px-3 text-sm text-[var(--muted)]">Record category:
               <select value={filterHolderType} onChange={event => setFilterHolderType(event.target.value as (typeof RECORD_TYPES)[number])} className="min-w-0 bg-transparent pr-1 font-medium text-[var(--ink)] outline-none">
                 {RECORD_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
               </select>
@@ -113,10 +127,10 @@ export default function RecordsPage() {
         {loading ? <SkeletonTable rows={6} columns={3} />
           : loadError ? <EmptyState title="World record data is unavailable" subtitle={loadError} action={<Button variant="secondary" size="sm" onClick={() => setReload(value => value + 1)}>Try again</Button>} />
           : <>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold text-[var(--ink)]">{filterEvent}</h2><span className="text-sm text-[var(--muted)]">{ageGroupCount} age groups · {filterCourse === ALL ? 'All courses' : filterCourse === 'LCM' ? 'Long course' : 'Short course'}</span></div>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold text-[var(--ink)]">{filterEvent === ALL ? `All ${swimType.toLowerCase()} events` : filterEvent}</h2><span className="text-sm text-[var(--muted)]">{new Set(filtered.map(record => swimType === 'Relay' ? getRelayAgeCategory(record) : record.ageGroup)).size} {swimType === 'Relay' ? 'relay categories' : 'age groups'} · {filterCourse === ALL ? 'All courses' : filterCourse === 'LCM' ? 'Long course' : 'Short course'}</span></div>
         {filtered.length === 0 ? <EmptyState title="No records found" subtitle="No records match this search and event." action={hasActiveFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Reset filters</Button> : undefined} /> : (
           <>
-            <RecordsTable records={pageRecords} />
+            {swimType === 'Relay' ? <RelayRecordsTable records={pageRecords} /> : <RecordsTable records={pageRecords} />}
             <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Record pages" />
           </>
         )}

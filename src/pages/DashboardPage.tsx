@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getFlagEmoji, timeToSeconds } from '../lib/utils';
 import Button from '../components/Button';
 import { loadAthleteGoals, type AthleteGoal } from '../lib/athleteGoals';
-import { loadMyAccountResults, loadPublicSubmittedResults, type SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
+import { loadMyAccountResults, loadPublicResultsPage, type SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
 import DatabaseResultsTable from '../components/DatabaseResultsTable';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
@@ -115,6 +115,7 @@ export default function DashboardPage() {
   const [rankingsLoadFailed, setRankingsLoadFailed] = useState(false);
   const [rankingCourse, setRankingCourse] = useState<'LCM' | 'SCM'>('LCM');
   const [worldResults, setWorldResults] = useState<SubmittedSwimmerResult[]>([]);
+  const [worldResultsCount, setWorldResultsCount] = useState(0);
   const [worldResultsLoaded, setWorldResultsLoaded] = useState(false);
   const [worldResultsLoadFailed, setWorldResultsLoadFailed] = useState(false);
   const [worldGamesMeet, setWorldGamesMeet] = useState<MeetCatalogEdition | null>(null);
@@ -160,8 +161,8 @@ export default function DashboardPage() {
     if (!auth.isLoggedIn) return () => { cancelled = true; };
     setWorldResultsLoaded(false);
     setWorldResultsLoadFailed(false);
-    loadPublicSubmittedResults().then(rows => {
-      if (!cancelled) setWorldResults(rows);
+    loadPublicResultsPage({ search: '', country: 'All', event: 'All', ageGroup: 'All', gender: 'All', swimType: 'All', page: 1, pageSize: 4 }).then(result => {
+      if (!cancelled) { setWorldResults(result.rows); setWorldResultsCount(result.totalCount); }
     }).catch(() => {
       if (!cancelled) {
         setWorldResults([]);
@@ -285,9 +286,9 @@ export default function DashboardPage() {
                 {submittedResults.slice(0, 4).map(result => <div key={result.id} className="grid gap-2 py-3 first:pt-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
                   <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--ink)]">{result.swimmer_name} · {result.event}</p><p className="mt-1 truncate text-xs text-[var(--muted)]">{result.submitted_meets?.name || 'Meet'} · {result.age_group} · {result.submitted_meets?.course || 'Course'}</p></div>
                   <span className="font-mono text-sm font-bold text-[var(--blue)]">{result.time}</span>
-                  <span className={`w-fit px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${result.record_candidate ? 'bg-amber-50 text-amber-800' : 'bg-[var(--ice)] text-[var(--navy)]'}`}>{result.record_candidate ? 'Record candidate' : result.status === 'verified' ? 'Verified' : 'Swimmer-submitted'}</span>
+                  {result.record_candidate && <span className="w-fit px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800">Record candidate</span>}
                 </div>)}
-              </div> : <div className="flex flex-1 flex-col justify-center"><p className="font-semibold text-[var(--ink)]">{resultsLoadFailed ? 'Your results could not be loaded' : 'Start with your next meet'}</p><p className="mt-1 max-w-md text-sm leading-relaxed text-[var(--muted)]">{resultsLoadFailed ? 'Check the meet submission tables in Supabase and try refreshing.' : 'Add a meet and record each event your swimmer competed in. Results show as swimmer-submitted immediately.'}</p></div>}
+              </div> : <div className="flex flex-1 flex-col justify-center"><p className="font-semibold text-[var(--ink)]">{resultsLoadFailed ? 'Your results could not be loaded' : 'Start with your next meet'}</p><p className="mt-1 max-w-md text-sm leading-relaxed text-[var(--muted)]">{resultsLoadFailed ? 'Check the meet submission tables in Supabase and try refreshing.' : 'Add a meet and record each event your swimmer competed in. Your times appear here once saved.'}</p></div>}
               <Link to="/submit" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] transition-colors hover:text-[var(--accent-dark)]">Submit a result <ArrowRight size={15} /></Link>
             </div>
           </DashboardCard>
@@ -360,7 +361,7 @@ export default function DashboardPage() {
             : worldResultsLoadFailed ? <div className="flex flex-wrap items-center justify-between gap-4"><p role="status" className="text-sm text-[var(--muted)]">World results could not be loaded. Please refresh to try again.</p><Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse results <ArrowRight size={15} /></Link></div>
               : worldResults.length ? <>
                 <DatabaseResultsTable results={worldResults.slice(0, 4)} />
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-[var(--muted)]">Showing {Math.min(4, worldResults.length)} of {worldResults.length} public result{worldResults.length === 1 ? '' : 's'}.</p><Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse all results <ArrowRight size={15} /></Link></div>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-[var(--muted)]">Showing {worldResults.length} of {worldResultsCount.toLocaleString()} public result{worldResultsCount === 1 ? '' : 's'}.</p><Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse all results <ArrowRight size={15} /></Link></div>
               </> : <div className="flex flex-wrap items-center justify-between gap-4"><p className="text-sm text-[var(--muted)]">No public competition results have been added yet.</p><Link to="/results" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:text-[var(--accent-dark)]">Browse results <ArrowRight size={15} /></Link></div>}
         </DashboardCard>
 

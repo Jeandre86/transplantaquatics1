@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import type { Result } from '../types';
-import VerificationBadge from './VerificationBadge';
 import { formatDate, getCountryAlpha3, getFlagEmoji } from '../lib/utils';
 import { athletes } from '../data/athletes';
 import { getSavedAvatar } from '../lib/avatars';
 import { Link, useNavigate } from 'react-router-dom';
+import SortableTable from './SortableTable';
 
 interface ResultsTableProps {
   results: Result[];
@@ -54,12 +54,12 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
       </div>
 
       <div className={`ta-table-scroll ${dark ? 'border-0 bg-transparent' : 'ta-table-shell'}`}>
-        <table className="w-full border-collapse">
+        <SortableTable><table className="w-full border-collapse">
           <thead>
             <tr className="ta-table-header">
               {[
                 ...(showAthlete ? ['Athlete'] : []),
-                'Event', 'Course', 'Time', 'Date', 'Meet', 'Status', '',
+                'Event', 'Course', 'Time', 'Date', 'Meet', '',
               ].map(h => (
                 <th
                   key={h}
@@ -74,7 +74,7 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={showAthlete ? 8 : 7} className="py-12 text-center font-mono text-sm text-neutral-400">
+                <td colSpan={showAthlete ? 7 : 6} className="py-12 text-center font-mono text-sm text-neutral-400">
                   No results found.
                 </td>
               </tr>
@@ -119,7 +119,6 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
                   <td className={`px-3 py-4 text-right font-mono font-bold text-base sm:px-5 ${dark ? primaryText : 'text-[var(--navy)]'}`}>{r.time || '—'}</td>
                   <td className={`px-3 py-4 font-mono text-xs whitespace-nowrap sm:px-5 ${secondaryText}`}>{formatDate(r.date)}</td>
                   <td className={`px-3 py-4 text-xs max-w-[180px] truncate sm:px-5 ${secondaryText}`}>{r.meet || '—'}</td>
-                  <td className="px-3 py-4 sm:px-5"><VerificationBadge status={r.verified} dark={dark} /></td>
                   <td className="px-3 py-4 sm:px-5">
                     <div className="flex min-h-5 items-center gap-1.5">
                       {r.isPB && (
@@ -140,7 +139,7 @@ export default function ResultsTable({ results, showAthlete = false, dark = fals
               );})
             )}
           </tbody>
-        </table>
+        </table></SortableTable>
       </div>
     </div>
   );

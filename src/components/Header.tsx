@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, User, UserRound, UserRoundPlus, LayoutDashboard, PenSquare, ShieldCheck, ChevronDown, ArrowUpRight } from 'lucide-react';
+import { Search, Menu, X, User, UserRound, LayoutDashboard, PenSquare, ChevronDown, ArrowUpRight } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -222,9 +222,7 @@ export default function Header() {
                       <UserRound size={15} aria-hidden="true" style={{ color: 'var(--muted-on-dark)' }} />
                       My Profile
                     </Link>
-                    <Link to="/claim-profile" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/75 transition-colors hover:bg-[var(--navy-light)] hover:text-white"><UserRoundPlus size={15} aria-hidden="true" className="text-white/50" />Claim a swimmer profile</Link>
                     {auth.user.siteRole === 'writer' && <Link to="/writer" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/75 transition-colors hover:bg-[var(--navy-light)] hover:text-white"><PenSquare size={15} aria-hidden="true" className="text-white/50" />Writer workspace</Link>}
-                    <Link to="/admin" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/75 transition-colors hover:bg-[var(--navy-light)] hover:text-white"><ShieldCheck size={15} aria-hidden="true" className="text-white/50" />Admin</Link>
                     {/* Divider */}
                     <div style={{ borderTop: '1px solid var(--navy-light)', margin: '4px 0' }} />
 
@@ -371,9 +369,7 @@ export default function Header() {
                     <UserRound size={16} aria-hidden="true" className="text-white/50" />
                     My Profile
                   </Link>
-                  <Link to="/claim-profile" onClick={() => setMobileOpen(false)} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"><UserRoundPlus size={16} aria-hidden="true" className="text-white/50" />Claim a swimmer profile</Link>
                   {auth.user.siteRole === 'writer' && <Link to="/writer" onClick={() => setMobileOpen(false)} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"><PenSquare size={16} aria-hidden="true" className="text-white/50" />Writer workspace</Link>}
-                  <Link to="/admin" onClick={() => setMobileOpen(false)} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"><ShieldCheck size={16} aria-hidden="true" className="text-white/50" />Admin workspace</Link>
                   <button
                     onClick={() => { setMobileOpen(false); handleSignOut(); }}
                     className="w-full px-4 py-3 text-sm font-semibold text-white/75 transition-colors hover:text-[var(--lime)]"

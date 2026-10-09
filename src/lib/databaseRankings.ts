@@ -1,7 +1,6 @@
 import type { Ranking } from '../types';
-import { loadPublicSwimmerDirectory, loadPublicSubmittedResults } from './swimmerSubmissions';
-import { timeToSeconds } from './utils';
-import { normalizeCompetitionAgeGroup } from './competitionAge';
+import { supabase } from './supabase';
+import { loadCached } from './requestCache';
 import { EVENTS } from '../types';
 
 export function normalizeRankingGender(value: string | null | undefined): Ranking['gender'] | null {
@@ -44,56 +43,25 @@ export function normalizeRankingEvent(value: string | null | undefined): Ranking
 }
 
 export async function loadDatabaseRankings(): Promise<Ranking[]> {
-  const [profiles, submittedResults] = await Promise.all([
-    loadPublicSwimmerDirectory(),
-    loadPublicSubmittedResults(),
-  ]);
-  const profileById = new Map(profiles.map(profile => [profile.id, profile]));
-
-  const personalBests = new Map<string, Omit<Ranking, 'rank'>>();
-  submittedResults.forEach(result => {
-    const linkedSwimmerId = result.swimmer_id ?? result.athlete_id;
-    const profile = linkedSwimmerId ? profileById.get(linkedSwimmerId) : undefined;
-    // Imported and older result rows can retain their full public result data
-    // even when the swimmer directory has no matching profile row. Use the
-    // result snapshot in that case so those swims still appear in rankings.
-    const gender = normalizeRankingGender(profile?.gender) ?? normalizeRankingGender(result.gender);
-    const transplantType = normalizeRankingTransplantType(profile?.transplant_type) ?? normalizeRankingTransplantType(result.transplant_type);
-    const course = normalizeRankingCourse(result.course || result.submitted_meets?.course);
-    const event = normalizeRankingEvent(result.event);
-    if (!gender || !course || !event) return;
-    const ageGroup = normalizeCompetitionAgeGroup(result.age_group)
-      ?? normalizeCompetitionAgeGroup(profile?.age_group);
-    if (!ageGroup) return;
-
-    const athleteName = [profile?.first_name, profile?.last_name]
-      .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
-      .join(' ') || result.swimmer_name?.trim() || 'Unknown swimmer';
-    const swimmerId = linkedSwimmerId || `result:${athleteName.toLowerCase()}|${result.country_code ?? result.country ?? ''}`;
-    const swim: Omit<Ranking, 'rank'> = {
-      athleteId: swimmerId,
-      athleteName,
-      country: profile?.country ?? result.country ?? '',
-      countryCode: profile?.country_code ?? result.country_code ?? '',
-      ageGroup,
-      gender,
-      event,
-      course,
-      time: result.time,
-      transplantType,
-      date: result.submitted_meets?.meet_date ?? result.created_at,
-      meetName: result.submitted_meets?.name,
-      points: result.points,
-    };
-    const key = [swim.athleteId, swim.event, swim.gender, swim.course, swim.ageGroup].join('|');
-    const current = personalBests.get(key);
-    if (!current || timeToSeconds(swim.time) < timeToSeconds(current.time)) personalBests.set(key, swim);
+  return loadCached('database-rankings', async () => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const { data, error } = await supabase.rpc('get_public_personal_best_rankings');
+    if (error) throw error;
+    return (Array.isArray(data) ? data : []) as Ranking[];
   });
+}
 
-  return [...personalBests.values()]
-    .sort((a, b) => {
-      return timeToSeconds(a.time) - timeToSeconds(b.time)
-        || String(a.athleteName ?? '').localeCompare(String(b.athleteName ?? ''));
-    })
-    .map((swim, index) => ({ ...swim, rank: index + 1 }));
+export async function loadDatabaseRankingPreview(gender: string, event: string, course: string, limit = 5, ageGroup = 'All'): Promise<Ranking[]> {
+  return loadCached(`database-ranking-preview:${gender}:${event}:${course}:${ageGroup}:${limit}`, async () => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const { data, error } = await supabase.rpc('get_public_ranking_preview', {
+      p_gender: gender,
+      p_event: event,
+      p_course: course,
+      p_limit: limit,
+      p_age_group: ageGroup,
+    });
+    if (error) throw error;
+    return (Array.isArray(data) ? data : []) as Ranking[];
+  });
 }

@@ -1,6 +1,7 @@
 import type { Record as WorldRecord } from '../types';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getFlagEmoji } from '../lib/utils';
+import { getFlagEmoji, timeToSeconds } from '../lib/utils';
 
 function sexColumn(gender: string): 'women' | 'men' | null {
   const value = gender.trim().toLowerCase();
@@ -32,6 +33,7 @@ function RecordCell({ record }: { record?: WorldRecord }) {
 }
 
 export default function RecordsTable({ records }: { records: WorldRecord[] }) {
+  const [sort, setSort] = useState<{ key: 'age' | 'women' | 'men'; direction: 'asc' | 'desc' }>({ key: 'age', direction: 'asc' });
   const rows = new Map<string, { women?: WorldRecord; men?: WorldRecord }>();
   for (const record of records) {
     const gender = sexColumn(record.gender);
@@ -40,18 +42,24 @@ export default function RecordsTable({ records }: { records: WorldRecord[] }) {
     if (!row[gender]) row[gender] = record;
     rows.set(record.ageGroup, row);
   }
-  const ageGroups = [...rows.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const changeSort = (key: typeof sort.key) => setSort(current => ({ key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc' }));
+  const ageGroups = [...rows.keys()].sort((a, b) => {
+    const rowA = rows.get(a)!;
+    const rowB = rows.get(b)!;
+    const order = sort.key === 'age'
+      ? a.localeCompare(b, undefined, { numeric: true })
+      : timeToSeconds(rowA[sort.key]?.time ?? '') - timeToSeconds(rowB[sort.key]?.time ?? '');
+    return sort.direction === 'asc' ? order : -order;
+  });
 
   return <div className="ta-table-shell overflow-hidden">
     <div className="grid grid-cols-[minmax(90px,0.2fr)_1fr_1fr] bg-[var(--navy)] text-white">
-      <div className="px-4 py-3 text-sm text-white/75 sm:px-5">Age group</div>
-      <div className="border-l border-white/15 px-4 py-3 text-sm font-semibold sm:px-5">Women</div>
-      <div className="border-l border-white/15 px-4 py-3 text-sm font-semibold sm:px-5">Men</div>
+      {([['age', 'Age'], ['women', 'Women'], ['men', 'Men']] as const).map(([key, label]) => <button key={key} type="button" onClick={() => changeSort(key)} aria-sort={sort.key === key ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className={`flex items-center gap-1 px-4 py-3 text-left text-sm sm:px-5 ${key !== 'age' ? 'border-l border-white/15 font-semibold' : 'text-white/75'}`}>{label}<span aria-hidden="true" className="text-[var(--accent)]">{sort.key === key ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}</span></button>)}
     </div>
     {ageGroups.map(ageGroup => {
       const row = rows.get(ageGroup)!;
       return <div key={ageGroup} className="grid min-h-[72px] grid-cols-[minmax(90px,0.2fr)_1fr_1fr] border-t border-[var(--border)] bg-white">
-        <div className="flex items-center px-4 py-4 text-sm font-semibold text-[var(--ink)] sm:px-5">{ageGroup}</div>
+        <div className="flex items-center px-4 py-4 text-sm font-semibold text-[var(--ink)] sm:px-5">{ageGroup.replace(/\s+years?$/i, '')}</div>
         <div className="flex min-w-0 items-center border-l border-[var(--border)] px-4 py-4 sm:px-5"><RecordCell record={row.women} /></div>
         <div className="flex min-w-0 items-center border-l border-[var(--border)] px-4 py-4 sm:px-5"><RecordCell record={row.men} /></div>
       </div>;

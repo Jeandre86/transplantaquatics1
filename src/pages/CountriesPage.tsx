@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import { countries as countryReference } from '../data/countries';
 import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
 import { loadWorldRecords } from '../lib/worldRecords';
@@ -11,7 +10,6 @@ import SearchInput from '../components/SearchInput';
 import Pagination from '../components/Pagination';
 import PageHeading from '../components/PageHeading';
 import EmptyState from '../components/EmptyState';
-import FilterBar from '../components/FilterBar';
 import Button from '../components/Button';
 import { SkeletonTable } from '../components/Skeleton';
 
@@ -112,14 +110,18 @@ export default function CountriesPage() {
     <div style={{ backgroundColor: 'var(--paper)' }}>
       <PageHeading eyebrow="Global directory" title="Countries" description="Browse registered swimmers and countries with World Transplant Games records." />
       <section style={{ backgroundColor: '#f4f2ed' }}>
-        <div className="max-w-7xl mx-auto px-4 py-10">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-          <FilterBar className="min-w-[260px] flex-1">
-            <SearchInput value={search} onChange={setSearch} placeholder="Search countries..." />
-          </FilterBar>
-          <div className="inline-flex border border-[var(--border)] bg-white p-1" aria-label="Sort countries">
-            {[['swimmers', 'Most swimmers'], ['records', 'Most records'], ['name', 'A–Z']].map(([value, label]) => <button key={value} type="button" onClick={() => setSort(value as typeof sort)} aria-pressed={sort === value} className={`px-3 py-2 text-xs font-semibold ${sort === value ? 'bg-[var(--navy)] text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{label}</button>)}
+        <div className="max-w-7xl mx-auto px-4 pt-0 pb-10">
+          <div className="ta-filter-bar-full-bleed mb-5 border-y border-[var(--border)] bg-white md:h-24">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:h-full md:py-0">
+              <div className="min-w-[240px] flex-1">
+                <SearchInput value={search} onChange={setSearch} placeholder="Search countries" />
+              </div>
+            </div>
           </div>
+          <div className="mb-4 flex justify-end">
+            <div className="inline-flex h-[42px] shrink-0 items-center border border-[var(--border)] bg-white p-0.5" role="group" aria-label="Sort countries">
+              {[['swimmers', 'Most swimmers'], ['records', 'Most records'], ['name', 'A–Z']].map(([value, label]) => <button key={value} type="button" onClick={() => setSort(value as typeof sort)} aria-pressed={sort === value} className={`h-full px-3 text-sm font-medium transition-colors ${sort === value ? 'bg-[var(--navy)] text-white' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}>{label}</button>)}
+            </div>
           </div>
           {loading ? (
             <SkeletonTable rows={6} columns={4} />
@@ -127,11 +129,11 @@ export default function CountriesPage() {
             <EmptyState title="Country data is unavailable" subtitle={loadError} />
           ) : filtered.length ? (
             <div className="ta-table-shell">
-              <div className="ta-table-header grid grid-cols-[32px_minmax(0,1fr)_minmax(150px,1fr)_90px_28px] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 sm:text-xs">
-                <span>#</span><span>Country</span><span className="hidden sm:block">Swimmers</span><span className="text-right">World records</span><span aria-hidden="true" />
+              <div className="ta-table-header grid grid-cols-[32px_minmax(0,1fr)_minmax(150px,1fr)_minmax(130px,0.7fr)] items-center gap-3 px-3 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 sm:text-xs">
+                <span>#</span><span>Country</span><span className="hidden sm:block">Swimmers</span><span className="whitespace-nowrap text-right">World records</span>
               </div>
               <div>{pageCountries.map((country, index) => (
-                <Link key={country.code} to={`/countries/${encodeURIComponent(country.code)}`} className="ta-table-row group grid grid-cols-[32px_minmax(0,1fr)_minmax(150px,1fr)_90px_28px] items-center gap-3 px-3 py-4 sm:px-5">
+                <Link key={country.code} to={`/countries/${encodeURIComponent(country.code)}`} className="ta-table-row group grid grid-cols-[32px_minmax(0,1fr)_minmax(150px,1fr)_minmax(130px,0.7fr)] items-center gap-3 px-3 py-4 sm:px-5">
                   <span className="font-mono text-sm text-[var(--muted)]">{(page - 1) * PAGE_SIZE + index + 1}</span>
                   <span className="flex min-w-0 items-center gap-3">
                     <span className="ta-table-flag" aria-hidden="true">{country.flag}</span>
@@ -139,7 +141,6 @@ export default function CountriesPage() {
                   </span>
                   <span className="hidden items-center gap-3 sm:flex"><span className="w-8 text-right font-mono text-sm font-semibold text-[var(--ink)]">{country.swimmerCount}</span><span className="h-1.5 flex-1 bg-[var(--paper-dark)]"><span className="block h-full bg-[var(--accent-dark)]" style={{ width: `${Math.max(3, country.swimmerCount / maxSwimmers * 100)}%` }} /></span></span>
                   <span className="text-right font-mono text-sm text-[var(--muted)]">{country.recordCount ?? '—'}</span>
-                  <span className="flex justify-end text-[var(--muted)] transition-colors group-hover:text-[var(--accent-dark)]"><ArrowRight size={20} aria-hidden="true" /></span>
                 </Link>
               ))}</div>
             </div>

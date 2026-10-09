@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AGE_GROUPS, COURSES, GENDERS, TRANSPLANT_TYPES } from '../types';
+import { AGE_GROUPS, COURSES, TRANSPLANT_TYPES } from '../types';
 import type { Ranking } from '../types';
 import RankingTable from './RankingTable';
 import { getTransplantPoints } from '../lib/transplantPoints';
@@ -19,7 +19,7 @@ const PAGE_SIZE = 25;
 export default function TransplantCohortExplorer() {
   const [transplantType, setTransplantType] = useState(ALL);
   const [ageGroup, setAgeGroup] = useState(ALL);
-  const [gender, setGender] = useState(ALL);
+  const [selectedGender, setSelectedGender] = useState(ALL);
   const [course, setCourse] = useState(ALL);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -38,15 +38,15 @@ export default function TransplantCohortExplorer() {
 
   useEffect(() => {
     setPage(1);
-  }, [transplantType, ageGroup, gender, course, search]);
+  }, [transplantType, ageGroup, selectedGender, course, search]);
 
-  const hasFilters = [transplantType, ageGroup, gender, course].some(value => value !== ALL) || Boolean(search.trim());
+  const hasFilters = [transplantType, ageGroup, selectedGender, course].some(value => value !== ALL) || Boolean(search.trim());
   const ageGroupOptions = AGE_GROUPS;
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = rankings
     .filter(r => (transplantType === ALL || r.transplantType === transplantType)
       && (ageGroup === ALL || r.ageGroup === ageGroup)
-      && (gender === ALL || r.gender === gender)
+      && (selectedGender === ALL || r.gender === selectedGender)
       && (course === ALL || r.course === course)
       && (!normalizedSearch || `${r.athleteName} ${r.country} ${r.countryCode}`.toLowerCase().includes(normalizedSearch)))
     .sort((a, b) => {
@@ -68,7 +68,7 @@ export default function TransplantCohortExplorer() {
   const clearFilters = () => {
     setTransplantType(ALL);
     setAgeGroup(ALL);
-    setGender(ALL);
+    setSelectedGender(ALL);
     setCourse(ALL);
     setSearch('');
   };
@@ -83,7 +83,7 @@ export default function TransplantCohortExplorer() {
           </div>
         </div>
 
-        <FilterBar className="ta-filter-bar-full-bleed mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
+        <FilterBar className="ta-filter-bar-full-bleed mb-4 border-y border-[var(--border)] bg-white px-3 py-3 sm:px-4 md:h-24 md:justify-center md:py-0" compact search={<div className="min-w-[230px] flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search swimmer or country" /></div>}>
           <div className="flex flex-wrap items-center gap-2">
             <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--accent-dark)] bg-[var(--ice)] px-2 text-sm text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Transplant:
               <select value={transplantType} onChange={event => setTransplantType(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-sm font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
@@ -95,11 +95,6 @@ export default function TransplantCohortExplorer() {
                 {[ALL, ...ageGroupOptions].map(group => <option key={group} value={group}>{group}</option>)}
               </select>
             </label>
-            <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--border)] px-2 text-sm text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Gender:
-              <select value={gender} onChange={event => setGender(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-sm font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
-                {[ALL, ...GENDERS].map(option => <option key={option} value={option}>{option}</option>)}
-              </select>
-            </label>
             <label className="inline-flex h-[42px] min-h-[42px] box-border items-center gap-1.5 border border-[var(--border)] px-2 text-sm text-[var(--muted)]" style={{ height: 42, minHeight: 42 }}>Course:
               <select value={course} onChange={event => setCourse(event.target.value)} className="ta-filter-select h-10 appearance-none bg-transparent pr-6 text-sm font-semibold text-[var(--ink)] outline-none" style={{ height: 40, minHeight: 40 }}>
                 {[ALL, ...COURSES].map(option => <option key={option} value={option}>{option === 'LCM' ? 'Long course' : option === 'SCM' ? 'Short course' : option}</option>)}
@@ -108,11 +103,22 @@ export default function TransplantCohortExplorer() {
           </div>
         </FilterBar>
 
+        <div className="mb-3 flex justify-end" role="group" aria-label="Filter swimmers by gender">
+          <div className="inline-flex border border-[var(--border)] bg-white p-1">
+            {[ALL, 'Men', 'Women'].map(option => <button
+              key={option}
+              type="button"
+              aria-pressed={selectedGender === option}
+              onClick={() => setSelectedGender(option)}
+              className={`min-h-9 px-4 text-sm transition-colors ${selectedGender === option ? 'bg-[var(--navy)] font-semibold text-white' : 'text-[var(--ink)] hover:bg-[var(--ice)]'}`}
+            >{option}</button>)}
+          </div>
+        </div>
+
         {!loading && !loadError && <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
           <span className="mr-1 font-semibold text-[var(--ink)]">{cohort.length.toLocaleString()} swimmers</span>
           {transplantType !== ALL && <button type="button" onClick={() => setTransplantType(ALL)} aria-label={`Remove Transplant filter ${transplantType}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Transplant: {transplantType}<X size={12} aria-hidden="true" /></button>}
           {ageGroup !== ALL && <button type="button" onClick={() => setAgeGroup(ALL)} aria-label={`Remove Age group filter ${ageGroup}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Age group: {ageGroup}<X size={12} aria-hidden="true" /></button>}
-          {gender !== ALL && <button type="button" onClick={() => setGender(ALL)} aria-label={`Remove Gender filter ${gender}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Gender: {gender}<X size={12} aria-hidden="true" /></button>}
           {course !== ALL && <button type="button" onClick={() => setCourse(ALL)} aria-label={`Remove Course filter ${course}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Course: {course === 'LCM' ? 'Long course' : 'Short course'}<X size={12} aria-hidden="true" /></button>}
           {search.trim() && <button type="button" onClick={() => setSearch('')} aria-label="Remove search filter" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--navy)] px-2.5 py-1 font-medium text-white hover:bg-[var(--navy-mid)]">Search: {search.trim()}<X size={12} aria-hidden="true" /></button>}
           {hasFilters && <button type="button" onClick={clearFilters} className="px-1.5 py-1 font-semibold text-[var(--accent-dark)] hover:underline">Clear all</button>}
@@ -126,7 +132,6 @@ export default function TransplantCohortExplorer() {
           <EmptyState title="No swimmers match these filters" subtitle="There are no published swims for these filters yet." action={hasFilters ? <Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined} />
         ) : (
           <>
-            <p className="mb-3 font-mono text-xs text-neutral-600">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, cohort.length)} of {cohort.length} swimmers</p>
             <RankingTable
               rankings={pageRankings}
               showVerified={false}
@@ -140,7 +145,7 @@ export default function TransplantCohortExplorer() {
               ageGroupWithGender
               showEventMeta={false}
             />
-            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Transplant cohort pages" />
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Transplant cohort pages" totalCount={cohort.length} pageSize={PAGE_SIZE} enhanced />
           </>
         )}
       </div>

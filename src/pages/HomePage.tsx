@@ -8,11 +8,12 @@ import { getFlagEmoji, getTransplantColor, is25mEvent, timeToSeconds } from '../
 import ArticleCard from '../components/ArticleCard';
 import Eyebrow from '../components/Eyebrow';
 import { useFastestByTransplantType } from '../hooks/useFastestByTransplantType';
-import { loadDatabaseRankings } from '../lib/databaseRankings';
+import { loadDatabaseRankingPreview } from '../lib/databaseRankings';
 import { describeSupabaseError } from '../lib/supabase';
-import { loadPublicSwimmerDirectory, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
+import { loadPublicSwimmerDirectoryPage, type PublicSwimmerProfile } from '../lib/swimmerSubmissions';
 import { Skeleton } from '../components/Skeleton';
 import RankingTable from '../components/RankingTable';
+import SortableTable from '../components/SortableTable';
 
 const section = 'mx-auto w-full max-w-7xl px-4 py-16 sm:py-20';
 const title = 'mt-3 text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl';
@@ -52,6 +53,9 @@ export default function HomePage() {
   const [rankingsLoading, setRankingsLoading] = useState(true);
   const [rankingsError, setRankingsError] = useState<string | null>(null);
   const [athleteProfiles, setAthleteProfiles] = useState<PublicSwimmerProfile[]>([]);
+  const [athleteCount, setAthleteCount] = useState(0);
+  const [countryCount, setCountryCount] = useState(0);
+  const [resultCount, setResultCount] = useState(0);
   const [athletesLoading, setAthletesLoading] = useState(true);
   const [athletesError, setAthletesError] = useState<string | null>(null);
   const { swims: fastestSwims, loading: fastestLoading, error: fastestError } = useFastestByTransplantType();
@@ -59,8 +63,8 @@ export default function HomePage() {
   useEffect(() => {
     if (fastestLoading || fastestError) return;
     const combinations = [...new Map(fastestSwims
-      .filter(swim => TRANSPLANT_TYPES.slice(0, 4).includes(swim.transplantType as typeof TRANSPLANT_TYPES[number])
-        && swim.status === 'verified' && (swim.course === 'LCM' || swim.course === 'SCM') && !is25mEvent(swim.event))
+      .filter(swim => TRANSPLANT_TYPES.includes(swim.transplantType as typeof TRANSPLANT_TYPES[number])
+        && (swim.course === 'LCM' || swim.course === 'SCM') && !is25mEvent(swim.event))
       .map(swim => [`${swim.event}|${swim.course}`, { event: swim.event as Event, course: swim.course as Course }] as const)).values()];
     if (!combinations.length) return;
     const selected = combinations[Math.floor(Math.random() * combinations.length)];
@@ -70,17 +74,25 @@ export default function HomePage() {
 
   useEffect(() => {
     let active = true;
-    loadDatabaseRankings()
+    setRankingsLoading(true);
+    setRankingsError(null);
+    loadDatabaseRankingPreview(gender, event, course, 5)
       .then(rows => { if (active) setDatabaseRankings(rows); })
       .catch(error => { if (active) setRankingsError(describeSupabaseError(error)); })
       .finally(() => { if (active) setRankingsLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [gender, event, course]);
 
   useEffect(() => {
     let active = true;
-    loadPublicSwimmerDirectory()
-      .then(rows => { if (active) setAthleteProfiles(rows); })
+    loadPublicSwimmerDirectoryPage({ page: 1, pageSize: 3, sortBy: 'featured' })
+      .then(summary => {
+        if (!active) return;
+        setAthleteProfiles(summary.rows);
+        setAthleteCount(summary.totalCount);
+        setCountryCount(summary.countryCount);
+        setResultCount(summary.resultCount);
+      })
       .catch(error => { if (active) setAthletesError(describeSupabaseError(error)); })
       .finally(() => { if (active) setAthletesLoading(false); });
     return () => { active = false; };
@@ -99,12 +111,7 @@ export default function HomePage() {
   const fastestByAthlete = new Map<string, Ranking>();
   fastestEventSwims.forEach(swim => { if (!fastestByAthlete.has(swim.athleteId)) fastestByAthlete.set(swim.athleteId, swim); });
   const topRankings = [...fastestByAthlete.values()].slice(0, 5);
-  const featuredAthletes = [...athleteProfiles].sort((a, b) => {
-    const recordsA = latestRecords.filter(record => record.athleteName.toLowerCase() === `${a.first_name} ${a.last_name}`.toLowerCase()).length;
-    const recordsB = latestRecords.filter(record => record.athleteName.toLowerCase() === `${b.first_name} ${b.last_name}`.toLowerCase()).length;
-    return recordsB - recordsA || a.last_name.localeCompare(b.last_name);
-  }).slice(0, 3);
-  const countryCount = new Set(athleteProfiles.map(profile => profile.country_code).filter(Boolean)).size;
+  const featuredAthletes = athleteProfiles;
   const featuredRecords = [...latestRecords]
     .sort((a, b) => Number(is25mEvent(a.event)) - Number(is25mEvent(b.event)))
     .slice(0, 4);
@@ -183,7 +190,7 @@ export default function HomePage() {
               <Link key={a.id} to={`/athletes/${a.id}`} className="group border border-[var(--border)] bg-white p-4 transition hover:border-[var(--accent-dark)]">
                 <div className="flex items-center gap-3"><div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--ice)] font-mono text-xs font-bold text-[var(--navy)]">{a.first_name[0]}{a.last_name[0]}</div><div className="min-w-0"><h3 className="truncate text-sm font-bold text-[var(--ink)] group-hover:text-[var(--blue)]">{a.first_name} {a.last_name}</h3><p className="mt-1 truncate text-xs text-[var(--muted)]">{getFlagEmoji(a.country_code ?? '')} {a.country}</p></div></div>
                 <p className="mt-3 border-b border-[var(--border)] pb-2 text-xs text-[var(--muted)]">{a.transplant_type} transplant{a.club_name ? ` · ${a.club_name}` : ''}</p>
-                {(() => { const best = databaseRankings.filter(r => r.athleteId === a.id && !is25mEvent(r.event)).sort((x, y) => timeToSeconds(x.time) - timeToSeconds(y.time))[0]; const recordsCount = latestRecords.filter(record => record.athleteName.toLowerCase() === `${a.first_name} ${a.last_name}`.toLowerCase()).length; return <div className="flex items-end justify-between gap-2 pt-2"><span className="min-w-0"><span className="block text-[10px] text-[var(--muted)]">{best ? `Best · ${best.event}` : 'Best swim'}</span><span className="font-mono text-lg font-bold text-[var(--ink)]">{best?.time ?? '—'}</span></span><span className="shrink-0 text-right text-[10px] font-semibold text-[var(--accent-dark)]">{recordsCount} {recordsCount === 1 ? 'world record' : 'world records'}</span></div>; })()}
+                {(() => { const recordsCount = a.record_count ?? 0; return <div className="flex items-end justify-between gap-2 pt-2"><span className="min-w-0"><span className="block text-[10px] text-[var(--muted)]">{a.best_swim_event ? `Best · ${a.best_swim_event}` : 'Best swim'}</span><span className="font-mono text-lg font-bold text-[var(--ink)]">{a.best_swim_time ?? '—'}</span></span><span className="shrink-0 text-right text-[10px] font-semibold text-[var(--accent-dark)]">{recordsCount} {recordsCount === 1 ? 'world record' : 'world records'}</span></div>; })()}
               </Link>
             ))}
           </div> : <p className="mt-8 border-t border-[var(--border)] py-6 text-sm text-[var(--muted)]">Athlete profiles will appear here as swimmers join and publish their profiles.</p>}
@@ -195,13 +202,20 @@ export default function HomePage() {
         <div className={section}>
           <Eyebrow color="blue">Global achievements</Eyebrow>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl">Latest world records</h2><p className="mt-2 text-sm text-[var(--muted)]">Set at the Dresden 2025 World Transplant Games.</p></div><Link to="/records" className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--accent-dark)] hover:underline">All {latestRecords.length} records <ArrowRight size={14} /></Link></div>
-          <div className="mt-7 border-t border-[var(--border)]">
-            {featuredRecords.map(r => <Link key={r.id} to="/records" className="grid gap-2 border-b border-[var(--border)] py-4 transition-colors hover:bg-white sm:grid-cols-[1.1fr_0.65fr_1.35fr_auto] sm:items-center sm:gap-5">
-              <span><span className="block text-sm font-semibold text-[var(--ink)]">{r.event}</span><span className="mt-1 block text-xs text-[var(--muted)]">{r.gender} · {r.ageGroup}</span></span>
-              <span className="text-xs text-[var(--muted)]">{r.meet}</span>
-              <span className="flex items-center gap-2 text-xs font-semibold text-[var(--ink)]"><span>{getFlagEmoji(r.countryCode ?? '')}</span>{r.athleteName}</span>
-              <span className="text-right font-mono text-xl font-bold text-[var(--ink)]">{r.time}</span>
-            </Link>)}
+          <div className="ta-table-shell mt-7">
+            <div className="ta-table-scroll">
+              <SortableTable><table className="w-full border-collapse">
+                <thead><tr className="ta-table-header">
+                  {['Event', 'Meet', 'Athlete', 'Time'].map(label => <th key={label} className={`whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' ? 'text-right' : ''}`}>{label}</th>)}
+                </tr></thead>
+                <tbody>{featuredRecords.map(record => <tr key={record.id} className="ta-table-row">
+                  <td className="px-3 py-3.5 text-sm sm:px-5"><Link to="/records" className="font-semibold text-[var(--ink)] hover:text-[var(--accent-dark)] hover:underline">{record.event}</Link><span className="mt-1 block text-xs text-[var(--muted)]">{record.gender} · {record.ageGroup}</span></td>
+                  <td className="px-3 py-3.5 text-sm text-[var(--muted)] sm:px-5">{record.meet}</td>
+                  <td className="px-3 py-3.5 text-sm font-semibold text-[var(--ink)] sm:px-5"><span className="mr-2" aria-hidden="true">{getFlagEmoji(record.countryCode ?? '')}</span>{record.athleteName}</td>
+                  <td className="whitespace-nowrap px-3 py-3.5 text-right font-mono text-base font-bold text-[var(--navy)] sm:px-5">{record.time}</td>
+                </tr>)}</tbody>
+              </table></SortableTable>
+            </div>
           </div>
         </div>
       </section>
@@ -212,10 +226,10 @@ export default function HomePage() {
         </div>
         <div className="relative mx-auto grid max-w-7xl grid-cols-2 px-4 py-8 sm:py-10 md:grid-cols-4">
           {[
-            { value: athleteProfiles.length, suffix: '', label: 'Athletes' },
+            { value: athleteCount, suffix: '', label: 'Athletes' },
             { value: countryCount, suffix: '', label: 'Countries' },
             { value: latestRecords.length, suffix: '', label: 'World records' },
-            { value: databaseRankings.length, suffix: '', label: 'Results' },
+            { value: resultCount, suffix: '', label: 'Results' },
           ].map(stat => <div key={stat.label} className="relative z-10 flex flex-col items-center justify-center px-2 py-5 text-center sm:px-4">
             <p className="font-mono text-3xl font-black tracking-tight text-[var(--lime)] sm:text-4xl lg:text-5xl"><AnimatedStat value={stat.value} suffix={stat.suffix} /></p>
             <p className="mt-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--accent)] sm:text-[11px] sm:tracking-[0.16em]">{stat.label}</p>
@@ -228,24 +242,25 @@ export default function HomePage() {
         <div className={section}>
           <Eyebrow color="accent" onDark>Discovery</Eyebrow>
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.5fr] lg:gap-12">
-            <div><h2 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">Fastest by transplant type</h2><p className="mt-4 max-w-md text-sm leading-relaxed text-white/65">See how swimmers with the same transplant compare. Everyone is measured in one event, so the times are a fair comparison.</p><p className="mt-5 border-l-2 border-[var(--accent)] pl-3 text-xs leading-relaxed text-white/55">For discovery only. This isn’t an official ranking, and only verified swims are included.</p><Link to="/rankings/transplant-type" className="mt-6 inline-flex items-center gap-2 bg-[var(--accent)] px-4 py-3 text-xs font-bold text-[var(--navy)] transition-colors hover:bg-white">Find your transplant ranking <ArrowRight size={15} /></Link></div>
+            <div><h2 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">Fastest by transplant type</h2><p className="mt-4 max-w-md text-base leading-relaxed text-white/70">See how swimmers with the same transplant compare. Everyone is measured in one event, so the times are a fair comparison.</p><p className="mt-5 border-l-2 border-[var(--accent)] pl-3 text-sm leading-relaxed text-white/60">For discovery only. Each category shows its fastest available swim.</p><Link to="/rankings/transplant-type" className="mt-6 inline-flex items-center gap-2 bg-[var(--accent)] px-4 py-3 text-sm font-bold text-[var(--navy)] transition-colors hover:bg-white">Find your transplant ranking <ArrowRight size={15} /></Link></div>
             <div>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><span className="text-xs font-semibold text-white/80">{transplantEvent} · {transplantCourse === 'LCM' ? 'Long course' : 'Short course'}</span><span className="font-mono text-[9px] text-white/45">Fastest verified swimmer per type</span></div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><span className="text-sm font-semibold text-white/80">{transplantEvent} · {transplantCourse === 'LCM' ? 'Long course' : 'Short course'}</span><span className="font-mono text-[11px] text-white/55">Fastest available swim per type</span></div>
               <div className="divide-y divide-white/10 border-y border-white/10">
-                {TRANSPLANT_TYPES.slice(0, 4).map(type => {
-                  const swim = fastestSwims.filter(item => item.transplantType === type && item.event === transplantEvent && item.course === transplantCourse && item.status === 'verified').sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time))[0];
-                  const times = fastestSwims.filter(item => TRANSPLANT_TYPES.slice(0, 4).includes(item.transplantType as typeof TRANSPLANT_TYPES[number]) && item.event === transplantEvent && item.course === transplantCourse && item.status === 'verified').map(item => timeToSeconds(item.time)).filter(Number.isFinite);
+                {TRANSPLANT_TYPES.map(type => {
+                  const matchingSwims = fastestSwims.filter(item => item.transplantType === type && item.event === transplantEvent && item.course === transplantCourse);
+                  const swim = matchingSwims.sort((a, b) => Number(b.status === 'verified') - Number(a.status === 'verified') || timeToSeconds(a.time) - timeToSeconds(b.time))[0];
+                  const times = fastestSwims.filter(item => TRANSPLANT_TYPES.includes(item.transplantType as typeof TRANSPLANT_TYPES[number]) && item.event === transplantEvent && item.course === transplantCourse).map(item => timeToSeconds(item.time)).filter(Number.isFinite);
                   const fastestTime = Math.min(...times, Number.POSITIVE_INFINITY);
                   const barWidth = swim && Number.isFinite(fastestTime) ? Math.max(12, fastestTime / timeToSeconds(swim.time) * 100) : 0;
-                  return <div key={type} className="grid grid-cols-[10px_58px_minmax(0,1fr)_54px] items-center gap-2 py-3 sm:grid-cols-[10px_72px_minmax(0,1fr)_60px] sm:gap-3">
+                  return <div key={type} className="grid grid-cols-[10px_82px_minmax(0,1fr)_64px] items-center gap-2 py-3.5 sm:grid-cols-[10px_100px_minmax(0,1fr)_72px] sm:gap-3">
                     <span className="size-2 rounded-full" style={{ backgroundColor: getTransplantColor(type) }} />
-                    <span className="text-xs font-semibold text-white/85">{type}</span>
-                    {fastestLoading ? <div role="status" aria-label="Loading fastest swims"><Skeleton dark className="h-4 w-3/4" /></div> : fastestError ? <span className="text-xs text-white/55">Unable to load</span> : swim ? <div className="min-w-0"><div className="flex min-w-0 items-center gap-2"><span className="shrink-0 text-xs">{getFlagEmoji(swim.countryCode)}</span><Link to={`/athletes/${swim.athleteId}`} className="truncate text-xs font-semibold text-white hover:underline">{swim.athleteName}</Link><span className="hidden text-[10px] text-white/45 sm:inline">{swim.gender} · {swim.ageGroup}</span></div><div className="mt-1.5 h-1 bg-white/10"><span className="block h-full" style={{ width: `${barWidth}%`, backgroundColor: getTransplantColor(type) }} /></div></div> : <span className="text-[10px] text-white/50">Awaiting first verified swim</span>}
-                    <span className="text-right font-mono text-sm font-bold text-white">{swim?.time ?? '—'}</span>
+                    <span className="text-sm font-semibold text-white/90">{type}</span>
+                    {fastestLoading ? <div role="status" aria-label="Loading fastest swims"><Skeleton dark className="h-4 w-3/4" /></div> : fastestError ? <span className="text-sm text-white/65">Unable to load</span> : swim ? <div className="min-w-0"><div className="flex min-w-0 items-center gap-2"><span className="shrink-0 text-sm">{getFlagEmoji(swim.countryCode)}</span><Link to={`/athletes/${swim.athleteId}`} className="truncate text-sm font-semibold text-white hover:underline">{swim.athleteName}</Link><span className="hidden text-xs text-white/55 sm:inline">{swim.gender} · {swim.ageGroup}</span></div><div className="mt-1.5 h-1 bg-white/10"><span className="block h-full" style={{ width: `${barWidth}%`, backgroundColor: getTransplantColor(type) }} /></div></div> : <span className="text-xs text-white/60">No swim recorded for this event</span>}
+                    <span className="text-right font-mono text-base font-bold text-white">{swim?.time ?? '—'}</span>
                   </div>;
                 })}
               </div>
-              <p className="mt-3 text-[10px] leading-relaxed text-white/45">Awaiting a first verified swim: Pancreas, Bone marrow, Living donor. <Link to="/submit" className="text-[var(--accent)] hover:underline">Submit a result</Link></p>
+              <p className="mt-3 text-xs leading-relaxed text-white/55"><Link to="/submit" className="text-[var(--accent)] hover:underline">Submit a result</Link></p>
               {fastestError && <p role="status" className="mt-2 text-xs text-red-200">Fastest swims could not be loaded: {fastestError}</p>}
             </div>
           </div>

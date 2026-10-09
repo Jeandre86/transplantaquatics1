@@ -133,7 +133,7 @@ function SelectField({
 }
 
 /* ── Sign In form ─────────────────────────────────────────────────────────── */
-function SignInForm() {
+function SignInForm({ adminMode = false, writerMode = false }: { adminMode?: boolean; writerMode?: boolean }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -149,7 +149,7 @@ function SignInForm() {
     try {
       await auth.login(email, password);
       const destination = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
-      navigate(destination?.pathname ? `${destination.pathname}${destination.search ?? ''}` : '/dashboard');
+      navigate(adminMode ? '/admin' : writerMode ? '/writer' : destination?.pathname ? `${destination.pathname}${destination.search ?? ''}` : '/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.');
     } finally {
@@ -185,10 +185,11 @@ function SignInForm() {
         {loading ? 'Signing in…' : <><span>Sign in</span> <ArrowRight size={16} /></>}
       </button>
 
-      <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>
-        New to Transplant Aquatics?{' '}
-        <Link to="/join" className="font-semibold" style={{ color: 'var(--accent)' }}>Create an account</Link>
-      </p>
+      {adminMode
+        ? <p className="text-center text-xs" style={{ color: 'var(--muted-on-dark)' }}>Admin accounts only. Swimmer accounts cannot access this workspace.</p>
+        : writerMode
+          ? <p className="text-center text-xs" style={{ color: 'var(--muted-on-dark)' }}>Writer accounts only. Use the account from your writer invitation.</p>
+        : <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>New to Transplant Aquatics?{' '}<Link to="/join" className="font-semibold" style={{ color: 'var(--accent)' }}>Create an account</Link></p>}
     </form>
   );
 }
@@ -321,7 +322,7 @@ function ProfileBuilder() {
 }
 
 /* ── Main page ─────────────────────────────────────────────────────────────── */
-export default function LoginPage() {
+export default function LoginPage({ adminMode = false, writerMode = false }: { adminMode?: boolean; writerMode?: boolean }) {
   const [mode] = useState<Mode>('signin');
   const auth = useAuth();
   const navigate = useNavigate();
@@ -329,7 +330,7 @@ export default function LoginPage() {
   // Redirect already-authenticated users to their dashboard
   useEffect(() => {
     if (auth.isLoggedIn) {
-      navigate('/dashboard', { replace: true });
+      navigate(adminMode ? '/admin' : writerMode ? '/writer' : '/dashboard', { replace: true });
     }
   }, [auth.isLoggedIn, navigate]);
 
@@ -345,7 +346,7 @@ export default function LoginPage() {
         <Link to="/">
           <Logo size="md" light />
         </Link>
-        {mode === 'profile' && (
+        {(adminMode || writerMode || mode === 'profile') && (
           <Link to="/" className="font-mono text-xs uppercase tracking-wider transition-colors" style={{ color: 'var(--muted-on-dark)' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-on-dark)')}
@@ -368,15 +369,15 @@ export default function LoginPage() {
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-5" style={{ backgroundColor: 'var(--accent)' }} />
                 <span className="font-mono text-xs uppercase tracking-widest" style={{ color: 'var(--muted-on-dark)' }}>
-                  {mode === 'profile' ? 'Athlete Portal' : 'Transplant Aquatics'}
-                </span>
+                {adminMode ? 'Management console' : writerMode ? 'Editorial workspace' : mode === 'profile' ? 'Athlete Portal' : 'Transplant Aquatics'}
+              </span>
               </div>
-              <h1 className="display text-3xl text-white">{titles[mode].heading}</h1>
-              <p className="mt-1 text-sm" style={{ color: 'var(--muted-on-dark)' }}>{titles[mode].sub}</p>
+              <h1 className="display text-3xl text-white">{adminMode ? 'Admin sign in' : writerMode ? 'Writer sign in' : titles[mode].heading}</h1>
+              <p className="mt-1 text-sm" style={{ color: 'var(--muted-on-dark)' }}>{adminMode ? 'Sign in with your approved administrator account to open the management console.' : writerMode ? 'Sign in with the account linked to your writer invitation.' : titles[mode].sub}</p>
             </div>
 
             {/* Forms */}
-            {mode === 'signin'   && <SignInForm />}
+            {mode === 'signin'   && <SignInForm adminMode={adminMode} writerMode={writerMode} />}
             {mode === 'profile'  && <ProfileBuilder />}
           </div>
 
