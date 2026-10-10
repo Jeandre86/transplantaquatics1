@@ -579,11 +579,11 @@ export default function ProfilePage() {
                     const label = labels[index];
                     return <g key={axis.key}><line x1={chartCenter.x} y1={chartCenter.y} x2={chartPoint(index, 1).split(',')[0]} y2={chartPoint(index, 1).split(',')[1]} stroke="#e5e7eb" strokeWidth="1" /><text x={label.x} y={label.y} textAnchor={label.anchor} className="fill-[var(--ink)] text-[13px]">{axis.label}</text></g>;
                   })}
-                  {specialties.length > 0 && <polygon points={specialtyPolygon} fill="#cf003d" fillOpacity="0.85" stroke="#cf003d" strokeWidth="1.5" />}
+                  {specialties.length > 0 && <polygon points={specialtyPolygon} fill="#cf003d" fillOpacity="0.85" stroke="#cf003d" strokeWidth="1.5" className="specialty-chart-shape" />}
                 </svg>
                 <div className="mt-1">
                   <div className="relative h-[2px] bg-gradient-to-r from-[#d0003f] to-[#2347e8]">
-                    <span className="absolute -top-1.5 size-3 rounded-full border-2 border-white bg-[var(--navy)] shadow" style={{ left: `calc(${distanceRatio * 100}% - 6px)` }} />
+                    <span className="absolute -top-1.5 size-3 rounded-full border-2 border-white bg-[var(--navy)] shadow transition-[left] duration-700 ease-out" style={{ left: `calc(${distanceRatio * 100}% - 6px)` }} />
                   </div>
                   <div className="mt-1.5 flex justify-between text-xs text-[var(--muted)]"><span>Sprint</span><span>Distance</span></div>
                 </div>
@@ -656,8 +656,8 @@ export default function ProfilePage() {
 
             <ProfilePanel title="Rankings" action={<Link to="/rankings" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">Explore</Link>}>
               {profileRankingsLoading ? <p className="text-sm text-[var(--muted)]">Loading your world and club positions…</p> : profileRankingsError ? <p role="status" className="text-sm text-[var(--muted)]">Your rankings are temporarily unavailable.</p> : profileRankings.length ? <div className="space-y-2">
-                {profileRankings.slice(0, 3).map(row => <div key={`${row.event}-${row.ageGroup}-${row.course}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--border)] pb-2 text-sm last:border-0 last:pb-0">
-                  <span className="font-semibold text-[var(--ink)]">{row.event} · {row.course}</span>
+                {profileRankings.slice(0, 3).map(row => <div key={`${row.event}-${row.ageGroup}-${row.course}-${row.season}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--border)] pb-2 text-sm last:border-0 last:pb-0">
+                  <span className="font-semibold text-[var(--ink)]">{row.event} · {row.course} · {row.season}</span>
                   <span className="text-xs text-[var(--muted)]">World #{row.worldRank}{row.clubRank ? ` · ${row.clubName || user.club || 'Club'} #${row.clubRank}` : ''}</span>
                 </div>)}
                 <button type="button" onClick={() => setActiveTab('rankings')} className="pt-1 text-xs font-semibold text-[var(--blue)] hover:underline">View all stroke rankings</button>
@@ -774,14 +774,16 @@ export default function ProfilePage() {
         {activeTab === 'rankings' && (
           <div className="mt-6 space-y-5">
             <ProfilePanel title="World and club positions">
-              <p className="mb-5 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">Positions compare your best time with other swimmers in the same event, age group, gender, and course. Each distance is ranked separately.</p>
-              {profileRankingsLoading ? <SkeletonTable rows={5} columns={6} /> : profileRankingsError ? <p role="status" className="border border-[var(--border)] bg-[var(--paper)] px-4 py-6 text-sm text-red-700">Rankings could not be loaded: {profileRankingsError}</p> : profileRankings.length ? <div className="ta-table-scroll"><SortableTable><table className="w-full border-collapse text-left">
-                <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Stroke</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Category</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Best time</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">World</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Club</th></tr></thead>
-                <tbody>{profileRankings.map(row => <tr key={`${row.event}-${row.ageGroup}-${row.gender}-${row.course}`} className="ta-table-row">
+              <p className="mb-5 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">Positions compare your fastest time from each calendar year with swimmers in the same season, event, age group, gender, and course. Each season and distance is ranked separately.</p>
+              {profileRankingsLoading ? <SkeletonTable rows={5} columns={8} /> : profileRankingsError ? <p role="status" className="border border-[var(--border)] bg-[var(--paper)] px-4 py-6 text-sm text-red-700">Rankings could not be loaded: {profileRankingsError}</p> : profileRankings.length ? <div className="ta-table-scroll"><SortableTable><table className="w-full border-collapse text-left">
+                <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Season</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Stroke</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Category</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Best time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet / date</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">World</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Club</th></tr></thead>
+                <tbody>{profileRankings.map(row => <tr key={`${row.event}-${row.ageGroup}-${row.gender}-${row.course}-${row.season}`} className="ta-table-row">
+                  <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.season}</td>
                   <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.stroke}</td>
                   <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.event}</td>
                   <td className="px-3 py-3 text-xs text-[var(--muted)]">{row.gender} · {row.ageGroup} · {row.course}</td>
                   <td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--navy)]">{row.time}</td>
+                  <td className="px-3 py-3 text-xs text-[var(--muted)]">{row.meetName || 'Meet not recorded'}{row.date ? ` · ${row.date.slice(0, 10)}` : ''}</td>
                   <td className="px-3 py-3 text-right text-sm"><span className="font-mono font-bold text-[var(--blue)]">#{row.worldRank}</span><span className="ml-1 text-xs text-[var(--muted)]">of {row.worldSwimmerCount}</span></td>
                   <td className="px-3 py-3 text-right text-sm">{row.clubRank ? <><span className="font-mono font-bold text-[var(--blue)]">#{row.clubRank}</span><span className="ml-1 text-xs text-[var(--muted)]">of {row.clubSwimmerCount}</span></> : <span className="text-xs text-[var(--muted)]">{row.clubName || user.club ? 'Not ranked' : 'No club'}</span>}</td>
                 </tr>)}</tbody>

@@ -1,6 +1,7 @@
 -- Return ranking positions only for a profile owned by the signed-in account.
--- Positions use the same event, age-group, gender, and course personal-best
--- categories as the public rankings, with an additional current-club position.
+-- Positions use season-specific event, age-group, gender, and course personal
+-- bests, with an additional current-club position. Season is the calendar year
+-- of the meet (or the result creation date when no meet date is available).
 create or replace function public.get_my_swimmer_event_rankings(p_swimmer_id uuid)
 returns jsonb
 language plpgsql
@@ -28,7 +29,9 @@ begin
           when 'women' then 'Women' when 'female' then 'Women' when 'girls' then 'Women'
           else null end as public_gender,
         coalesce(nullif(trim(r.course), ''), m.course) as public_course,
-        m.name as public_meet, m.meet_date as public_date,
+        coalesce(m.name, mc.name) as public_meet,
+        coalesce(m.meet_date, mc.meet_date) as public_date,
+        extract(year from coalesce(m.meet_date, mc.meet_date, r.created_at::date))::integer as season,
         a.club_id,
         coalesce(c.name, a.club_name, '') as public_club,
         case when r.time ~ '^([0-9]+:)?[0-9]+([.][0-9]{1,2})?$'
@@ -41,6 +44,7 @@ begin
       left join public.athletes a on a.id = coalesce(r.athlete_id, r.swimmer_id)
       left join public.clubs c on c.id = a.club_id
       left join public.submitted_meets m on m.id = r.meet_id
+      left join public.meet_catalog mc on mc.id = m.catalog_meet_id
       where r.status <> 'rejected'
     ), canonical as (
       select s.*,
@@ -74,25 +78,25 @@ begin
       select s.*,
         row_number() over (
           partition by coalesce(s.public_athlete_id::text, lower(s.public_name || '|' || s.public_country)),
-            lower(s.public_event), s.public_gender, s.canonical_course, lower(s.canonical_age)
+            lower(s.public_event), s.public_gender, s.canonical_course, lower(s.canonical_age), s.season
           order by s.seconds, (s.status = 'verified') desc, s.created_at
         ) as personal_best_number
       from with_strokes s
     ), ranked as (
       select b.*,
         row_number() over (
-          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age)
+          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age), b.season
           order by b.seconds, lower(b.public_name)
         ) as world_rank,
         case when b.club_id is not null then row_number() over (
-          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age), b.club_id
+          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age), b.club_id, b.season
           order by b.seconds, lower(b.public_name)
         ) end as club_rank,
         count(*) over (
-          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age)
+          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age), b.season
         ) as world_swimmer_count,
         case when b.club_id is not null then count(*) over (
-          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age), b.club_id
+          partition by lower(b.public_event), b.public_gender, b.canonical_course, lower(b.canonical_age), b.club_id, b.season
         ) end as club_swimmer_count
       from best b
       where b.personal_best_number = 1 and b.stroke is not null
@@ -103,6 +107,7 @@ begin
       'ageGroup', canonical_age,
       'gender', public_gender,
       'course', canonical_course,
+      'season', season,
       'time', time,
       'worldRank', world_rank,
       'worldSwimmerCount', world_swimmer_count,
@@ -114,7 +119,7 @@ begin
     ) order by case lower(stroke)
       when 'freestyle' then 1 when 'backstroke' then 2 when 'breaststroke' then 3
       when 'butterfly' then 4 when 'individual medley' then 5 else 6 end,
-      lower(public_event), canonical_course, canonical_age), '[]'::jsonb)
+      lower(public_event), canonical_course, canonical_age, season desc), '[]'::jsonb)
     from ranked
     where public_athlete_id = p_swimmer_id
   );
@@ -123,3 +128,5 @@ $$;
 
 revoke all on function public.get_my_swimmer_event_rankings(uuid) from public, anon;
 grant execute on function public.get_my_swimmer_event_rankings(uuid) to authenticated;
+
+notify pgrst, 'reload schema';

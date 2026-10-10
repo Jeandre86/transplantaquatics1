@@ -9,6 +9,7 @@ export interface SwimmerEventRanking {
   ageGroup: string;
   gender: string;
   course: 'LCM' | 'SCM';
+  season: number;
   time: string;
   worldRank: number;
   worldSwimmerCount: number;
@@ -86,6 +87,9 @@ export async function loadMySwimmerEventRankings(swimmerId: string): Promise<Swi
   return loadCached(`my-swimmer-event-rankings:${swimmerId}`, async () => {
     if (!supabase) throw new Error('Supabase is not configured.');
     const { data, error } = await supabase.rpc('get_my_swimmer_event_rankings', { p_swimmer_id: swimmerId });
+    if (error?.code === 'PGRST202') {
+      throw new Error('The season rankings database function is not installed yet. Apply supabase/migrations/20261010090000_add_swimmer_profile_rankings.sql to the connected Supabase project, then reload the schema cache.');
+    }
     if (error) throw error;
     return (Array.isArray(data) ? data : []) as SwimmerEventRanking[];
   });

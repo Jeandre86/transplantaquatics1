@@ -4,6 +4,8 @@ import MainLayout from './layouts/MainLayout';
 import PageLoading from './components/PageLoading';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import { useAuth } from './contexts/AuthContext';
+import AdSenseLoader from './components/AdSenseLoader';
+import GoogleAnalytics from './components/GoogleAnalytics';
 
 function ScrollToTop() {
   const { key } = useLocation();
@@ -85,6 +87,8 @@ function AdminLegacyRoute() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AdSenseLoader />
+      <GoogleAnalytics />
       <ScrollToTop />
       <RouteErrorBoundary>
         <Routes>
