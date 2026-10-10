@@ -57,8 +57,8 @@ export const DEFAULT_ABOUT_SECTIONS: AboutSection[] = [
   },
   {
     slug: 'contact-us', title: 'Contact Us',
-    description: 'Choose the route that best matches what you need.',
-    paragraphs: ['A public contact email or message form has not been configured for this site yet. In the meantime, use the relevant site page below to get started.'],
+    description: 'Questions, club enquiries and partnership ideas are welcome. Send a message to the Transplant Aquatics team.',
+    paragraphs: ['Use the form below and your message will go directly to the team’s internal inbox. Include the topic and enough detail for us to understand how we can help.'],
     links: [{ label: 'Join Transplant Aquatics', href: '/join' }, { label: 'Submit a result', href: '/submit' }, { label: 'Manage your profile', href: '/profile' }],
   },
 ];
