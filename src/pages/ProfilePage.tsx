@@ -1,7 +1,7 @@
 import SortableTable from '../components/SortableTable';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CalendarDays, Camera, ChartNoAxesCombined, MapPin, Medal, Music2, Settings2, Timer, ShieldCheck, Eye, EyeOff, MoreVertical } from 'lucide-react';
+import { CalendarDays, Camera, MapPin, Medal, Music2, Settings2, Timer, ShieldCheck, Eye, EyeOff, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getFlagEmoji } from '../lib/utils';
 import { athletes } from '../data/athletes';
@@ -10,8 +10,9 @@ import { results } from '../data/results';
 import { EVENTS, type Event } from '../types';
 import type { SocialLinks } from '../lib/avatars';
 import { athleteGoalsErrorMessage, createAthleteGoal, loadAthleteGoals, removeAthleteGoal, setAthleteGoalVisibility, type AthleteGoal, type GoalCourse } from '../lib/athleteGoals';
+import { loadMySwimmerEventRankings, type SwimmerEventRanking } from '../lib/databaseRankings';
 import { loadMyAccountResults, type SubmittedSwimmerResult } from '../lib/swimmerSubmissions';
-import { supabase } from '../lib/supabase';
+import { describeSupabaseError, supabase } from '../lib/supabase';
 import ManagedSwimmers from '../components/ManagedSwimmers';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
 
@@ -22,8 +23,6 @@ function parseTime(time: string): number {
   if (!parts.length || parts.length > 2 || parts.some(part => !Number.isFinite(part))) return 0;
   return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
 }
-
-const AVAILABLE_SEASONS = [...new Set(results.map(result => result.date.slice(0, 4)))].sort((a, b) => b.localeCompare(a));
 
 const STROKES = ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', 'Individual Medley', 'Open Water'];
 const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string; baseUrl: string }[] = [
@@ -41,7 +40,22 @@ function socialHref(platform: keyof SocialLinks, value?: string) {
 }
 
 function strokeForEvent(event: string): string | null {
-  return STROKES.find(stroke => event.toLowerCase().includes(stroke.toLowerCase())) ?? null;
+  const normalized = event.toLocaleLowerCase().replace(/^\s*\d+\s*m(?:etres?)?\s*/i, '').trim();
+  if (/\b(freestyle|free)\b/.test(normalized)) return 'Freestyle';
+  if (/\b(backstroke|back)\b/.test(normalized)) return 'Backstroke';
+  if (/\b(breaststroke|breast)\b/.test(normalized)) return 'Breaststroke';
+  if (/\b(butterfly|fly)\b/.test(normalized)) return 'Butterfly';
+  if (/\b(individual medley|im)\b/.test(normalized)) return 'Individual Medley';
+  return null;
+}
+
+function validTimeSeconds(time: string): number | null {
+  const value = time.trim();
+  const minuteTime = /^(\d+):([0-5]?\d)(?:\.(\d{1,2}))?$/.exec(value);
+  if (minuteTime) return Number(minuteTime[1]) * 60 + Number(`${minuteTime[2]}.${minuteTime[3] ?? '0'}`);
+  if (!/^\d+(?:\.\d{1,2})?$/.test(value)) return null;
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
 }
 
 function relativeCreatedAt(value: string): string {
@@ -87,6 +101,7 @@ export default function ProfilePage() {
   const [goals, setGoals] = useState<AthleteGoal[]>([]);
   const [databaseResults, setDatabaseResults] = useState<SubmittedSwimmerResult[]>([]);
   const [databaseResultsLoading, setDatabaseResultsLoading] = useState(true);
+  const [databaseResultsError, setDatabaseResultsError] = useState(false);
   const [goalsLoading, setGoalsLoading] = useState(true);
   const [goalError, setGoalError] = useState('');
   const [goalFormOpen, setGoalFormOpen] = useState(false);
@@ -98,7 +113,9 @@ export default function ProfilePage() {
   const [goalCourse, setGoalCourse] = useState<GoalCourse>('LCM');
   const [goalPublic, setGoalPublic] = useState(false);
   const [goalTime, setGoalTime] = useState('');
-  const [selectedSeason, setSelectedSeason] = useState(AVAILABLE_SEASONS[0] ?? '');
+  const [profileRankings, setProfileRankings] = useState<SwimmerEventRanking[]>([]);
+  const [profileRankingsLoading, setProfileRankingsLoading] = useState(true);
+  const [profileRankingsError, setProfileRankingsError] = useState('');
   const [accountEmail, setAccountEmail] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMessage, setEmailMessage] = useState('');
@@ -151,15 +168,64 @@ export default function ProfilePage() {
   useEffect(() => {
     let cancelled = false;
     if (!auth.isLoggedIn) {
+      setProfileRankings([]);
+      setProfileRankingsLoading(false);
+      setProfileRankingsError('');
+      return () => { cancelled = true; };
+    }
+    if (databaseResultsLoading) {
+      setProfileRankingsLoading(true);
+      return () => { cancelled = true; };
+    }
+
+    const fullName = `${auth.user?.firstName ?? ''} ${auth.user?.lastName ?? ''}`.trim().toLocaleLowerCase();
+    const profileResult = databaseResults
+      .filter(result => result.swimmer_name.trim().toLocaleLowerCase() === fullName && result.status !== 'rejected')
+      .reduce((counts, result) => {
+        const id = result.swimmer_id ?? result.athlete_id;
+        if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
+        return counts;
+      }, new Map<string, number>());
+    const swimmerId = [...profileResult.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (!swimmerId) {
+      setProfileRankings([]);
+      setProfileRankingsLoading(false);
+      setProfileRankingsError('');
+      return () => { cancelled = true; };
+    }
+
+    setProfileRankingsLoading(true);
+    setProfileRankingsError('');
+    loadMySwimmerEventRankings(swimmerId).then(rows => {
+      if (!cancelled) setProfileRankings(rows);
+    }).catch(error => {
+      if (!cancelled) {
+        setProfileRankings([]);
+        setProfileRankingsError(describeSupabaseError(error));
+      }
+    }).finally(() => {
+      if (!cancelled) setProfileRankingsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [auth.isLoggedIn, auth.user?.firstName, auth.user?.lastName, databaseResults, databaseResultsLoading]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!auth.isLoggedIn) {
       setDatabaseResults([]);
+      setDatabaseResultsError(false);
       setDatabaseResultsLoading(false);
       return () => { cancelled = true; };
     }
     setDatabaseResultsLoading(true);
+    setDatabaseResultsError(false);
     loadMyAccountResults().then(items => {
       if (!cancelled) setDatabaseResults(items);
     }).catch(() => {
-      if (!cancelled) setDatabaseResults([]);
+      if (!cancelled) {
+        setDatabaseResults([]);
+        setDatabaseResultsError(true);
+      }
     }).finally(() => {
       if (!cancelled) setDatabaseResultsLoading(false);
     });
@@ -186,25 +252,24 @@ export default function ProfilePage() {
     .filter(result => result.athleteId === athlete.id)
     .sort((a, b) => b.date.localeCompare(a.date)) : [];
   const athleteResults = allAthleteResults.slice(0, 6);
-  const clubMembers = user.club ? athletes.filter(entry => entry.club?.toLocaleLowerCase() === user.club?.toLocaleLowerCase()) : [];
-  const clubMemberIds = new Set(clubMembers.map(entry => entry.id));
-  const clubSeasonGroups = new Map<string, Map<string, { athleteId: string; event: string; gender: string; ageGroup: string; course: string; time: string }>>();
-  results.filter(result => result.date.startsWith(selectedSeason) && clubMemberIds.has(result.athleteId)).forEach(result => {
-    const categoryKey = [result.event, result.gender, result.ageGroup, result.course].join('|');
-    const category = clubSeasonGroups.get(categoryKey) ?? new Map();
-    const current = category.get(result.athleteId);
-    if (!current || parseTime(result.time) < parseTime(current.time)) {
-      category.set(result.athleteId, { athleteId: result.athleteId, event: result.event, gender: result.gender, ageGroup: result.ageGroup, course: result.course, time: result.time });
-    }
-    clubSeasonGroups.set(categoryKey, category);
-  });
-  const clubSeasonRows = [...clubSeasonGroups.values()]
-    .filter(category => category.size > 1 && athlete && category.has(athlete.id))
-    .flatMap(category => [...category.values()].sort((a, b) => parseTime(a.time) - parseTime(b.time)).map((row, index) => ({ ...row, rank: index + 1 })))
-    .filter(row => row.athleteId === athlete?.id)
-    .sort((a, b) => a.event.localeCompare(b.event));
   const normalizedName = name.trim().toLocaleLowerCase();
   const swimmerDatabaseResults = databaseResults.filter(result => result.swimmer_name.trim().toLocaleLowerCase() === normalizedName && result.status !== 'rejected');
+  const profileResults = [...swimmerDatabaseResults].sort((a, b) => {
+    const dateA = a.submitted_meets?.meet_date ?? a.created_at;
+    const dateB = b.submitted_meets?.meet_date ?? b.created_at;
+    return dateB.localeCompare(dateA);
+  });
+  const bestTimesByStroke = swimmerDatabaseResults.reduce((best, result) => {
+    if (result.is_relay) return best;
+    const stroke = strokeForEvent(result.event);
+    const seconds = validTimeSeconds(result.time);
+    if (!stroke || seconds === null) return best;
+    const current = best.get(stroke);
+    if (!current || seconds < current.seconds) {
+      best.set(stroke, { result, seconds });
+    }
+    return best;
+  }, new Map<string, { result: SubmittedSwimmerResult; seconds: number }>());
   const swimEvents = swimmerDatabaseResults.length
     ? swimmerDatabaseResults.map(result => result.event)
     : user.primaryEvent ? [user.primaryEvent] : [];
@@ -590,18 +655,40 @@ export default function ProfilePage() {
             </ProfilePanel>
 
             <ProfilePanel title="Rankings" action={<Link to="/rankings" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">Explore</Link>}>
-              <p className="text-sm leading-relaxed text-[var(--muted)]">Your personal ranking will appear here when your verified results are linked to your athlete profile.</p>
+              {profileRankingsLoading ? <p className="text-sm text-[var(--muted)]">Loading your world and club positions…</p> : profileRankingsError ? <p role="status" className="text-sm text-[var(--muted)]">Your rankings are temporarily unavailable.</p> : profileRankings.length ? <div className="space-y-2">
+                {profileRankings.slice(0, 3).map(row => <div key={`${row.event}-${row.ageGroup}-${row.course}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--border)] pb-2 text-sm last:border-0 last:pb-0">
+                  <span className="font-semibold text-[var(--ink)]">{row.event} · {row.course}</span>
+                  <span className="text-xs text-[var(--muted)]">World #{row.worldRank}{row.clubRank ? ` · ${row.clubName || user.club || 'Club'} #${row.clubRank}` : ''}</span>
+                </div>)}
+                <button type="button" onClick={() => setActiveTab('rankings')} className="pt-1 text-xs font-semibold text-[var(--blue)] hover:underline">View all stroke rankings</button>
+              </div> : <p className="text-sm leading-relaxed text-[var(--muted)]">Your club and world positions will appear when your results are linked to your swimmer profile.</p>}
             </ProfilePanel>
           </div>
         </div>}
 
         {activeTab === 'times' && (
           <div className="mt-6 space-y-5">
-            <ProfilePanel title="Times" action={<span className="font-mono text-xs text-[var(--muted)]">{allAthleteResults.length} swims</span>}>
-              {allAthleteResults.length ? <div className="ta-table-scroll">
+            <ProfilePanel title="Best times by stroke" action={<span className="font-mono text-xs text-[var(--muted)]">From {swimmerDatabaseResults.length} swims</span>}>
+              {databaseResultsLoading ? <p className="py-5 text-sm text-[var(--muted)]">Loading your results…</p> : databaseResultsError ? <p role="status" className="py-5 text-sm text-[var(--muted)]">Your results could not be loaded. Try refreshing the page.</p> : bestTimesByStroke.size ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {STROKES.slice(0, 5).map(stroke => {
+                  const best = bestTimesByStroke.get(stroke);
+                  return <article key={stroke} className="border border-[var(--border)] bg-[var(--paper)] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{stroke}</p>
+                    {best ? <>
+                      <p className="mt-2 font-mono text-2xl font-bold text-[var(--blue)]">{best.result.time}</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{best.result.event}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">{[best.result.course || best.result.submitted_meets?.course || 'Course not recorded', best.result.submitted_meets?.name, best.result.submitted_meets?.meet_date].filter(Boolean).join(' · ')}</p>
+                    </> : <p className="mt-3 text-sm text-[var(--muted)]">No result yet</p>}
+                  </article>;
+                })}
+              </div> : <p className="py-5 text-sm text-[var(--muted)]">Your stroke bests will appear when results are linked to your profile.</p>}
+            </ProfilePanel>
+
+            <ProfilePanel title="All results" action={<span className="font-mono text-xs text-[var(--muted)]">{profileResults.length} swims</span>}>
+              {databaseResultsLoading ? <SkeletonTable rows={5} columns={5} /> : databaseResultsError ? <p role="status" className="py-5 text-sm text-[var(--muted)]">Your results could not be loaded. Try refreshing the page.</p> : profileResults.length ? <div className="ta-table-scroll">
                 <SortableTable><table className="w-full border-collapse text-left">
                   <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Course</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Date</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet</th></tr></thead>
-                  <tbody>{allAthleteResults.map(result => <tr key={result.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{result.event || '—'}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--blue)]">{result.time || '—'}</td><td className="px-3 py-3 font-mono text-xs text-[var(--muted)]">{result.course || '—'}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{result.date || '—'}</td><td className="max-w-56 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.meet || '—'}</td></tr>)}</tbody>
+                  <tbody>{profileResults.map(result => <tr key={result.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{result.event || '—'}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--blue)]">{result.time || '—'}</td><td className="px-3 py-3 font-mono text-xs text-[var(--muted)]">{result.course || result.submitted_meets?.course || '—'}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{result.submitted_meets?.meet_date || result.created_at.slice(0, 10) || '—'}</td><td className="max-w-56 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.submitted_meets?.name || '—'}</td></tr>)}</tbody>
                 </table></SortableTable>
               </div> : <div className="py-12 text-center"><Timer size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No swims linked yet</p><p className="mt-1 text-sm text-[var(--muted)]">Once your results are connected to your account, your times will appear here.</p></div>}
             </ProfilePanel>
@@ -686,15 +773,19 @@ export default function ProfilePage() {
 
         {activeTab === 'rankings' && (
           <div className="mt-6 space-y-5">
-            <ProfilePanel title="Club rankings">
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-                <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">Your place within {user.club || 'your club'} for each event, season by season.</p>
-                <label className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">Season<select value={selectedSeason} onChange={event => setSelectedSeason(event.target.value)} className="mt-1 block border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-sm font-semibold normal-case tracking-normal text-[var(--ink)]">{AVAILABLE_SEASONS.map(season => <option key={season} value={season}>{season} season</option>)}</select></label>
-              </div>
-              {clubSeasonRows.length ? <div className="ta-table-scroll"><SortableTable><table className="w-full border-collapse text-left">
-                <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Club rank</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Category</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Best time</th></tr></thead>
-                <tbody>{clubSeasonRows.map((row, index) => <tr key={`${row.event}-${row.ageGroup}-${row.gender}-${row.course}-${index}`} className="ta-table-row"><td className="px-3 py-3 font-mono text-sm font-bold text-[var(--blue)]">#{row.rank}</td><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.event}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{row.gender} · {row.ageGroup} · {row.course}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--navy)]">{row.time}</td></tr>)}</tbody>
-              </table></SortableTable></div> : <div className="py-12 text-center"><ChartNoAxesCombined size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No club rankings for {selectedSeason || 'this season'} yet</p><p className="mx-auto mt-1 max-w-xl text-sm text-[var(--muted)]">Club standings will appear once your results and results from other swimmers in your club are available for this season.</p></div>}
+            <ProfilePanel title="World and club positions">
+              <p className="mb-5 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">Positions compare your best time with other swimmers in the same event, age group, gender, and course. Each distance is ranked separately.</p>
+              {profileRankingsLoading ? <SkeletonTable rows={5} columns={6} /> : profileRankingsError ? <p role="status" className="border border-[var(--border)] bg-[var(--paper)] px-4 py-6 text-sm text-red-700">Rankings could not be loaded: {profileRankingsError}</p> : profileRankings.length ? <div className="ta-table-scroll"><SortableTable><table className="w-full border-collapse text-left">
+                <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Stroke</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Category</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Best time</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">World</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Club</th></tr></thead>
+                <tbody>{profileRankings.map(row => <tr key={`${row.event}-${row.ageGroup}-${row.gender}-${row.course}`} className="ta-table-row">
+                  <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.stroke}</td>
+                  <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{row.event}</td>
+                  <td className="px-3 py-3 text-xs text-[var(--muted)]">{row.gender} · {row.ageGroup} · {row.course}</td>
+                  <td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--navy)]">{row.time}</td>
+                  <td className="px-3 py-3 text-right text-sm"><span className="font-mono font-bold text-[var(--blue)]">#{row.worldRank}</span><span className="ml-1 text-xs text-[var(--muted)]">of {row.worldSwimmerCount}</span></td>
+                  <td className="px-3 py-3 text-right text-sm">{row.clubRank ? <><span className="font-mono font-bold text-[var(--blue)]">#{row.clubRank}</span><span className="ml-1 text-xs text-[var(--muted)]">of {row.clubSwimmerCount}</span></> : <span className="text-xs text-[var(--muted)]">{row.clubName || user.club ? 'Not ranked' : 'No club'}</span>}</td>
+                </tr>)}</tbody>
+              </table></SortableTable></div> : <div className="py-12 text-center"><p className="font-semibold text-[var(--ink)]">No event rankings yet</p><p className="mx-auto mt-1 max-w-xl text-sm text-[var(--muted)]">Rankings will appear once your results are linked to your swimmer profile and include a recognized course and age group.</p></div>}
             </ProfilePanel>
           </div>
         )}

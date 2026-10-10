@@ -3,6 +3,22 @@ import { supabase } from './supabase';
 import { loadCached } from './requestCache';
 import { EVENTS } from '../types';
 
+export interface SwimmerEventRanking {
+  event: string;
+  stroke: string;
+  ageGroup: string;
+  gender: string;
+  course: 'LCM' | 'SCM';
+  time: string;
+  worldRank: number;
+  worldSwimmerCount: number;
+  clubRank: number | null;
+  clubSwimmerCount: number | null;
+  clubName: string | null;
+  date: string;
+  meetName: string | null;
+}
+
 export function normalizeRankingGender(value: string | null | undefined): Ranking['gender'] | null {
   const normalized = value?.trim().toLowerCase();
   if (normalized === 'men' || normalized === 'male' || normalized === 'man' || normalized === 'boys' || normalized === 'm') return 'Men';
@@ -63,5 +79,14 @@ export async function loadDatabaseRankingPreview(gender: string, event: string, 
     });
     if (error) throw error;
     return (Array.isArray(data) ? data : []) as Ranking[];
+  });
+}
+
+export async function loadMySwimmerEventRankings(swimmerId: string): Promise<SwimmerEventRanking[]> {
+  return loadCached(`my-swimmer-event-rankings:${swimmerId}`, async () => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const { data, error } = await supabase.rpc('get_my_swimmer_event_rankings', { p_swimmer_id: swimmerId });
+    if (error) throw error;
+    return (Array.isArray(data) ? data : []) as SwimmerEventRanking[];
   });
 }
