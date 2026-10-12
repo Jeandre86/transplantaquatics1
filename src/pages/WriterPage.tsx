@@ -26,6 +26,7 @@ export default function WriterPage() {
   const [analyticsAvailable, setAnalyticsAvailable] = useState(false);
   const [section, setSection] = useState<'dashboard' | 'content' | 'write'>('dashboard');
   const [editingId, setEditingId] = useState('');
+  const [editingStatus, setEditingStatus] = useState('');
   const [form, setForm] = useState({ title: '', excerpt: '', body: '', category: 'Community', access: 'free' as 'free' | 'member', cover_image: '', tags: '' });
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -82,11 +83,13 @@ export default function WriterPage() {
 
   const clearForm = () => {
     setEditingId('');
+    setEditingStatus('');
     setForm({ title: '', excerpt: '', body: '', category: 'Community', access: 'free', cover_image: '', tags: '' });
   };
 
   const editArticle = (article: WriterArticle) => {
     setEditingId(article.id);
+    setEditingStatus(article.status);
     setForm({ title: article.title, excerpt: article.excerpt, body: article.body, category: article.category, access: article.access, cover_image: article.cover_image ?? '', tags: article.tags.join(', ') });
     setNotice('Draft opened for editing.');
   };
@@ -109,7 +112,11 @@ export default function WriterPage() {
         : await supabase.from('site_articles').insert(payload).select('id').single();
       if (result.error) throw result.error;
       setEditingId(result.data.id);
-      setNotice('Draft saved. You can keep editing or submit it for review.');
+      const nextStatus = editingStatus === 'published' ? 'submitted' : editingStatus;
+      setEditingStatus(nextStatus || 'draft');
+      setNotice(editingStatus === 'published'
+        ? 'Your changes were sent to the admin for review. This article will be live again after approval.'
+        : 'Draft saved. You can keep editing or submit it for review.');
       await loadArticles(userId);
       return true;
     } catch (reason) { setError(describeSupabaseError(reason)); return false; }
@@ -178,18 +185,22 @@ export default function WriterPage() {
           </div>
         </section>}
         {section === 'content' && <section className="border border-neutral-200 bg-white p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold text-neutral-950">Articles</h2><p className="mt-1 text-sm text-neutral-500">All stories you have written, with their current editorial status.</p></div><button type="button" onClick={() => { clearForm(); setSection('write'); }} className="bg-[#0c233f] px-4 py-2.5 text-sm font-bold text-white">Write an article</button></div>
-          {articles.length ? <div className="mt-5 divide-y divide-neutral-200">{articles.map(article => { const stats = articleStats[article.id]; return <article key={article.id} className="flex flex-wrap items-start justify-between gap-4 py-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-neutral-900">{article.title || 'Untitled draft'}</h3><span className="bg-neutral-100 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-neutral-600">{article.status.replaceAll('_', ' ')}</span>{article.is_featured && <span className="text-xs font-semibold text-amber-700">Featured</span>}</div><p className="mt-1 text-sm text-neutral-500">{article.category} · Updated {new Date(article.updated_at).toLocaleDateString()}</p>{article.status === 'published' && <p className="mt-2 text-xs text-neutral-500">{analyticsAvailable ? `${stats?.views ?? 0} views · ${stats?.completed_reads ?? 0} completed reads · ${stats?.shares ?? 0} shares · ${stats?.likes ?? 0} likes · ${stats?.saves ?? 0} saves` : 'Reader stats unavailable'}</p>}{article.reviewer_note && <p className="mt-2 text-sm text-amber-800">Editor note: {article.reviewer_note}</p>}</div><div className="flex gap-4">{article.status === 'published' && <Link to={`/from-the-pool-deck/${article.slug}`} className="text-sm font-semibold text-[#1769c2]">View live ↗</Link>}{['draft','changes_requested'].includes(article.status) && <button type="button" onClick={() => { editArticle(article); setSection('write'); }} className="text-sm font-bold text-[#1769c2]">Edit</button>}</div></article>; })}</div> : <p className="mt-6 text-sm text-neutral-500">No articles yet. Start by writing your first story.</p>}
+              {articles.length ? <div className="mt-5 divide-y divide-neutral-200">{articles.map(article => { const stats = articleStats[article.id]; return <article key={article.id} className="flex flex-wrap items-start justify-between gap-4 py-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-neutral-900">{article.title || 'Untitled draft'}</h3><span className="bg-neutral-100 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-neutral-600">{article.status.replaceAll('_', ' ')}</span>{article.is_featured && <span className="text-xs font-semibold text-amber-700">Featured</span>}</div><p className="mt-1 text-sm text-neutral-500">{article.category} · Updated {new Date(article.updated_at).toLocaleDateString()}</p>{article.status === 'published' && <p className="mt-2 text-xs text-neutral-500">{analyticsAvailable ? `${stats?.views ?? 0} views · ${stats?.completed_reads ?? 0} completed reads · ${stats?.shares ?? 0} shares · ${stats?.likes ?? 0} likes · ${stats?.saves ?? 0} saves` : 'Reader stats unavailable'}</p>}{article.reviewer_note && <p className="mt-2 text-sm text-amber-800">Editor note: {article.reviewer_note}</p>}</div><div className="flex gap-4">{article.status === 'published' && <Link to={`/from-the-pool-deck/${article.slug}`} className="text-sm font-semibold text-[#1769c2]">View live ↗</Link>}{['draft','changes_requested','published'].includes(article.status) && <button type="button" onClick={() => { editArticle(article); setSection('write'); }} className="text-sm font-bold text-[#1769c2]">Edit</button>}{['submitted','in_review'].includes(article.status) && <span className="text-sm text-neutral-500">Editing available after review</span>}</div></article>; })}</div> : <p className="mt-6 text-sm text-neutral-500">No articles yet. Start by writing your first story.</p>}
         </section>}
         {section === 'write' && <section className="border border-neutral-200 bg-white p-5 sm:p-7">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[#007d89]">Authoring</p><h2 className="mt-1 text-xl font-bold text-neutral-950">{editingId ? 'Edit story' : 'Write a story'}</h2></div>{editingId && <button type="button" onClick={clearForm} className="text-sm text-neutral-500 hover:text-neutral-900">New story</button>}</div>
+          {editingStatus === 'published' && <p className="mb-5 border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">Saving changes sends this live article to the admin for review. It will be temporarily unpublished until approved.</p>}
+          {['submitted','in_review'].includes(editingStatus) && <p className="mb-5 border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm leading-6 text-neutral-700">This story is with the admin for review. You can edit it after the review is complete.</p>}
           <form onSubmit={event => { void saveDraft(event); }} className="space-y-4">
+            <fieldset disabled={['submitted','in_review'].includes(editingStatus)} className="space-y-4 disabled:opacity-65">
             <label className="block text-sm font-semibold">Headline<input required minLength={5} className={`${fieldClass} mt-2 text-lg`} value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} placeholder="Give your story a clear headline" /></label>
             <label className="block text-sm font-semibold">Summary<textarea required minLength={20} rows={2} className={`${fieldClass} mt-2`} value={form.excerpt} onChange={event => setForm(current => ({ ...current, excerpt: event.target.value }))} placeholder="A short introduction shown on the news page" /></label>
             <label className="block text-sm font-semibold">Article text<textarea required minLength={100} rows={14} className={`${fieldClass} mt-2 leading-7`} value={form.body} onChange={event => setForm(current => ({ ...current, body: event.target.value }))} placeholder="Write your article here. Use a blank line to start a new paragraph." /></label>
             <div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-semibold">Category<select className={`${fieldClass} mt-2`} value={form.category} onChange={event => setForm(current => ({ ...current, category: event.target.value }))}>{categories.map(category => <option key={category}>{category}</option>)}</select></label><label className="block text-sm font-semibold">Access<select className={`${fieldClass} mt-2`} value={form.access} onChange={event => setForm(current => ({ ...current, access: event.target.value as 'free' | 'member' }))}><option value="free">Free story</option><option value="member">Member-only story</option></select></label></div>
             <label className="block text-sm font-semibold">Cover image URL<input type="url" className={`${fieldClass} mt-2`} value={form.cover_image} onChange={event => setForm(current => ({ ...current, cover_image: event.target.value }))} placeholder="https://…" /></label>
             <label className="block text-sm font-semibold">Tags<input className={`${fieldClass} mt-2`} value={form.tags} onChange={event => setForm(current => ({ ...current, tags: event.target.value }))} placeholder="Separate tags with commas" /></label>
-            <div className="flex flex-wrap gap-3 border-t border-neutral-200 pt-5"><button disabled={busy} className="border border-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-800 disabled:opacity-40">{busy ? 'Saving…' : 'Save draft'}</button><button type="button" disabled={busy || !editingId} onClick={() => void submitArticle()} className="bg-[#0c233f] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40">Submit for editorial review</button></div>
+            <div className="flex flex-wrap gap-3 border-t border-neutral-200 pt-5"><button disabled={busy || ['submitted','in_review'].includes(editingStatus)} className="border border-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-800 disabled:opacity-40">{busy ? 'Saving…' : editingStatus === 'published' ? 'Save and request review' : 'Save draft'}</button>{['draft','changes_requested'].includes(editingStatus) && <button type="button" disabled={busy || !editingId} onClick={() => void submitArticle()} className="bg-[#0c233f] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40">Submit for editorial review</button>}</div>
+            </fieldset>
           </form>
         </section>
         }
