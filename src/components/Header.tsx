@@ -143,7 +143,7 @@ export default function Header() {
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(7,26,43,.96), rgba(7,26,43,.05))' }} />
                     <div className="relative">
                       <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">Transplant Aquatics</p>
-                      <p className="mt-2 text-2xl font-bold leading-tight">Different journeys.<br />Same water.</p>
+                      <h2 className="mt-2 text-2xl font-bold leading-tight">Different journeys.<br />Same water.</h2>
                       <Link to="/about/our-story" onClick={() => setAboutOpen(false)} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white transition-colors hover:text-[var(--accent)]">
                         Get to know us <ArrowUpRight size={15} />
                       </Link>
@@ -156,10 +156,10 @@ export default function Header() {
 
           {/* Right */}
           <div className="flex items-center gap-2">
-            <Link to="/search" aria-label="Search (⌘K)" title="Search · ⌘K" className="inline-flex h-8 items-center gap-2 border border-white/15 px-2.5 text-white/65 transition-colors hover:border-white/35 hover:text-white sm:px-3">
+            <Link to="/search" aria-label="Search" title="Search · ⌘K" className="inline-flex h-8 items-center gap-2 border border-white/15 px-2.5 text-white/65 transition-colors hover:border-white/35 hover:text-white sm:px-3">
               <Search size={16} aria-hidden="true" />
               <span className="hidden text-sm sm:inline">Search</span>
-              <kbd className="hidden border-l border-white/15 pl-2 font-mono text-[10px] text-white/40 lg:inline">⌘K</kbd>
+              <kbd aria-hidden="true" className="hidden border-l border-white/15 pl-2 font-mono text-[10px] text-white/40 lg:inline">⌘K</kbd>
             </Link>
             {/* User area — avatar or login icon */}
             {auth.isLoggedIn && auth.user ? (

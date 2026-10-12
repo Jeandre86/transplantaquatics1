@@ -18,8 +18,14 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--navy)' }}>
+      <a
+        href="#main-content"
+        className="fixed left-4 top-[-100px] z-[100] bg-white px-4 py-3 font-semibold text-[var(--ink)] shadow-lg focus:top-4 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent-dark)]"
+      >
+        Skip to main content
+      </a>
       {!isAdminArea && <Header />}
-      <main className={`flex-1 ${isAdminArea ? '' : 'pt-14'}`}>
+      <main id="main-content" tabIndex={-1} className={`flex-1 ${isAdminArea ? '' : 'pt-14'}`}>
         <Suspense fallback={<PageLoading />}>
           <Outlet />
         </Suspense>

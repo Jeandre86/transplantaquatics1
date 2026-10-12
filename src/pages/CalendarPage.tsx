@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarPlus, ExternalLink, MapPin, Search, X } from 'lucide-react';
+import { ArrowRight, CalendarPlus, ExternalLink, Search, X } from 'lucide-react';
 import { loadMeetCatalog, type MeetCatalogCategory, type MeetCatalogEdition } from '../lib/meetCatalog';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
+import SortableTable from '../components/SortableTable';
 import { countries } from '../data/countries';
 import { getFlagEmoji } from '../lib/utils';
 
@@ -59,30 +60,17 @@ function getCountryCode(name: string | null): string {
   return countries.find(country => country.name.toLocaleLowerCase() === name.toLocaleLowerCase())?.code ?? '';
 }
 
-function DateTile({ date }: { date: string | null }) {
-  if (!date) return <span className="flex h-16 w-16 shrink-0 flex-col items-center justify-center border border-[var(--navy)] text-center text-[var(--navy)]"><span className="text-[10px] font-semibold uppercase tracking-wide">TBD</span><span className="font-mono text-xs">—</span></span>;
-  const value = parseLocalDate(date);
-  return <span className="flex h-16 w-16 shrink-0 flex-col items-center justify-center border border-[var(--navy)] text-center text-[var(--navy)]"><span className="text-[10px] font-semibold uppercase">{new Intl.DateTimeFormat('en', { month: 'short' }).format(value)}</span><span className="font-mono text-2xl font-bold leading-tight">{value.getDate()}</span></span>;
-}
-
 function MeetRow({ meet }: { meet: MeetCatalogEdition }) {
   const location = [meet.host_city, meet.host_country].filter(Boolean).join(', ');
   const countryCode = getCountryCode(meet.host_country);
   const level = meet.category === 'World Transplant Games' ? 'World' : 'National';
-  return <article className="grid gap-3 border-b border-[var(--border)] py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-6">
-    <div className="flex min-w-0 items-center gap-4">
-      <DateTile date={meet.meet_date} />
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold text-[var(--ink)]">{displayMeetName(meet)}</h3>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${level === 'World' ? 'bg-[var(--navy)] text-white' : 'bg-[#e6ebf8] text-[var(--navy)]'}`}>{level}</span>
-        </div>
-        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[var(--muted)]"><MapPin size={14} aria-hidden="true" />{location || 'Location to be confirmed'}{countryCode && <span className="ml-1" aria-label={meet.host_country ?? undefined}>{getFlagEmoji(countryCode)}</span>}</p>
-      </div>
-    </div>
-    <p className="pl-20 text-sm text-[var(--muted)] sm:pl-0 sm:text-right">{formatDate(meet.meet_date, meet.end_date)}</p>
-    {meet.source_url ? <a href={meet.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 pl-20 text-sm font-semibold text-[var(--accent-dark)] hover:underline sm:pl-0">Event details <ArrowRight size={15} /></a> : <span className="pl-20 text-sm text-[var(--muted)] sm:pl-0">Details coming soon</span>}
-  </article>;
+  return <tr className="ta-table-row">
+    <td className="px-4 py-4 sm:px-5"><span className="font-semibold text-[var(--ink)]">{displayMeetName(meet)}</span>{meet.status === 'cancelled' && <span className="ml-2 text-xs text-red-700">Cancelled</span>}</td>
+    <td className="px-4 py-4 text-[var(--muted)] sm:px-5"><span className="mr-2" aria-label={meet.host_country ?? undefined}>{countryCode ? getFlagEmoji(countryCode) : ''}</span>{location || 'Location to be confirmed'}</td>
+    <td className="whitespace-nowrap px-4 py-4 text-[var(--muted)] sm:px-5">{formatDate(meet.meet_date, meet.end_date)}</td>
+    <td className="px-4 py-4 sm:px-5"><span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${level === 'World' ? 'bg-[var(--navy)] text-white' : 'bg-[#e6ebf8] text-[var(--navy)]'}`}>{level}</span></td>
+    <td className="px-4 py-4 text-right sm:px-5">{meet.source_url ? <a href={meet.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-semibold text-[var(--accent-dark)] hover:underline">Event details <ArrowRight size={15} /></a> : <span className="whitespace-nowrap text-sm text-[var(--muted)]">Details coming soon</span>}</td>
+  </tr>;
 }
 
 export default function CalendarPage() {
@@ -170,7 +158,7 @@ export default function CalendarPage() {
 
       {loading ? <div className="space-y-3 py-5" role="status" aria-label="Loading meet calendar">{Array.from({ length: 3 }, (_, index) => <div key={index} className="flex items-center gap-4 border-b border-[var(--border)] py-5"><Skeleton className="size-16 shrink-0" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-3 w-1/3" /></div><Skeleton className="h-4 w-32" /></div>)}</div>
         : error ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-red-500 bg-white px-4 py-4 text-sm text-red-800"><span>{error}</span><button type="button" onClick={load} className="font-semibold text-[var(--accent-dark)]">Try again</button></div>
-          : pageMeets.length ? <div>{pageMeets.map(meet => <MeetRow key={meet.id} meet={meet} />)}</div> : <div className="py-10"><EmptyState title={`No ${period.toLowerCase()} meets found`} subtitle="Try another level or country filter." /></div>}
+        : pageMeets.length ? <div className="ta-table-shell mt-4"><SortableTable><table className="w-full border-collapse text-left text-sm"><thead><tr className="ta-table-header"><th className="px-4 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Meet</th><th className="px-4 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Location</th><th className="px-4 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Dates</th><th className="px-4 py-3 font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Level</th><th className="px-4 py-3 text-right font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5">Details</th></tr></thead><tbody>{pageMeets.map(meet => <MeetRow key={meet.id} meet={meet} />)}</tbody></table></SortableTable></div> : <div className="py-10"><EmptyState title={`No ${period.toLowerCase()} meets found`} subtitle="Try another level or country filter." /></div>}
 
       {visibleMeets.length > PAGE_SIZE && <nav aria-label={`${period} meet pages`} className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
         <p className="text-xs text-[var(--muted)]">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, visibleMeets.length)} of {visibleMeets.length} meets</p>

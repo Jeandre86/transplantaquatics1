@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, Inbox, Mail, MailOpen, RefreshCw } from 'lucide-react';
+import { Archive, Inbox, Mail, MailOpen, RefreshCw, Trash2 } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { describeSupabaseError, supabase } from '../lib/supabase';
 
@@ -7,10 +7,12 @@ type ContactMessage = { id: string; name: string; email: string; subject: string
 type InboxFilter = 'all' | 'new' | 'read' | 'archived';
 const dateLabel = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
-export default function AdminContactInbox({ cardStyle }: { cardStyle: React.CSSProperties }) {
+export default function AdminContactInbox({ cardStyle, onNewCountChange }: { cardStyle: React.CSSProperties; onNewCountChange?: (count: number) => void }) {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [filter, setFilter] = useState<InboxFilter>('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -28,6 +30,7 @@ export default function AdminContactInbox({ cardStyle }: { cardStyle: React.CSSP
   };
 
   useEffect(() => { void load(); }, []);
+  useEffect(() => { onNewCountChange?.(messages.filter(message => message.status === 'new').length); }, [messages, onNewCountChange]);
 
   const filtered = useMemo(() => filter === 'all' ? messages : messages.filter(message => message.status === filter), [filter, messages]);
   const selected = messages.find(message => message.id === selectedId) ?? null;
@@ -39,6 +42,24 @@ export default function AdminContactInbox({ cardStyle }: { cardStyle: React.CSSP
     if (updateError) { setError(describeSupabaseError(updateError)); return; }
     setMessages(current => current.map(row => row.id === message.id ? { ...row, status, read_at: readAt } : row));
     setError('');
+  };
+
+  const deleteMessage = async (message: ContactMessage) => {
+    if (!supabase) return;
+    setDeleting(true);
+    try {
+      const { error: deleteError } = await supabase.from('contact_messages').delete().eq('id', message.id);
+      if (deleteError) { setError(describeSupabaseError(deleteError)); return; }
+      const remaining = messages.filter(row => row.id !== message.id);
+      setMessages(remaining);
+      setSelectedId(remaining[0]?.id ?? '');
+      setConfirmDeleteId('');
+      setError('');
+    } catch (reason) {
+      setError(describeSupabaseError(reason));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return <section className="border" style={cardStyle}>
@@ -63,10 +84,11 @@ export default function AdminContactInbox({ cardStyle }: { cardStyle: React.CSSP
         <div className="min-w-0 p-5 sm:p-6">
           {selected ? <>
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--navy-light)] pb-4"><div><p className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent)]">{selected.subject}</p><h3 className="mt-2 text-xl font-bold text-white">{selected.name}</h3><a href={`mailto:${encodeURIComponent(selected.email)}?subject=${encodeURIComponent(`Re: ${selected.subject}`)}`} className="mt-1 inline-flex items-center gap-2 text-sm text-white/65 underline decoration-white/25 underline-offset-4 hover:text-[var(--accent)]"><Mail size={14} />{selected.email}</a><p className="mt-2 text-xs text-white/40">Received {dateLabel(selected.created_at)}</p></div>
-              <div className="flex gap-2">{selected.status !== 'new' && <button type="button" onClick={() => void updateStatus(selected, 'new')} title="Mark unread" aria-label="Mark unread" className="inline-flex h-9 w-9 items-center justify-center border border-[var(--navy-light)] text-white/65 hover:border-[var(--accent)] hover:text-[var(--accent)]"><MailOpen size={15} /></button>}{selected.status !== 'archived' ? <button type="button" onClick={() => void updateStatus(selected, 'archived')} className="inline-flex items-center gap-2 border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white/70 hover:border-[var(--accent)] hover:text-white"><Archive size={14} />Archive</button> : <button type="button" onClick={() => void updateStatus(selected, 'read')} className="inline-flex items-center gap-2 border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white/70 hover:border-[var(--accent)] hover:text-white"><Inbox size={14} />Restore</button>}</div>
+              <div className="flex gap-2">{selected.status !== 'new' && <button type="button" onClick={() => void updateStatus(selected, 'new')} title="Mark unread" aria-label="Mark unread" className="inline-flex h-9 w-9 items-center justify-center border border-[var(--navy-light)] text-white/65 hover:border-[var(--accent)] hover:text-[var(--accent)]"><MailOpen size={15} /></button>}{selected.status !== 'archived' ? <button type="button" onClick={() => void updateStatus(selected, 'archived')} className="inline-flex items-center gap-2 border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white/70 hover:border-[var(--accent)] hover:text-white"><Archive size={14} />Archive</button> : <button type="button" onClick={() => void updateStatus(selected, 'read')} className="inline-flex items-center gap-2 border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white/70 hover:border-[var(--accent)] hover:text-white"><Inbox size={14} />Restore</button>}<button type="button" onClick={() => setConfirmDeleteId(selected.id)} className="inline-flex items-center gap-2 border border-red-300/30 px-3 py-2 text-xs font-semibold text-red-200 hover:border-red-300 hover:bg-red-950/30"><Trash2 size={14} />Delete</button></div>
             </div>
             <p className="whitespace-pre-wrap break-words py-6 text-sm leading-7 text-white/80">{selected.message}</p>
             <a href={`mailto:${encodeURIComponent(selected.email)}?subject=${encodeURIComponent(`Re: ${selected.subject}`)}`} className="inline-flex items-center gap-2 bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-[var(--navy)] hover:bg-white"><Mail size={15} />Reply by email</a>
+            {confirmDeleteId === selected.id && <div role="alertdialog" aria-label="Confirm message deletion" className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-red-300/30 bg-red-950/20 p-4"><p className="text-sm text-red-100">Delete this message permanently?</p><div className="flex gap-2"><button type="button" onClick={() => setConfirmDeleteId('')} disabled={deleting} className="border border-[var(--navy-light)] px-3 py-2 text-xs font-semibold text-white/70">Cancel</button><button type="button" onClick={() => void deleteMessage(selected)} disabled={deleting} className="inline-flex items-center gap-2 bg-red-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"><Trash2 size={13} />{deleting ? 'Deleting…' : 'Delete permanently'}</button></div></div>}
           </> : <EmptyState title="Select a message" subtitle="Choose a message from the list to read it." onDark />}
         </div>
       </div>

@@ -106,9 +106,9 @@ export default function FromThePoolDeckPage() {
           {subscribed ? (
             <div className="flex flex-col items-center gap-4 text-center py-8">
               <CheckCircle size={40} style={{ color: 'var(--accent)' }} />
-              <p className="display text-2xl md:text-3xl" style={{ color: 'var(--accent)' }}>
+              <div role="status" className="display text-2xl md:text-3xl" style={{ color: 'var(--accent)' }}>
                 You're in. Every second counts.
-              </p>
+              </div>
             </div>
           ) : (
             <>

@@ -27,6 +27,7 @@ interface RankingTableProps {
   ageGroupWithGender?: boolean;
   showGender?: boolean;
   paperSurface?: boolean;
+  caption?: string;
 }
 
 // Verification badge — shown inline next to the time
@@ -56,7 +57,7 @@ function VerifiedBadge({ status }: { status: 'verified' | 'pending' | 'unverifie
   return null; // unverified — no badge (keeps table clean)
 }
 
-export default function RankingTable({ rankings, light = false, showExtras = false, showVerified = true, showCategory = false, showGap = true, rankByPoints = false, rankOffset = 0, rankPositions, genderCard = false, showEventColumn = false, showPoints = true, title, showGenderInEvent = false, showEventMeta = true, showAgeGroup = false, showDate = false, ageGroupWithGender = false, showGender = false, paperSurface = false }: RankingTableProps) {
+export default function RankingTable({ rankings, light = false, showExtras = false, showVerified = true, showCategory = false, showGap = true, rankByPoints = false, rankOffset = 0, rankPositions, genderCard = false, showEventColumn = false, showPoints = true, title, showGenderInEvent = false, showEventMeta = true, showAgeGroup = false, showDate = false, ageGroupWithGender = false, showGender = false, paperSurface = false, caption }: RankingTableProps) {
   const navigate = useNavigate();
   if (rankings.length === 0) {
     return (
@@ -98,19 +99,20 @@ export default function RankingTable({ rankings, light = false, showExtras = fal
       {genderCard && title && <h3 className={`px-4 ${paperSurface ? 'pt-4' : 'pt-5'} text-xl font-semibold text-[var(--ink)]`}>{title}</h3>}
       <div className={genderCard ? `ta-table-scroll ${paperSurface ? 'pt-3' : 'pt-4'}` : undefined}>
       <SortableTable><table className="w-full border-collapse">
+        <caption className="sr-only">{caption ?? (title ? `${title} swimmer rankings` : 'Swimmer rankings')}</caption>
         <thead>
           <tr className="ta-table-header">
-            <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left w-10 sm:px-5">{genderCard ? '' : '#'}</th>
-            <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">{genderCard ? 'Name' : 'Athlete'}</th>
-            {showAgeGroup && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Age Group</th>}
-            {showGender && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Gender</th>}
-            {(genderCard || showEventColumn) && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Event</th>}
-            {showDate && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Date</th>}
-            <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5">Time</th>
-            {showPoints && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="Points are based on Transplant Aquatics age-group records, with verified swims providing provisional baselines when no record exists">PTS</th>}
-            {showGap && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden md:table-cell sm:px-5">Gap</th>}
-            {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-center hidden lg:table-cell sm:px-5">WTG</th>}
-            {showExtras && <th className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden lg:table-cell sm:px-5">Pct</th>}
+            <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left w-10 sm:px-5">{genderCard ? <span className="sr-only">Rank</span> : '#'}</th>
+            <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">{genderCard ? 'Name' : 'Athlete'}</th>
+            {showAgeGroup && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Age Group</th>}
+            {showGender && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Gender</th>}
+            {(genderCard || showEventColumn) && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Event</th>}
+            {showDate && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-left sm:px-5">Date</th>}
+            <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5">Time</th>
+            {showPoints && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right sm:px-5" title="Points are based on Transplant Aquatics age-group records, with verified swims providing provisional baselines when no record exists">PTS</th>}
+            {showGap && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden md:table-cell sm:px-5">Gap</th>}
+            {showExtras && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-center hidden lg:table-cell sm:px-5">WTG</th>}
+            {showExtras && <th scope="col" className="px-3 py-3 font-mono text-[10px] font-semibold tracking-widest uppercase text-right hidden lg:table-cell sm:px-5">Pct</th>}
           </tr>
         </thead>
         <tbody>

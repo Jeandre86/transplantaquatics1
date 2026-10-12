@@ -124,10 +124,10 @@ export default function HomePage() {
           {Array.from({ length: 7 }, (_, i) => <div key={i} className="absolute inset-y-0 border-l border-white/30" style={{ left: `${(i + 1) * 12.5}%` }} />)}
           <div className="absolute inset-y-0 left-1/2 border-l-2 border-[var(--lime)]/70" />
         </div>
-        <div aria-label="Race split times" className="absolute right-6 top-6 z-10 hidden font-mono text-right text-xs leading-6 tracking-wider text-[var(--lime)]/30 sm:block lg:right-8 lg:top-8">
+        <div aria-hidden="true" className="absolute right-6 top-6 z-10 hidden font-mono text-right text-xs leading-6 tracking-wider text-[var(--lime)]/40 sm:block lg:right-8 lg:top-8">
           <div>58.92</div><div>1:01.14</div><div>1:01.77</div><div>1:02.88</div>
         </div>
-        <div aria-label="Race splits" className="absolute bottom-6 left-6 z-10 hidden font-mono text-[10px] leading-5 tracking-wider text-[var(--lime)]/30 sm:block lg:bottom-8 lg:left-8">SPLIT 01 / 29.11<br />SPLIT 02 / 29.81<br />FINAL / 58.92</div>
+        <div aria-hidden="true" className="absolute bottom-6 left-6 z-10 hidden font-mono text-[10px] leading-5 tracking-wider text-[var(--lime)]/40 sm:block lg:bottom-8 lg:left-8">SPLIT 01 / 29.11<br />SPLIT 02 / 29.81<br />FINAL / 58.92</div>
         <div className="relative mx-auto w-full max-w-7xl px-4 py-24 sm:py-28 lg:py-36">
           <div className="max-w-3xl">
             <Eyebrow color="accent" onDark>World Transplant Aquatics</Eyebrow>
@@ -171,7 +171,7 @@ export default function HomePage() {
               </div>
               {rankingsLoading ? <div role="status" aria-label="Loading world rankings">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 border-t border-[var(--border)] px-4 py-3"><Skeleton className="h-4 w-5" /><Skeleton className="h-4 flex-1" /><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-12" /></div>)}</div>
                 : rankingsError ? <p role="status" className="px-4 py-6 text-sm text-red-700">World rankings could not be loaded: {rankingsError}</p>
-                  : topRankings.length ? <RankingTable rankings={topRankings} showVerified={false} showGap={false} paperSurface showAgeGroup showDate showEventColumn={event === ALL} />
+                  : topRankings.length ? <RankingTable rankings={topRankings} showVerified={false} showGap={false} paperSurface showAgeGroup showDate showEventColumn={event === ALL} caption="World rankings" />
                     : <p className="px-4 py-6 text-sm text-[var(--muted)]">No verified swims match this event yet.</p>}
             </div>
           </div>
@@ -205,8 +205,9 @@ export default function HomePage() {
           <div className="ta-table-shell mt-7">
             <div className="ta-table-scroll">
               <SortableTable><table className="w-full border-collapse">
+                <caption className="sr-only">Latest world records</caption>
                 <thead><tr className="ta-table-header">
-                  {['Event', 'Meet', 'Athlete', 'Time'].map(label => <th key={label} className={`whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' ? 'text-right' : ''}`}>{label}</th>)}
+                  {['Event', 'Meet', 'Athlete', 'Time'].map(label => <th key={label} scope="col" className={`whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-5 ${label === 'Time' ? 'text-right' : ''}`}>{label}</th>)}
                 </tr></thead>
                 <tbody>{featuredRecords.map(record => <tr key={record.id} className="ta-table-row">
                   <td className="px-3 py-3.5 text-sm sm:px-5"><Link to="/records" className="font-semibold text-[var(--ink)] hover:text-[var(--accent-dark)] hover:underline">{record.event}</Link><span className="mt-1 block text-xs text-[var(--muted)]">{record.gender} · {record.ageGroup}</span></td>
@@ -231,8 +232,10 @@ export default function HomePage() {
             { value: latestRecords.length, suffix: '', label: 'World records' },
             { value: resultCount, suffix: '', label: 'Results' },
           ].map(stat => <div key={stat.label} className="relative z-10 flex flex-col items-center justify-center px-2 py-5 text-center sm:px-4">
-            <p className="font-mono text-3xl font-black tracking-tight text-[var(--lime)] sm:text-4xl lg:text-5xl"><AnimatedStat value={stat.value} suffix={stat.suffix} /></p>
-            <p className="mt-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--accent)] sm:text-[11px] sm:tracking-[0.16em]">{stat.label}</p>
+            <dl className="flex flex-col-reverse items-center">
+              <dt className="mt-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--accent)] sm:text-[11px] sm:tracking-[0.16em]">{stat.label}</dt>
+              <dd className="m-0 font-mono text-3xl font-black tracking-tight text-[var(--lime)] sm:text-4xl lg:text-5xl"><AnimatedStat value={stat.value} suffix={stat.suffix} /></dd>
+            </dl>
           </div>)}
         </div>
       </section>
@@ -279,7 +282,7 @@ export default function HomePage() {
 
       <section className="order-8 bg-[var(--navy)] text-center text-white">
         <div className="mx-auto max-w-4xl px-5 py-16 sm:px-8 sm:py-20">
-          <p className="text-3xl font-extrabold tracking-tight sm:text-4xl">Different journeys. Same water.</p>
+          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Different journeys. Same water.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">Join the network to submit official times, track performance, and take your place in the global transplant aquatics community.</p>
           <Link to="/join" className="mt-7 inline-flex items-center gap-2 rounded px-6 py-3.5 text-xs font-extrabold uppercase tracking-widest text-[var(--navy)] transition hover:bg-white sm:text-sm" style={{ background: 'var(--accent)' }}>Join the network <ArrowRight size={16} /></Link>
         </div>
