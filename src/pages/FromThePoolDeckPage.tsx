@@ -5,8 +5,9 @@ import Eyebrow from '../components/Eyebrow';
 import { CheckCircle } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import AdSlot from '../components/AdSlot';
+import { ARTICLE_CATEGORIES, articleCategoryKey } from '../lib/articleCategories';
 
-const CATEGORIES = ['All', 'Athlete Stories', 'Training', 'Nutrition', 'Community', 'Competition', 'News', 'Recovery', 'Lifestyle'];
+const CATEGORIES = ['All', ...ARTICLE_CATEGORIES];
 const PAGE_SIZE = 10;
 
 export default function FromThePoolDeckPage() {
@@ -23,7 +24,7 @@ export default function FromThePoolDeckPage() {
     }
   }
 
-  const filtered = articles.filter(a => category === 'All' || a.category === category);
+  const filtered = articles.filter(a => category === 'All' || articleCategoryKey(a.category) === articleCategoryKey(category));
   useEffect(() => setPage(1), [category]);
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const pageArticles = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -78,7 +79,8 @@ export default function FromThePoolDeckPage() {
             <div role="alert" className="py-20 text-center text-sm text-red-700">Stories could not be loaded: {error}</div>
           ) : filtered.length === 0 ? (
             <div className="py-20 text-center border border-neutral-200">
-              <p className="text-neutral-400 font-mono text-sm uppercase tracking-widest">No articles in this category yet</p>
+              <p className="text-neutral-700 font-mono text-sm uppercase tracking-widest">No published articles in this category yet</p>
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-neutral-500">Writer articles appear here after an admin approves and publishes them. Check the admin review queue if this story is still awaiting approval.</p>
             </div>
           ) : (
             <>

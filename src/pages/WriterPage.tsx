@@ -4,6 +4,7 @@ import PageHeading from '../components/PageHeading';
 import EmptyState from '../components/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { describeSupabaseError, hasSupabaseConfig, supabase } from '../lib/supabase';
+import { ARTICLE_CATEGORIES } from '../lib/articleCategories';
 
 type WriterArticle = {
   id: string; title: string; slug: string; excerpt: string; body: string; category: string;
@@ -12,7 +13,6 @@ type WriterArticle = {
 };
 type ArticleStats = { views: number; completed_reads: number; shares: number; likes: number; saves: number };
 
-const categories = ['Athlete Stories', 'Training', 'Nutrition', 'Community', 'Competition', 'News', 'Recovery', 'Lifestyle'];
 const fieldClass = 'w-full border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 focus:border-[#00c2d7] focus:outline-none';
 
 export default function WriterPage() {
@@ -196,7 +196,7 @@ export default function WriterPage() {
             <label className="block text-sm font-semibold">Headline<input required minLength={5} className={`${fieldClass} mt-2 text-lg`} value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} placeholder="Give your story a clear headline" /></label>
             <label className="block text-sm font-semibold">Summary<textarea required minLength={20} rows={2} className={`${fieldClass} mt-2`} value={form.excerpt} onChange={event => setForm(current => ({ ...current, excerpt: event.target.value }))} placeholder="A short introduction shown on the news page" /></label>
             <label className="block text-sm font-semibold">Article text<textarea required minLength={100} rows={14} className={`${fieldClass} mt-2 leading-7`} value={form.body} onChange={event => setForm(current => ({ ...current, body: event.target.value }))} placeholder="Write your article here. Use a blank line to start a new paragraph." /></label>
-            <div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-semibold">Category<select className={`${fieldClass} mt-2`} value={form.category} onChange={event => setForm(current => ({ ...current, category: event.target.value }))}>{categories.map(category => <option key={category}>{category}</option>)}</select></label><label className="block text-sm font-semibold">Access<select className={`${fieldClass} mt-2`} value={form.access} onChange={event => setForm(current => ({ ...current, access: event.target.value as 'free' | 'member' }))}><option value="free">Free story</option><option value="member">Member-only story</option></select></label></div>
+            <div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-semibold">Category<select className={`${fieldClass} mt-2`} value={form.category} onChange={event => setForm(current => ({ ...current, category: event.target.value }))}>{ARTICLE_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></label><label className="block text-sm font-semibold">Access<select className={`${fieldClass} mt-2`} value={form.access} onChange={event => setForm(current => ({ ...current, access: event.target.value as 'free' | 'member' }))}><option value="free">Free story</option><option value="member">Member-only story</option></select></label></div>
             <label className="block text-sm font-semibold">Cover image URL<input type="url" className={`${fieldClass} mt-2`} value={form.cover_image} onChange={event => setForm(current => ({ ...current, cover_image: event.target.value }))} placeholder="https://…" /></label>
             <label className="block text-sm font-semibold">Tags<input className={`${fieldClass} mt-2`} value={form.tags} onChange={event => setForm(current => ({ ...current, tags: event.target.value }))} placeholder="Separate tags with commas" /></label>
             <div className="flex flex-wrap gap-3 border-t border-neutral-200 pt-5"><button disabled={busy || ['submitted','in_review'].includes(editingStatus)} className="border border-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-800 disabled:opacity-40">{busy ? 'Saving…' : editingStatus === 'published' ? 'Save and request review' : 'Save draft'}</button>{['draft','changes_requested'].includes(editingStatus) && <button type="button" disabled={busy || !editingId} onClick={() => void submitArticle()} className="bg-[#0c233f] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40">Submit for editorial review</button>}</div>
