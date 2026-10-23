@@ -29,30 +29,76 @@ Deno.serve(async request => {
   const { data: allowed, error: permissionError } = await userClient.rpc("has_admin_permission", { p_permission: "manage_roles" });
   if (permissionError || !allowed) return response(403, { error: "Team management permission is required." });
 
+  let body: { action?: string; userId?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return response(400, { error: "A valid request body is required." });
+  }
+
   const serviceClient = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-  const pendingUsers: Record<string, unknown>[] = [];
+
+  if (body.action === "resend") {
+    if (!body.userId) return response(400, { error: "A signup account ID is required." });
+    const { data: userResult, error: lookupError } = await serviceClient.auth.admin.getUserById(body.userId);
+    if (lookupError || !userResult.user) return response(404, { error: "Signup account not found." });
+    const target = userResult.user;
+    if (!target.email) return response(400, { error: "This account does not have an email address." });
+    const siteUrl = Deno.env.get("SITE_URL") ?? "https://transplantaquatics.vercel.app";
+    let emailRedirectTo: string;
+    try {
+      const parsedSiteUrl = new URL(siteUrl);
+      if (parsedSiteUrl.protocol !== "https:" || parsedSiteUrl.hostname === "localhost") throw new Error("Invalid production site URL.");
+      emailRedirectTo = new URL(target.email_confirmed_at ? "/login" : "/join", parsedSiteUrl).toString();
+    } catch {
+      return response(500, { error: "The production email redirect is not configured correctly." });
+    }
+
+    if (target.email_confirmed_at) {
+      const { error: signInError } = await serviceClient.auth.signInWithOtp({
+        email: target.email,
+        options: { shouldCreateUser: false, emailRedirectTo },
+      });
+      if (signInError) return response(400, { error: signInError.message });
+      return response(200, { success: true, kind: "signin", email: target.email });
+    }
+
+    const { error: resendError } = await serviceClient.auth.resend({
+      type: "signup",
+      email: target.email,
+      options: { emailRedirectTo },
+    });
+    if (resendError) return response(400, { error: resendError.message });
+    return response(200, { success: true, kind: "confirmation", email: target.email });
+  }
+
+  if (body.action && body.action !== "list") return response(400, { error: "Unsupported action." });
+
+  const signupUsers: Record<string, unknown>[] = [];
   const perPage = 1000;
   try {
     for (let page = 1; ; page += 1) {
       const { data, error } = await serviceClient.auth.admin.listUsers({ page, perPage });
       if (error) throw error;
-      const users = data.users ?? [];
-      for (const pending of users.filter(item => !item.email_confirmed_at && item.email)) {
-        const metadata = pending.user_metadata ?? {};
-        pendingUsers.push({
-          id: pending.id,
-          email: pending.email,
+      const authUsers = data.users ?? [];
+      for (const authUser of authUsers.filter(item => item.email)) {
+        const metadata = authUser.user_metadata ?? {};
+        signupUsers.push({
+          id: authUser.id,
+          email: authUser.email,
           first_name: typeof metadata.first_name === "string" ? metadata.first_name : null,
           last_name: typeof metadata.last_name === "string" ? metadata.last_name : null,
           account_role: typeof metadata.account_role === "string" ? metadata.account_role : null,
-          created_at: pending.created_at,
+          created_at: authUser.created_at,
+          email_confirmed_at: authUser.email_confirmed_at ?? null,
         });
       }
-      if (users.length < perPage) break;
+      if (authUsers.length < perPage) break;
     }
-    pendingUsers.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-    return response(200, { users: pendingUsers, count: pendingUsers.length });
+    signupUsers.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    const pendingCount = signupUsers.filter(item => !item.email_confirmed_at).length;
+    return response(200, { users: signupUsers, count: signupUsers.length, pending_count: pendingCount });
   } catch (error) {
-    return response(500, { error: error instanceof Error ? error.message : "Could not load pending email confirmations." });
+    return response(500, { error: error instanceof Error ? error.message : "Could not load signup accounts." });
   }
 });

@@ -5,6 +5,7 @@ interface SortableTableProps {
   children: ReactNode;
   showSortIndicator?: boolean;
   initialSort?: { column: number; direction: SortDirection } | null;
+  onSortChange?: (column: number, label: string, direction: SortDirection) => boolean | void;
 }
 
 function textContent(node: ReactNode): string {
@@ -33,7 +34,7 @@ function compareValues(left: string, right: string) {
   return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
 }
 
-export default function SortableTable({ children, showSortIndicator = true, initialSort = null }: SortableTableProps) {
+export default function SortableTable({ children, showSortIndicator = true, initialSort = null, onSortChange }: SortableTableProps) {
   const [sort, setSort] = useState<{ column: number; direction: SortDirection } | null>(initialSort);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -65,10 +66,10 @@ export default function SortableTable({ children, showSortIndicator = true, init
         const changeSort = (event: MouseEvent<HTMLButtonElement>) => {
           originalClick?.(event as unknown as MouseEvent<HTMLTableCellElement>);
           if (event.defaultPrevented) return;
-          setHasInteracted(true);
-          setSort(current => current?.column === currentColumn
-            ? { column: currentColumn, direction: current.direction === 'asc' ? 'desc' : 'asc' }
-            : { column: currentColumn, direction: 'asc' });
+          const nextDirection = sort?.column === currentColumn && sort.direction === 'asc' ? 'desc' : 'asc';
+          setSort({ column: currentColumn, direction: nextDirection });
+          const sortedExternally = onSortChange?.(currentColumn, label, nextDirection);
+          setHasInteracted(!sortedExternally);
         };
         return cloneElement(header, {
           'aria-sort': direction ? (direction === 'asc' ? 'ascending' : 'descending') : 'none',
@@ -94,7 +95,7 @@ export default function SortableTable({ children, showSortIndicator = true, init
     parts[headIndex] = nextHead;
     parts[bodyIndex] = nextBody;
     return cloneElement(root, undefined, parts);
-  }, [children, sort, hasInteracted]);
+  }, [children, onSortChange, showSortIndicator, sort, hasInteracted]);
 
   return table;
 }

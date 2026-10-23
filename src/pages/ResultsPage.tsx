@@ -27,6 +27,7 @@ export default function ResultsPage() {
   const [filterAgeGroup, setFilterAgeGroup] = useState(ALL);
   const [filterGender, setFilterGender] = useState(ALL);
   const [filterSwimType, setFilterSwimType] = useState<string>(ALL);
+  const [timeSortDirection, setTimeSortDirection] = useState<'asc' | 'desc' | null>(null);
   const pageSize = RESULTS_PAGE_SIZE;
   const [page, setPage] = useState(1);
   const [submittedResults, setSubmittedResults] = useState<SubmittedSwimmerResult[]>([]);
@@ -58,7 +59,7 @@ export default function ResultsPage() {
     let active = true;
     setLoading(true);
     setLoadError('');
-    loadPublicResultsPage({ search: debouncedSearch, country: filterCountry, event: filterEvent, ageGroup: filterAgeGroup, gender: filterGender, swimType: filterSwimType, page, pageSize })
+    loadPublicResultsPage({ search: debouncedSearch, country: filterCountry, event: filterEvent, ageGroup: filterAgeGroup, gender: filterGender, swimType: filterSwimType, page, pageSize, sortBy: timeSortDirection ? 'time' : null, sortDirection: timeSortDirection ?? 'asc' })
       .then(result => {
         if (!active) return;
         setSubmittedResults(result.rows);
@@ -70,7 +71,7 @@ export default function ResultsPage() {
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [debouncedSearch, filterCountry, filterEvent, filterAgeGroup, filterGender, filterSwimType, page, pageSize]);
+  }, [debouncedSearch, filterCountry, filterEvent, filterAgeGroup, filterGender, filterSwimType, page, pageSize, timeSortDirection]);
 
   useEffect(() => {
     setPage(1);
@@ -82,7 +83,10 @@ export default function ResultsPage() {
     .slice(1)
     .sort((a, b) => Number(is25mEvent(a)) - Number(is25mEvent(b)) || a.localeCompare(b, undefined, { numeric: true }));
   eventOptions.unshift(ALL);
-  const ageGroupOptions = [ALL, ...new Set([...AGE_GROUPS, ...filterOptions.ageGroups])];
+  // Stored result data includes legacy and malformed source categories. Keep the
+  // public filter on the canonical competition bands and normalize aliases in
+  // the database query so the selected band still includes legacy records.
+  const ageGroupOptions = [ALL, ...AGE_GROUPS];
   const hasFilters = [search, filterCountry, filterEvent, filterAgeGroup, filterGender, filterSwimType].some(value => value !== ALL && value !== '');
   const clearFilters = () => {
     setSearch(''); setFilterCountry(ALL); setFilterEvent(ALL); setFilterAgeGroup(ALL);
@@ -144,7 +148,12 @@ export default function ResultsPage() {
         {loading ? <SkeletonTable rows={8} columns={12} />
           : loadError ? <EmptyState title="Worldwide results are unavailable" subtitle={loadError} />
           : <>
-            <DatabaseResultsTable results={submittedResults} layout="directory" />
+            <DatabaseResultsTable results={submittedResults} layout="directory" onSortChange={(_column, label, direction) => {
+              if (label !== 'Time') return false;
+              setTimeSortDirection(direction);
+              setPage(1);
+              return true;
+            }} />
             {totalCount > pageSize && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} label="Results pages" totalCount={totalCount} pageSize={pageSize} enhanced />}
             {totalCount === 0 && hasFilters && <div className="mt-4"><Button variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
           </>}

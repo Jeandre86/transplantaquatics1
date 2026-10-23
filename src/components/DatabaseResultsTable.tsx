@@ -17,11 +17,11 @@ function medalColor(result: SubmittedSwimmerResult, medals: Medal[]) {
   return medals.find(medal => medal.event === result.event && medal.year === year && medal.competition === result.submitted_meets?.name)?.color;
 }
 
-export default function DatabaseResultsTable({ results, showAthlete = true, showGender = true, showTransplantType = true, showCourse = true, showPoints = true, showDate = true, showMedals = false, medals = [], worldRecords = [], layout = 'default' }: { results: SubmittedSwimmerResult[]; showAthlete?: boolean; showGender?: boolean; showTransplantType?: boolean; showCourse?: boolean; showPoints?: boolean; showDate?: boolean; showMedals?: boolean; medals?: Medal[]; worldRecords?: WtgRecordRow[]; layout?: 'default' | 'directory' }) {
+export default function DatabaseResultsTable({ results, showAthlete = true, showGender = true, showTransplantType = true, showCourse = true, showPoints = true, showDate = true, showMedals = false, medals = [], worldRecords = [], layout = 'default', onSortChange }: { results: SubmittedSwimmerResult[]; showAthlete?: boolean; showGender?: boolean; showTransplantType?: boolean; showCourse?: boolean; showPoints?: boolean; showDate?: boolean; showMedals?: boolean; medals?: Medal[]; worldRecords?: WtgRecordRow[]; layout?: 'default' | 'directory'; onSortChange?: (column: number, label: string, direction: 'asc' | 'desc') => boolean | void }) {
   if (layout === 'directory') {
     const directoryHeadings = ['Date', 'Athlete', 'Event', 'Category', 'Time', 'Pts', 'Meet'];
     return <div className="w-full ta-table-scroll ta-table-shell">
-      <SortableTable><table className="w-full border-collapse">
+      <SortableTable onSortChange={onSortChange}><table className="w-full border-collapse">
         <thead><tr className="ta-table-header">{directoryHeadings.map(heading => <th key={heading} className={`whitespace-nowrap px-3 py-3 text-left font-mono text-[10px] font-semibold uppercase tracking-widest sm:px-4 ${heading.startsWith('Time') || heading.startsWith('Pts') ? 'text-right' : ''}`}>{heading}</th>)}</tr></thead>
         <tbody>{results.length ? results.map(result => {
           const swimmerId = result.athlete_id || result.swimmer_id;

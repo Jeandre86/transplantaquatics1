@@ -59,6 +59,8 @@ export interface PublicResultsFilters {
   swimType: string;
   page: number;
   pageSize: number;
+  sortBy?: 'time' | null;
+  sortDirection?: 'asc' | 'desc';
 }
 
 export interface PublicResultsFilterOptions {
@@ -251,10 +253,12 @@ export function loadPublicResultsPage(filters: PublicResultsFilters): Promise<Pu
     p_swim_type: filters.swimType,
     p_page: filters.page,
     p_page_size: filters.pageSize,
+    p_sort_by: filters.sortBy ?? null,
+    p_sort_direction: filters.sortDirection ?? 'asc',
   };
   return loadCached(`public-results-page:${JSON.stringify(args)}`, async () => {
     const [pageResponse, optionsResponse] = await Promise.all([
-      client().rpc('get_public_results_page', args),
+      client().rpc('get_public_results_page_sorted', args),
       loadCached('public-results-filter-options', async () => {
         const { data, error } = await client().rpc('get_public_results_filter_options');
         if (error) throw error;

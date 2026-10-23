@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Your sign-in link</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#061a28;font-family:Arial,Helvetica,sans-serif;color:#101820;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#061a28;">
+      <tr>
+        <td align="center" style="padding:18px 16px 15px;">
+          <img src="https://transplantaquatics.vercel.app/assets/transplant-aquatics-logo.svg" width="180" alt="Transplant Aquatics" style="display:block;width:180px;max-width:100%;height:auto;border:0;">
+        </td>
+      </tr>
+      <tr>
+        <td align="center" style="padding:0 16px;">
+          <table role="presentation" width="636" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:636px;background-color:#ffffff;border-top:4px solid #00b8f0;border-bottom:4px solid #1769ff;">
+            <tr>
+              <td style="padding:38px 42px 30px;">
+                <h1 style="margin:0 0 20px;text-align:center;font-size:28px;line-height:1.25;font-weight:700;color:#080b10;">Sign in to Transplant Aquatics</h1>
+                <p style="margin:0 0 12px;font-size:16px;line-height:1.5;color:#101820;">Hi {{ if .Data.first_name }}{{ .Data.first_name }}{{ else }}there{{ end }},</p>
+                <p style="margin:0;font-size:16px;line-height:1.35;color:#101820;">Tap the button below to securely sign in to your account.<br>If you didn’t request this link, you can safely delete this email.</p>
+                <table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0" style="margin:28px auto 0;">
+                  <tr>
+                    <td align="center" bgcolor="#00aeef" style="border-radius:3px;">
+                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;min-width:224px;padding:13px 20px;color:#ffffff;text-decoration:none;text-align:center;font-size:16px;line-height:18px;font-weight:600;">Sign in</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:46px 2px 5px;font-size:14px;line-height:1.5;color:#101820;">If that doesn’t work, copy and paste this link in your browser:</p>
+                <p style="margin:0 2px 28px;font-size:14px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;"><a href="{{ .ConfirmationURL }}" style="color:#006bdb;">{{ .ConfirmationURL }}</a></p>
+                <p style="margin:0 2px;font-size:14px;line-height:1.5;color:#101820;">The Transplant Aquatics team</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td align="center" style="padding:24px 16px 30px;color:#d9e4eb;font-size:12px;line-height:1.6;">
+          You’re receiving this email because a sign-in link was requested for your Transplant Aquatics account.
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
