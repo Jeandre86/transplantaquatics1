@@ -11,6 +11,17 @@ import { getAgeAtDate, getCompetitionAgeGroup } from '../lib/competitionAge';
 
 type JoinRole = 'swimmer' | 'parent_guardian' | 'coach';
 
+function getJoinRedirectUrl(clubClaimId: string | null) {
+  const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const configuredSiteUrl = import.meta.env.VITE_SITE_URL?.trim();
+  const siteOrigin = isLocal
+    ? window.location.origin
+    : (configuredSiteUrl || 'https://transplantaquatics.vercel.app').replace(/\/$/, '');
+  const redirect = new URL(clubClaimId ? '/coach/club' : '/join', siteOrigin);
+  if (clubClaimId) redirect.searchParams.set('claimInvite', clubClaimId);
+  return redirect.toString();
+}
+
 export default function JoinPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -121,9 +132,7 @@ export default function JoinPage() {
             club_id: isSwimmerAccount ? (clubId || null) : null,
             primary_event: isSwimmerAccount ? form.primaryEvent : null,
           },
-          emailRedirectTo: clubClaimId
-            ? `${window.location.origin}/coach/club?claimInvite=${encodeURIComponent(clubClaimId)}`
-            : `${window.location.origin}/join`,
+          emailRedirectTo: getJoinRedirectUrl(clubClaimId),
         },
       });
       if (signupError) throw signupError;
@@ -159,7 +168,11 @@ export default function JoinPage() {
     setNotice('');
     if (!supabase) return;
     setLoading(true);
-    const { error: resendError } = await supabase.auth.resend({ type: 'signup', email: form.email });
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: form.email,
+      options: { emailRedirectTo: getJoinRedirectUrl(clubClaimId) },
+    });
     if (resendError) setError(resendError.message);
     else setNotice(`A new confirmation link was sent to ${form.email}.`);
     setLoading(false);
@@ -176,7 +189,7 @@ export default function JoinPage() {
           </p>
           <div className="mt-8 flex gap-3 justify-center">
             <Button variant="secondary" onClick={() => setSubmitted(false)}>Back</Button>
-            <Button variant="primary" onClick={() => window.location.href = '/'}>Go to Homepage</Button>
+            <Button variant="primary" onClick={() => window.location.href = '/login'}>Continue to sign in</Button>
           </div>
         </div>
       </div>
