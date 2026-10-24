@@ -149,7 +149,7 @@ function SignInForm({ adminMode = false, writerMode = false }: { adminMode?: boo
     try {
       await auth.login(email, password);
       const destination = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
-      navigate(adminMode ? '/admin' : writerMode ? '/writer' : destination?.pathname ? `${destination.pathname}${destination.search ?? ''}` : '/dashboard');
+      navigate(adminMode ? '/admin' : writerMode ? '/writer' : destination?.pathname ? `${destination.pathname}${destination.search ?? ''}` : '/dashboard', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.');
     } finally {
@@ -189,7 +189,7 @@ function SignInForm({ adminMode = false, writerMode = false }: { adminMode?: boo
         ? <p className="text-center text-xs" style={{ color: 'var(--muted-on-dark)' }}>Admin accounts only. Swimmer accounts cannot access this workspace.</p>
         : writerMode
           ? <p className="text-center text-xs" style={{ color: 'var(--muted-on-dark)' }}>Writer accounts only. Use the account from your writer invitation.</p>
-        : <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>New to Transplant Aquatics?{' '}<Link to="/join" className="font-semibold" style={{ color: 'var(--accent)' }}>Create an account</Link></p>}
+        : <p className="text-center text-sm" style={{ color: 'var(--muted-on-dark)' }}>New to Transplant Aquatics?{' '}<Link to="/join" state={{ from: (location.state as { from?: { pathname?: string; search?: string } } | null)?.from }} className="font-semibold" style={{ color: 'var(--accent)' }}>Create an account</Link></p>}
     </form>
   );
 }
@@ -326,13 +326,15 @@ export default function LoginPage({ adminMode = false, writerMode = false }: { a
   const [mode] = useState<Mode>('signin');
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Redirect already-authenticated users to their dashboard
   useEffect(() => {
     if (auth.isLoggedIn) {
-      navigate(adminMode ? '/admin' : writerMode ? '/writer' : '/dashboard', { replace: true });
+      const destination = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+      navigate(adminMode ? '/admin' : writerMode ? '/writer' : destination?.pathname ? `${destination.pathname}${destination.search ?? ''}` : '/dashboard', { replace: true });
     }
-  }, [auth.isLoggedIn, navigate]);
+  }, [auth.isLoggedIn, location.state, navigate]);
 
   const titles: Record<Mode, { heading: string; sub: string }> = {
     signin:   { heading: 'Sign In',          sub: 'Access your Transplant Aquatics profile.' },

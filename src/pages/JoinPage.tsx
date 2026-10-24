@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { countries } from '../data/countries';
 import { TRANSPLANT_TYPES, GENDERS, EVENTS } from '../types';
@@ -11,7 +11,7 @@ import { getAgeAtDate, getCompetitionAgeGroup } from '../lib/competitionAge';
 
 type JoinRole = 'swimmer' | 'parent_guardian' | 'coach';
 
-function getJoinRedirectUrl(clubClaimId: string | null) {
+function getJoinRedirectUrl(clubClaimId: string | null, returnToClaim: boolean) {
   const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
   const configuredSiteUrl = import.meta.env.VITE_SITE_URL?.trim();
   const siteOrigin = isLocal
@@ -19,13 +19,17 @@ function getJoinRedirectUrl(clubClaimId: string | null) {
     : (configuredSiteUrl || 'https://transplantaquatics.vercel.app').replace(/\/$/, '');
   const redirect = new URL(clubClaimId ? '/coach/club' : '/join', siteOrigin);
   if (clubClaimId) redirect.searchParams.set('claimInvite', clubClaimId);
+  else if (returnToClaim) redirect.searchParams.set('returnTo', 'claim');
   return redirect.toString();
 }
 
 export default function JoinPage() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const clubClaimId = searchParams.get('clubClaim');
+  const returnToClaim = searchParams.get('returnTo') === 'claim'
+    || (location.state as { from?: { pathname?: string } } | null)?.from?.pathname === '/claim';
   const [submitted, setSubmitted] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,6 +67,10 @@ export default function JoinPage() {
         navigate(`/coach/club?claimInvite=${encodeURIComponent(clubClaimId)}`, { replace: true });
         return;
       }
+      if (returnToClaim) {
+        navigate('/claim', { replace: true });
+        return;
+      }
       setSubmitted(true);
     };
 
@@ -75,7 +83,7 @@ export default function JoinPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [clubClaimId, navigate]);
+  }, [clubClaimId, navigate, returnToClaim]);
 
   useEffect(() => {
     if (!supabase) { setAvailableClubs([]); return; }
@@ -132,7 +140,7 @@ export default function JoinPage() {
             club_id: isSwimmerAccount ? (clubId || null) : null,
             primary_event: isSwimmerAccount ? form.primaryEvent : null,
           },
-          emailRedirectTo: getJoinRedirectUrl(clubClaimId),
+          emailRedirectTo: getJoinRedirectUrl(clubClaimId, returnToClaim),
         },
       });
       if (signupError) throw signupError;
@@ -171,7 +179,7 @@ export default function JoinPage() {
     const { error: resendError } = await supabase.auth.resend({
       type: 'signup',
       email: form.email,
-      options: { emailRedirectTo: getJoinRedirectUrl(clubClaimId) },
+      options: { emailRedirectTo: getJoinRedirectUrl(clubClaimId, returnToClaim) },
     });
     if (resendError) setError(resendError.message);
     else setNotice(`A new confirmation link was sent to ${form.email}.`);

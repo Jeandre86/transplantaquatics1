@@ -1,11 +1,35 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import Logo from './Logo';
 
+type SocialLinks = Partial<Record<'facebook' | 'instagram' | 'x', string>>;
+const SOCIAL_LABELS = [
+  { key: 'facebook', label: 'Facebook' },
+  { key: 'instagram', label: 'Instagram' },
+  { key: 'x', label: 'X (Twitter)' },
+] as const;
+
 export default function Footer() {
+  const [socials, setSocials] = useState<SocialLinks>({});
+
+  useEffect(() => {
+    let active = true;
+    const loadSocialLinks = async () => {
+      if (!supabase) return;
+      const { data, error } = await supabase.rpc('get_public_social_links');
+      if (active && !error && data && typeof data === 'object') setSocials(data as SocialLinks);
+    };
+    void loadSocialLinks();
+    return () => { active = false; };
+  }, []);
+
+  const activeSocials = SOCIAL_LABELS.filter(({ key }) => Boolean(socials[key]));
+
   return (
     <footer style={{ backgroundColor: 'var(--navy)', borderTop: '1px solid var(--navy-light)' }}>
       <div className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className={`grid grid-cols-1 gap-10 sm:grid-cols-2 ${activeSocials.length ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
           {/* Brand */}
           <div className="md:col-span-1">
             <Logo size="md" light />
@@ -69,6 +93,7 @@ export default function Footer() {
               {[
                 { to: '/join',    label: 'Join' },
                 { to: '/login',   label: 'Sign in' },
+                { to: '/claim',   label: 'Claim your account' },
                 { to: '/submit',  label: 'Submit a result' },
               ].map((l, i) => (
                 <li key={i}>
@@ -81,17 +106,14 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Socials */}
-          <div>
+          {activeSocials.length > 0 && <div>
             <div className="mb-4 text-sm font-semibold text-white">Follow</div>
             <ul className="space-y-2">
-              {['Facebook', 'Instagram', 'X'].map(name => (
-                <li key={name}>
-                  <span className="inline-flex cursor-default text-sm text-white/70 underline decoration-transparent underline-offset-4 transition-colors hover:text-white hover:decoration-white/50">{name === 'X' ? 'X (Twitter)' : name}</span>
-                </li>
-              ))}
+              {activeSocials.map(({ key, label }) => <li key={key}>
+                <a href={socials[key]} target="_blank" rel="noopener noreferrer" className="inline-flex text-sm text-white/70 underline decoration-transparent underline-offset-4 transition-colors hover:text-white hover:decoration-white/50">{label}</a>
+              </li>)}
             </ul>
-          </div>
+          </div>}
         </div>
 
         {/* Bottom bar */}

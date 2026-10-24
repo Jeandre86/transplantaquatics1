@@ -11,7 +11,16 @@ type Settings = {
   email_on_profile_claim: boolean;
   email_on_result_submission: boolean;
   email_on_contact_message: boolean;
+  socials: Record<SocialPlatform, SocialSetting>;
 };
+
+type SocialPlatform = 'facebook' | 'instagram' | 'x';
+type SocialSetting = { enabled: boolean; url: string };
+const SOCIAL_PLATFORMS: { key: SocialPlatform; label: string; placeholder: string }[] = [
+  { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/your-page' },
+  { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/your-account' },
+  { key: 'x', label: 'X (Twitter)', placeholder: 'https://x.com/your-account' },
+];
 
 const defaults: Settings = {
   points_table: 'world_aquatics_2026',
@@ -21,6 +30,11 @@ const defaults: Settings = {
   email_on_profile_claim: true,
   email_on_result_submission: true,
   email_on_contact_message: true,
+  socials: {
+    facebook: { enabled: false, url: '' },
+    instagram: { enabled: false, url: '' },
+    x: { enabled: false, url: '' },
+  },
 };
 
 const Toggle = ({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (checked: boolean) => void }) => <label className="flex cursor-pointer items-center justify-between gap-4 border-b border-[var(--navy-light)] px-5 py-4 last:border-0">
@@ -34,6 +48,7 @@ export default function AdminSiteSettings({ cardStyle }: { cardStyle: React.CSSP
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [socialValidation, setSocialValidation] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -42,20 +57,40 @@ export default function AdminSiteSettings({ cardStyle }: { cardStyle: React.CSSP
       const { data, error: loadError } = await supabase.rpc('admin_get_site_settings');
       if (!active) return;
       if (loadError) setError(`${describeSupabaseError(loadError)}. Apply the site settings migration, then refresh.`);
-      else setSettings({ ...defaults, ...(data as Partial<Settings>) });
+      else {
+        const loaded = data as Partial<Settings>;
+        setSettings({ ...defaults, ...loaded, socials: { ...defaults.socials, ...(loaded.socials ?? {}) } });
+      }
       setLoading(false);
     };
     void load();
     return () => { active = false; };
   }, []);
 
-  const update = (key: Exclude<keyof Settings, 'points_table'>, value: boolean) => {
+  const update = (key: Exclude<keyof Settings, 'points_table' | 'socials'>, value: boolean) => {
     setSettings(current => ({ ...current, [key]: value }));
     setSaved(false);
   };
 
+  const updateSocial = (platform: SocialPlatform, patch: Partial<SocialSetting>) => {
+    setSettings(current => ({ ...current, socials: { ...current.socials, [platform]: { ...current.socials[platform], ...patch } } }));
+    setSaved(false);
+    setSocialValidation('');
+  };
+
   const save = async () => {
     if (!supabase) return;
+    const invalidSocial = SOCIAL_PLATFORMS.find(({ key }) => {
+      const social = settings.socials[key];
+      if (!social.enabled && !social.url.trim()) return false;
+      if (social.enabled && !social.url.trim()) return true;
+      try { return new URL(social.url).protocol !== 'https:'; } catch { return true; }
+    });
+    if (invalidSocial) {
+      setSocialValidation(`Add a valid HTTPS URL for ${invalidSocial.label}, or turn it off.`);
+      return;
+    }
+    setSocialValidation('');
     setSaving(true); setError(''); setSaved(false);
     const { data, error: saveError } = await supabase.rpc('admin_update_site_settings', { p_settings: settings });
     if (saveError) setError(describeSupabaseError(saveError));
@@ -87,6 +122,14 @@ export default function AdminSiteSettings({ cardStyle }: { cardStyle: React.CSSP
       <Toggle label="A swimmer submits a result" description="Notify admins when a result enters the verification queue." checked={settings.email_on_result_submission} onChange={value => update('email_on_result_submission', value)} />
       <Toggle label="A visitor sends a contact message" description="Notify admins when a new message arrives in the internal inbox." checked={settings.email_on_contact_message} onChange={value => update('email_on_contact_message', value)} />
       <p className="px-5 py-3 text-xs text-white/40">Email delivery requires an email provider to be configured.</p>
+    </section>
+    <section className="border" style={cardStyle}>
+      <div className="border-b border-[var(--navy-light)] px-5 py-4"><h3 className="font-bold text-white">Social links</h3><p className="mt-1 text-xs text-white/50">Add the public URLs and choose which ones appear in the site footer. The Follow section is hidden when every link is off.</p></div>
+      {SOCIAL_PLATFORMS.map(({ key, label, placeholder }) => <div key={key} className="grid gap-3 border-b border-[var(--navy-light)] px-5 py-4 last:border-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <label htmlFor={`site-social-${key}`} className="block text-xs text-white/60">{label} URL<input id={`site-social-${key}`} type="url" inputMode="url" autoComplete="url" value={settings.socials[key].url} onChange={event => updateSocial(key, { url: event.target.value })} placeholder={placeholder} className="mt-2 w-full border border-[var(--navy-light)] bg-[var(--navy)] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-[var(--accent)]" /></label>
+        <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 text-sm text-white"><input type="checkbox" checked={settings.socials[key].enabled} onChange={event => updateSocial(key, { enabled: event.target.checked })} className="h-4 w-4 accent-[var(--accent)]" />Show {label}</label>
+      </div>)}
+      {socialValidation && <p role="alert" className="px-5 pb-4 text-sm text-red-200">{socialValidation}</p>}
     </section>
     {!supabase && <EmptyState title="Database connection required" subtitle="Configure Supabase to load and save site settings." onDark />}
   </div>;

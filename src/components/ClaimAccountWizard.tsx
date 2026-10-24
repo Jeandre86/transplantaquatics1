@@ -35,7 +35,7 @@ function timeToSeconds(value: string): number | null {
   return seconds > 0 && Number.isFinite(seconds) ? seconds : null;
 }
 
-export default function ClaimAccountWizard() {
+export default function ClaimAccountWizard({ standalone = false }: { standalone?: boolean }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<PublicSwimmerProfile[]>([]);
@@ -191,7 +191,7 @@ export default function ClaimAccountWizard() {
       const { error: onboardingError } = await supabase.rpc('mark_myself_as_new_member');
       if (onboardingError) throw onboardingError;
       setIsNewMember(true);
-      navigate('/profile?tab=account&new=1');
+      if (!standalone) navigate('/profile?tab=account&new=1');
     } catch (reason) {
       setError(describeSupabaseError(reason));
     } finally {
@@ -214,11 +214,19 @@ export default function ClaimAccountWizard() {
     setIsDismissed(true);
   };
 
-  if (loading || !user || isDismissed || isNewMember || claimStatus === 'approved') return null;
+  if (loading || !user || (!standalone && (isDismissed || isNewMember || claimStatus === 'approved'))) return null;
+
+  if (standalone && (isNewMember || claimStatus === 'approved')) {
+    return <section className="border-l-4 border-emerald-600 bg-white p-5 shadow-sm sm:p-6" aria-live="polite">
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-800">Athlete profile</p>
+      <h2 className="mt-1 text-xl font-bold text-[var(--ink)]">{isNewMember ? 'Your new member profile is recorded' : 'Your athlete profile is linked'}</h2>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{isNewMember ? 'We’ve let the admin team know that you’re new or could not find your existing profile.' : 'Your claimed athlete profile is linked to your account.'}</p>
+    </section>;
+  }
 
   if (claimStatus === 'pending' || claimStatus === 'disputed') {
     return <section aria-labelledby="claim-account-title" className="border-l-4 border-[var(--accent)] bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex min-w-0 flex-1 items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center bg-[var(--paper)] text-[var(--blue)]"><ShieldCheck size={19} aria-hidden="true" /></span><div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Athlete profile</p><h2 id="claim-account-title" className="mt-1 text-lg font-bold text-[var(--ink)]">Your claim is with the admin team</h2><p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">Your existing results will stay with the selected athlete profile. Once approved, it will be linked to this account and this section will disappear.</p></div></div><button type="button" onClick={() => void dismissClaimPrompt()} className="inline-flex shrink-0 items-center justify-center border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:border-[var(--blue)] hover:text-[var(--blue)]">I already claimed my account</button></div>
+      <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex min-w-0 flex-1 items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center bg-[var(--paper)] text-[var(--blue)]"><ShieldCheck size={19} aria-hidden="true" /></span><div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Athlete profile</p><h2 id="claim-account-title" className="mt-1 text-lg font-bold text-[var(--ink)]">Your claim is with the admin team</h2><p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">Your existing results will stay with the selected athlete profile. Once approved, it will be linked to this account and this section will disappear.</p></div></div>{!standalone && <button type="button" onClick={() => void dismissClaimPrompt()} className="inline-flex shrink-0 items-center justify-center border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:border-[var(--blue)] hover:text-[var(--blue)]">I already claimed my account</button>}</div>
     </section>;
   }
 
@@ -231,7 +239,7 @@ export default function ClaimAccountWizard() {
       </div>
       <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
         <button type="button" disabled={saving || Boolean(claimStatus)} onClick={() => void markAsNewMember()} className="inline-flex items-center justify-center gap-2 bg-[var(--navy)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving…' : 'I’m new or can’t find myself'} <ArrowRight size={15} aria-hidden="true" /></button>
-        <button type="button" onClick={() => void dismissClaimPrompt()} className="inline-flex items-center justify-center border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--ink)] hover:border-[var(--blue)] hover:text-[var(--blue)]">I already claimed my account</button>
+        {!standalone && <button type="button" onClick={() => void dismissClaimPrompt()} className="inline-flex items-center justify-center border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--ink)] hover:border-[var(--blue)] hover:text-[var(--blue)]">I already claimed my account</button>}
       </div>
     </div>
 

@@ -33,6 +33,7 @@ const FromThePoolDeckPage = lazy(() => import('./pages/FromThePoolDeckPage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const JoinPage = lazy(() => import('./pages/JoinPage'));
+const ClaimAccountPage = lazy(() => import('./pages/ClaimAccountPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const MeetPage = lazy(() => import('./pages/MeetPage'));
 const ClubsPage = lazy(() => import('./pages/ClubsPage'));
@@ -110,6 +111,7 @@ export default function App() {
           <Route path="about/:section" element={<AboutPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="join" element={<JoinPage />} />
+          <Route path="claim" element={<Suspense fallback={<PageLoading />}><ClaimAccountPage /></Suspense>} />
           <Route path="dashboard" element={<Suspense fallback={<PageLoading />}><DashboardPage /></Suspense>} />
           <Route path="profile" element={<Suspense fallback={<PageLoading />}><ProfilePage /></Suspense>} />
           <Route path="calendar" element={<CalendarPage />} />

@@ -118,7 +118,7 @@ export default function HomePage() {
   const featuredArticles = articles.slice(0, 3);
 
   return (
-    <div className="flex flex-col bg-[var(--paper)]">
+    <div className="flex min-w-0 max-w-full flex-col overflow-x-clip bg-[var(--paper)]">
       <section className="order-1 relative isolate flex min-h-[calc(100svh-3.5rem)] items-center overflow-hidden bg-[var(--navy)]" style={{ backgroundImage: "linear-gradient(90deg, rgba(7, 26, 43, 0.94) 0%, rgba(7, 26, 43, 0.82) 52%, rgba(7, 26, 43, 0.45) 100%), url('/assets/aquatics-hero.png')", backgroundPosition: 'center', backgroundSize: 'cover' }}>
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-30">
           {Array.from({ length: 7 }, (_, i) => <div key={i} className="absolute inset-y-0 border-l border-white/30" style={{ left: `${(i + 1) * 12.5}%` }} />)}
@@ -151,13 +151,13 @@ export default function HomePage() {
 
       <section className="order-3 border-b border-[var(--border)] bg-[var(--paper)] text-[var(--ink)]">
         <div className={`${section} !py-12`}>
-          <div className="grid items-start gap-8 lg:grid-cols-[0.8fr_1.5fr] lg:gap-12">
+          <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.5fr)] lg:gap-12">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">World rankings</h2>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-[var(--muted)]">The fastest verified swims this season. One row per athlete, ranked by time within a single event so every comparison is fair.</p>
               <Link to="/rankings" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-dark)] hover:underline">See full rankings <ArrowRight size={15} /></Link>
             </div>
-            <div className="border border-[var(--border)] bg-white">
+            <div className="min-w-0 border border-[var(--border)] bg-white">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <label className="sr-only" htmlFor="home-ranking-event">Ranking event</label>
@@ -203,7 +203,6 @@ export default function HomePage() {
           <Eyebrow color="blue">Global achievements</Eyebrow>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl">Latest world records</h2><p className="mt-2 text-sm text-[var(--muted)]">Set at the Dresden 2025 World Transplant Games.</p></div><Link to="/records" className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--accent-dark)] hover:underline">All {latestRecords.length} records <ArrowRight size={14} /></Link></div>
           <div className="ta-table-shell mt-7">
-            <div className="ta-table-scroll">
               <SortableTable><table className="w-full border-collapse">
                 <caption className="sr-only">Latest world records</caption>
                 <thead><tr className="ta-table-header">
@@ -216,7 +215,6 @@ export default function HomePage() {
                   <td className="whitespace-nowrap px-3 py-3.5 text-right font-mono text-base font-bold text-[var(--navy)] sm:px-5">{record.time}</td>
                 </tr>)}</tbody>
               </table></SortableTable>
-            </div>
           </div>
         </div>
       </section>
