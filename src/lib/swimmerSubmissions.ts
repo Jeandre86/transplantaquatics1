@@ -122,6 +122,8 @@ export interface SubmittedSwimmerResult {
   id: string;
   athlete_id: string | null;
   swimmer_id: string | null;
+  /** Set by loadMyAccountResults for records attached to an account-owned swimmer profile. */
+  account_profile_result?: boolean;
   event: string;
   time: string;
   course?: string | null;
@@ -500,12 +502,35 @@ export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> 
 
   const profiles = profileResult.data ?? [];
   const swimmerIds = profiles.map(profile => String(profile.id));
-  const linkedResult = swimmerIds.length
-    ? await db.from('swimmer_results').select(resultFields).in('swimmer_id', swimmerIds).neq('status', 'rejected').order('created_at', { ascending: false })
-    : { data: [], error: null };
-  if (linkedResult.error) throw linkedResult.error;
+  const [linkedBySwimmer, linkedByAthlete] = swimmerIds.length
+    ? await Promise.all([
+      db.from('swimmer_results').select(resultFields).in('swimmer_id', swimmerIds).neq('status', 'rejected').order('created_at', { ascending: false }),
+      db.from('swimmer_results').select(resultFields).in('athlete_id', swimmerIds).neq('status', 'rejected').order('created_at', { ascending: false }),
+    ])
+    : [{ data: [], error: null }, { data: [], error: null }];
+  if (linkedBySwimmer.error) throw linkedBySwimmer.error;
+  if (linkedByAthlete.error) throw linkedByAthlete.error;
 
-  const rows = [...(submittedResult.data ?? []), ...(linkedResult.data ?? [])];
+  // Official WTG and other imported performances may be stored in
+  // imported_official_performances without a matching swimmer_results row.
+  // Read each account-owned profile through the public profile RPC, which
+  // combines both sources, so the Results tab shows the complete record.
+  const officialAndProfileResults = await Promise.all(swimmerIds.map(async swimmerId => {
+    const { data, error } = await db.rpc('get_public_swimmer_profile_results', { p_swimmer_id: swimmerId });
+    // Keep existing account results visible when this database has not yet
+    // received the profile-results RPC migration.
+    if (error?.code === 'PGRST202' || error?.code === '42883') return [];
+    if (error) throw error;
+    return ((data ?? []) as Record<string, unknown>[]).map(row => normalizeSubmittedResult(row));
+  }));
+
+  const accountProfileIds = new Set(swimmerIds);
+  const rows = [
+    ...(submittedResult.data ?? []),
+    ...(linkedBySwimmer.data ?? []),
+    ...(linkedByAthlete.data ?? []),
+    ...officialAndProfileResults.flat(),
+  ];
   const uniqueRows = new Map(rows.map(row => [String(row.id), row]));
   const currentDate = new Date().toISOString().slice(0, 10);
   const ageGroupBySwimmer = new Map(profiles.map(profile => [
@@ -513,8 +538,13 @@ export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> 
     profile.date_of_birth ? getCompetitionAgeGroup(String(profile.date_of_birth), currentDate) : null,
   ]));
   return [...uniqueRows.values()].map(row => {
-    const result = normalizeSubmittedResult(row);
-    return { ...result, current_age_group: result.swimmer_id ? ageGroupBySwimmer.get(result.swimmer_id) ?? undefined : undefined };
+    const result = normalizeSubmittedResult(row as unknown as Record<string, unknown>);
+    const linkedProfileId = result.swimmer_id ?? result.athlete_id;
+    return {
+      ...result,
+      account_profile_result: Boolean(linkedProfileId && accountProfileIds.has(linkedProfileId)),
+      current_age_group: linkedProfileId ? ageGroupBySwimmer.get(linkedProfileId) ?? undefined : undefined,
+    };
   });
 }
 

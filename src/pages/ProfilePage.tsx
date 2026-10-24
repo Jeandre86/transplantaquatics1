@@ -16,7 +16,7 @@ import { describeSupabaseError, supabase } from '../lib/supabase';
 import ManagedSwimmers from '../components/ManagedSwimmers';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
 
-type ProfileTab = 'overview' | 'times' | 'goals' | 'rankings' | 'account';
+type ProfileTab = 'overview' | 'times' | 'results' | 'goals' | 'rankings' | 'account';
 type CorrectionStatus = { status: 'pending' | 'approved' | 'rejected'; correction_type: 'time' | 'round' | 'time_and_round' | 'other'; reviewer_note: string | null };
 
 function parseTime(time: string): number {
@@ -101,7 +101,8 @@ export default function ProfilePage() {
   const [socialDraft, setSocialDraft] = useState<SocialLinks>({});
   const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
     const requestedTab = searchParams.get('tab');
-    return requestedTab === 'account' ? 'account' : 'overview';
+    if (requestedTab === 'account' || requestedTab === 'times' || requestedTab === 'results' || requestedTab === 'goals' || requestedTab === 'rankings') return requestedTab;
+    return 'overview';
   });
   const [goals, setGoals] = useState<AthleteGoal[]>([]);
   const [databaseResults, setDatabaseResults] = useState<SubmittedSwimmerResult[]>([]);
@@ -214,15 +215,13 @@ export default function ProfilePage() {
     }
 
     const fullName = `${auth.user?.firstName ?? ''} ${auth.user?.lastName ?? ''}`.trim().toLocaleLowerCase();
-    const profileResult = databaseResults
-      .filter(result => result.swimmer_name.trim().toLocaleLowerCase() === fullName && result.status !== 'rejected')
-      .reduce((counts, result) => {
-        const id = result.swimmer_id ?? result.athlete_id;
-        if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
-        return counts;
-      }, new Map<string, number>());
-    const swimmerId = [...profileResult.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-    if (!swimmerId) {
+    const accountProfileResults = databaseResults.filter(result => result.status !== 'rejected' && result.account_profile_result);
+    const rankingSourceResults = accountProfileResults.length ? accountProfileResults : databaseResults
+      .filter(result => result.status !== 'rejected' && result.swimmer_name.trim().toLocaleLowerCase() === fullName);
+    const swimmerIds = new Set(rankingSourceResults
+      .map(result => result.swimmer_id ?? result.athlete_id)
+      .filter((id): id is string => Boolean(id)));
+    if (!swimmerIds.size) {
       setProfileRankings([]);
       setProfileRankingsLoading(false);
       setProfileRankingsError('');
@@ -231,8 +230,19 @@ export default function ProfilePage() {
 
     setProfileRankingsLoading(true);
     setProfileRankingsError('');
-    loadMySwimmerEventRankings(swimmerId).then(rows => {
-      if (!cancelled) setProfileRankings(rows);
+    Promise.all([...swimmerIds].map(swimmerId => loadMySwimmerEventRankings(swimmerId))).then(profileRows => {
+      if (cancelled) return;
+      // A claimed archive profile and the account's original profile may both
+      // belong to the same swimmer. Keep the fastest season/event entry once.
+      const bestByEvent = new Map<string, SwimmerEventRanking>();
+      profileRows.flat().forEach(row => {
+        const key = [row.event, row.gender, row.ageGroup, row.course, row.season].map(value => String(value).trim().toLocaleLowerCase()).join('|');
+        const previous = bestByEvent.get(key);
+        const rowSeconds = validTimeSeconds(row.time) ?? Number.POSITIVE_INFINITY;
+        const previousSeconds = previous ? validTimeSeconds(previous.time) ?? Number.POSITIVE_INFINITY : Number.POSITIVE_INFINITY;
+        if (!previous || rowSeconds < previousSeconds) bestByEvent.set(key, row);
+      });
+      setProfileRankings([...bestByEvent.values()]);
     }).catch(error => {
       if (!cancelled) {
         setProfileRankings([]);
@@ -288,7 +298,18 @@ export default function ProfilePage() {
     .sort((a, b) => b.date.localeCompare(a.date)) : [];
   const athleteResults = allAthleteResults.slice(0, 6);
   const normalizedName = name.trim().toLocaleLowerCase();
-  const swimmerDatabaseResults = databaseResults.filter(result => result.swimmer_name.trim().toLocaleLowerCase() === normalizedName && result.status !== 'rejected');
+  // Historical World Transplant Games rows can preserve an older/source name.
+  // Resolve the swimmer by the linked profile ID, then include every result for
+  // that profile as well as any unlinked rows that still match the account name.
+  const linkedSwimmerIds = new Set(databaseResults
+    .filter(result => result.swimmer_name.trim().toLocaleLowerCase() === normalizedName && result.status !== 'rejected')
+    .map(result => result.swimmer_id ?? result.athlete_id)
+    .filter((id): id is string => Boolean(id)));
+  const swimmerDatabaseResults = databaseResults.filter(result => result.status !== 'rejected' && (
+    result.account_profile_result
+    || result.swimmer_name.trim().toLocaleLowerCase() === normalizedName
+    || Boolean((result.swimmer_id ?? result.athlete_id) && linkedSwimmerIds.has((result.swimmer_id ?? result.athlete_id)!))
+  ));
   const profileResults = [...swimmerDatabaseResults].sort((a, b) => {
     const dateA = a.submitted_meets?.meet_date ?? a.created_at;
     const dateB = b.submitted_meets?.meet_date ?? b.created_at;
@@ -642,7 +663,7 @@ export default function ProfilePage() {
 
             <nav aria-label="Profile sections" className="mt-3 flex gap-1 overflow-x-auto border-t border-[var(--border)]">
               {([
-                ['overview', 'Overview'], ['times', 'Times'], ['goals', 'Goals'], ['rankings', 'Rankings'], ['account', 'Account'],
+                ['overview', 'Overview'], ['times', 'Times'], ['results', 'Results'], ['goals', 'Goals'], ['rankings', 'Rankings'], ['account', 'Account'],
               ] as [ProfileTab, string][]).map(([tab, label]) => (
                 <button key={tab} type="button" onClick={() => setActiveTab(tab)} aria-current={activeTab === tab ? 'page' : undefined} className={`shrink-0 border-b-2 px-4 py-3 text-sm transition-colors ${activeTab === tab ? 'border-[var(--blue)] font-semibold text-[var(--blue)]' : 'border-transparent text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--ink)]'}`}>
                   {label}
@@ -749,7 +770,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-5">
-            <ProfilePanel title="Latest Results" action={<Link to="/results" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">See all</Link>}>
+            <ProfilePanel title="Latest Results" action={<button type="button" onClick={() => setActiveTab('results')} className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--blue)] hover:underline">See all</button>}>
               <div id="latest-results" className="mb-4 flex items-center gap-3 border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5">
                 <span className="text-xl">{flag || '🏊'}</span>
                 <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--ink)]">{athleteResults[0]?.meet || 'Your meet results'}</p><p className="text-xs text-[var(--muted)]">{athleteResults[0]?.date || 'Personal results'}</p></div>
@@ -807,7 +828,14 @@ export default function ProfilePage() {
               </div> : <p className="py-5 text-sm text-[var(--muted)]">Your stroke bests will appear when results are linked to your profile.</p>}
             </ProfilePanel>
 
+          </div>
+        )}
+
+        {activeTab === 'results' && (
+          <div className="mt-6">
             <ProfilePanel title="All results" action={<span className="font-mono text-xs text-[var(--muted)]">{profileResults.length} swims</span>}>
+              <p className="mb-4 text-sm text-[var(--muted)]">Results linked to your swimmer profile and results you have submitted.</p>
+              {!databaseResultsLoading && !profileResults.some(result => result.submitted_meets?.is_world_transplant_games) && <p className="mb-4 border-l-2 border-[var(--accent)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--muted)]">No World Transplant Games results are linked to this profile yet. If you have competed at the Games, <Link to="/claim" className="font-semibold text-[var(--blue)] underline underline-offset-2">claim the matching athlete profile</Link> so its results can be connected to your account.</p>}
               {correctionNotice && <p role="status" aria-live="polite" className="mb-4 border-l-2 border-emerald-600 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">{correctionNotice}</p>}
               {databaseResultsLoading ? <SkeletonTable rows={5} columns={5} /> : databaseResultsError ? <p role="status" className="py-5 text-sm text-[var(--muted)]">Your results could not be loaded. Try refreshing the page.</p> : profileResults.length ? <div className="ta-table-scroll">
                 <SortableTable><table className="w-full border-collapse text-left">
@@ -899,6 +927,7 @@ export default function ProfilePage() {
           <div className="mt-6 space-y-5">
             <ProfilePanel title="World and club positions">
               <p className="mb-5 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">Positions compare your fastest time from each calendar year with swimmers in the same season, event, age group, gender, and course. Each season and distance is ranked separately.</p>
+              {!profileRankingsLoading && !profileRankings.some(row => /world transplant games/i.test(row.meetName ?? '')) && <p className="mb-4 border-l-2 border-[var(--accent)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--muted)]">World Transplant Games rankings will appear once those results are linked to this swimmer profile. <Link to="/claim" className="font-semibold text-[var(--blue)] underline underline-offset-2">Claim the matching athlete profile</Link> to request that link.</p>}
               {profileRankingsLoading ? <SkeletonTable rows={5} columns={8} /> : profileRankingsError ? <p role="status" className="border border-[var(--border)] bg-[var(--paper)] px-4 py-6 text-sm text-red-700">Rankings could not be loaded: {profileRankingsError}</p> : profileRankings.length ? <div className="ta-table-scroll"><SortableTable><table className="w-full border-collapse text-left">
                 <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Season</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Stroke</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Category</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Best time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet / date</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">World</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Club</th></tr></thead>
                 <tbody>{profileRankings.map(row => <tr key={`${row.event}-${row.ageGroup}-${row.gender}-${row.course}-${row.season}`} className="ta-table-row">
