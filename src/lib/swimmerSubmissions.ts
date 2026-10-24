@@ -77,6 +77,8 @@ export interface PublicResultsPage {
 
 export interface PublicSwimmerResult {
   id: string;
+  swimmer_id?: string | null;
+  athlete_id?: string | null;
   meet_id: string | null;
   event: string;
   time: string;
@@ -123,6 +125,7 @@ export interface SubmittedSwimmerResult {
   event: string;
   time: string;
   course?: string | null;
+  round_name?: string | null;
   age_group: string;
   points: number | null;
   placing?: number | null;
@@ -299,6 +302,8 @@ export async function loadPublicSwimmerResults(swimmerId: string): Promise<Publi
   const baselines = buildTransplantPointBaselines(pointRecords, inputs);
   return rows.map((result, index) => ({
     id: result.id,
+    swimmer_id: result.swimmer_id,
+    athlete_id: result.athlete_id,
     meet_id: result.meet_id,
     event: result.event,
     time: result.time,
@@ -485,7 +490,7 @@ export async function loadMyAccountResults(): Promise<SubmittedSwimmerResult[]> 
   if (userError) throw userError;
   if (!user) return [];
 
-  const resultFields = 'id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
+  const resultFields = 'id,swimmer_id,event,time,age_group,points,record_candidate,record_candidate_status,status,created_at,meet_id,swimmer_name,country,country_code,gender,transplant_type,course,round_name,represented_club_id,represented_club_name,submitted_meets(name,meet_date,location,course,is_world_transplant_games)';
   const [profileResult, submittedResult] = await Promise.all([
     db.from('swimmer_profiles').select('id,date_of_birth'),
     db.from('swimmer_results').select(resultFields).eq('submitted_by', user.id).order('created_at', { ascending: false }),

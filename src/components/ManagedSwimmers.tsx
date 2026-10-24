@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Check, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { countries } from '../data/countries';
 import { TRANSPLANT_TYPES, type Gender, type TransplantType } from '../types';
@@ -24,6 +24,7 @@ function formFromProfile(profile: SwimmerProfile): SwimmerProfileDraft {
 
 export default function ManagedSwimmers() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [profiles, setProfiles] = useState<SwimmerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,11 +56,30 @@ export default function ManagedSwimmers() {
   const [claimSelected, setClaimSelected] = useState<PublicSwimmerProfile | null>(null);
   const [claimEvidence, setClaimEvidence] = useState('');
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
+  const [isNewMember, setIsNewMember] = useState(false);
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimSaving, setClaimSaving] = useState(false);
   const [claimError, setClaimError] = useState('');
-  const [createOwnProfile, setCreateOwnProfile] = useState(false);
+  const [createOwnProfile, setCreateOwnProfile] = useState(() => searchParams.get('new') === '1');
   const holder = useMemo(() => profiles.find(profile => profile.isAccountHolder), [profiles]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    void (async () => {
+      const { data: authData, error: authError } = await supabase!.auth.getUser();
+      if (authError) throw authError;
+      if (!authData.user) return;
+      const { data, error: onboardingError } = await supabase!.from('member_onboarding')
+        .select('status')
+        .eq('account_id', authData.user.id)
+        .maybeSingle();
+      if (onboardingError) throw onboardingError;
+      if (!cancelled) setIsNewMember(data?.status === 'new_member');
+    })().catch(reason => { if (!cancelled) setError(describeSupabaseError(reason)); });
+    return () => { cancelled = true; };
+  }, []);
+
   const claimMatches = useMemo(() => {
     const query = claimSearch.trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (query.length < 2) return [];
@@ -101,16 +121,17 @@ export default function ManagedSwimmers() {
     setClaimLoading(true);
     Promise.all([
       loadClaimableSwimmerProfiles(),
-      db.auth.getUser().then(({ data, error: authError }) => {
+      db.auth.getUser().then(async ({ data, error: authError }) => {
         if (authError) throw authError;
         if (!data.user) return null;
-        return db.from('profile_claims').select('status').eq('claimant_id', data.user.id).in('status', ['pending', 'approved', 'disputed']).order('created_at', { ascending: false }).limit(1).maybeSingle();
+        const claimResult = await db.from('profile_claims').select('status').eq('claimant_id', data.user.id).in('status', ['pending', 'approved', 'disputed']).order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if (claimResult.error) throw claimResult.error;
+        return claimResult.data;
       }),
     ]).then(([directory, claimResult]) => {
-      if (claimResult?.error) throw claimResult.error;
       if (!cancelled) {
         setClaimProfiles(directory);
-        setClaimStatus(claimResult?.data?.status ?? null);
+        setClaimStatus(claimResult?.status ?? null);
       }
     }).catch(reason => { if (!cancelled) setClaimError(describeSupabaseError(reason)); })
       .finally(() => { if (!cancelled) setClaimLoading(false); });
@@ -313,11 +334,12 @@ export default function ManagedSwimmers() {
       <div><h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">My swimmers</h2><p className="mt-1 text-xs text-[var(--muted)]">Manage your own details and swimmers you care for.</p></div>
     </div>
     <div className="space-y-6 p-5 sm:p-6">
+      {isNewMember && <div role="status" className="border-l-4 border-[var(--accent)] bg-[var(--ice)] px-4 py-3 text-sm text-[var(--navy)]"><strong>You’re marked as a new member.</strong> You can add or update your swimmer details below whenever you’re ready.</div>}
       {loading ? <div role="status" aria-label="Loading swimmer profiles" className="space-y-4"><Skeleton className="h-5 w-2/5" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : <>
         {user?.accountRole !== 'parent_guardian' && !user?.registrantRelationship && <div className="border-b border-[var(--border)] pb-6">
           <h3 className="mb-3 font-semibold text-[var(--ink)]">My swimmer profile</h3>
           {!holder && claimStatus && <div role="status" className="mb-4 border border-[var(--border)] bg-[var(--paper)] p-4 text-sm text-[var(--ink)]"><p className="font-semibold">{claimStatus === 'approved' ? 'Your profile claim was approved.' : claimStatus === 'disputed' ? 'Your profile claim needs further review.' : 'Your profile claim is being reviewed.'}</p><p className="mt-1 text-[var(--muted)]">We’ll link the existing swimmer profile to your account after review. The imported results will stay with it.</p></div>}
-          {!holder && !claimStatus && <div className="mb-4 border border-[var(--border)] bg-[var(--paper)] p-4">
+          {!holder && !claimStatus && !isNewMember && <div className="mb-4 border border-[var(--border)] bg-[var(--paper)] p-4">
             <h4 className="font-semibold text-[var(--ink)]">Already have results in Transplant Aquatics?</h4>
             <p className="mt-1 text-sm text-[var(--muted)]">Search for your existing swimmer profile first. A name match won’t claim it automatically; an admin reviews every request.</p>
             {!createOwnProfile && <>

@@ -1,6 +1,6 @@
 import SortableTable from '../components/SortableTable';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarDays, Camera, MapPin, Medal, Music2, Settings2, Timer, ShieldCheck, Eye, EyeOff, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getFlagEmoji } from '../lib/utils';
@@ -17,6 +17,7 @@ import ManagedSwimmers from '../components/ManagedSwimmers';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
 
 type ProfileTab = 'overview' | 'times' | 'goals' | 'rankings' | 'account';
+type CorrectionStatus = { status: 'pending' | 'approved' | 'rejected'; correction_type: 'time' | 'round' | 'time_and_round' | 'other'; reviewer_note: string | null };
 
 function parseTime(time: string): number {
   const parts = time.trim().split(':').map(Number);
@@ -92,16 +93,31 @@ function ProfilePanel({ title, action, children }: { title: string; action?: Rea
 export default function ProfilePage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
   const [manageOpen, setManageOpen] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
   const [socialDraft, setSocialDraft] = useState<SocialLinks>({});
-  const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
+  const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
+    const requestedTab = searchParams.get('tab');
+    return requestedTab === 'account' ? 'account' : 'overview';
+  });
   const [goals, setGoals] = useState<AthleteGoal[]>([]);
   const [databaseResults, setDatabaseResults] = useState<SubmittedSwimmerResult[]>([]);
   const [databaseResultsLoading, setDatabaseResultsLoading] = useState(true);
   const [databaseResultsError, setDatabaseResultsError] = useState(false);
+  const [correctionStatuses, setCorrectionStatuses] = useState<Record<string, CorrectionStatus>>({});
+  const [correctionTarget, setCorrectionTarget] = useState<SubmittedSwimmerResult | null>(null);
+  const [correctionType, setCorrectionType] = useState<'time' | 'round' | 'time_and_round' | 'other'>('time');
+  const [proposedCorrectionTime, setProposedCorrectionTime] = useState('');
+  const [proposedCorrectionRound, setProposedCorrectionRound] = useState('');
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [correctionEvidenceUrl, setCorrectionEvidenceUrl] = useState('');
+  const [correctionEvidenceFile, setCorrectionEvidenceFile] = useState<File | null>(null);
+  const [correctionSaving, setCorrectionSaving] = useState(false);
+  const [correctionError, setCorrectionError] = useState('');
+  const [correctionNotice, setCorrectionNotice] = useState('');
   const [goalsLoading, setGoalsLoading] = useState(true);
   const [goalError, setGoalError] = useState('');
   const [goalFormOpen, setGoalFormOpen] = useState(false);
@@ -162,6 +178,25 @@ export default function ProfilePage() {
       if (!cancelled) setGoalsLoading(false);
     });
 
+    return () => { cancelled = true; };
+  }, [auth.isLoggedIn]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPendingCorrections = async () => {
+      if (!auth.isLoggedIn || !supabase) {
+        setCorrectionStatuses({});
+        return;
+      }
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+      const { data, error } = await supabase.from('result_correction_requests')
+        .select('result_id,status,correction_type,reviewer_note').eq('claimant_id', user.id).order('created_at', { ascending: true });
+      if (error) throw error;
+      if (!cancelled) setCorrectionStatuses(Object.fromEntries((data ?? []).map(row => [String(row.result_id), { status: String(row.status) as CorrectionStatus['status'], correction_type: String(row.correction_type) as CorrectionStatus['correction_type'], reviewer_note: row.reviewer_note ? String(row.reviewer_note) : null }])));
+    };
+    void loadPendingCorrections().catch(() => undefined);
     return () => { cancelled = true; };
   }, [auth.isLoggedIn]);
 
@@ -376,6 +411,94 @@ export default function ProfilePage() {
     setEmailSaving(false);
     if (error) setEmailError(error.message);
     else setEmailMessage('Check your new inbox to confirm the email change. Your email will update after confirmation.');
+  };
+
+  const submitResultCorrection = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCorrectionError('');
+    setCorrectionNotice('');
+    if (!supabase || !correctionTarget?.swimmer_id) {
+      setCorrectionError('This result is not linked to a swimmer profile that can report corrections.');
+      return;
+    }
+    if (['time', 'time_and_round'].includes(correctionType) && !/^\d+(?::[0-5]?\d)?(?:\.\d{1,2})?$/.test(proposedCorrectionTime.trim())) {
+      setCorrectionError('Enter a time such as 24.23 or 2:24.23.');
+      return;
+    }
+    if (['round', 'time_and_round'].includes(correctionType) && !proposedCorrectionRound.trim()) {
+      setCorrectionError('Enter the correct round, such as Final or Heats.');
+      return;
+    }
+    if (!correctionReason.trim()) {
+      setCorrectionError('Explain what needs correcting.');
+      return;
+    }
+    if (!correctionEvidenceFile) {
+      setCorrectionError('Upload proof to support your correction report.');
+      return;
+    }
+    const allowedEvidenceTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedEvidenceTypes.includes(correctionEvidenceFile.type)) {
+      setCorrectionError('Upload a JPG, PNG, WebP image, or PDF file.');
+      return;
+    }
+    if (correctionEvidenceFile.size > 10 * 1024 * 1024) {
+      setCorrectionError('The proof file must be 10 MB or smaller.');
+      return;
+    }
+    setCorrectionSaving(true);
+    let uploadedEvidencePath: string | null = null;
+    try {
+      const { data: { user: claimant }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!claimant) throw new Error('Sign in to report a result correction.');
+      const requestId = crypto.randomUUID();
+      const safeFilename = correctionEvidenceFile.name.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-120) || 'proof';
+      uploadedEvidencePath = `${claimant.id}/${requestId}-${safeFilename}`;
+      const { error: uploadError } = await supabase.storage.from('result-correction-evidence').upload(uploadedEvidencePath, correctionEvidenceFile, {
+        contentType: correctionEvidenceFile.type,
+        upsert: false,
+      });
+      if (uploadError) throw uploadError;
+      const { data, error } = await supabase.from('result_correction_requests').insert({
+        id: requestId,
+        result_id: correctionTarget.id,
+        swimmer_profile_id: correctionTarget.swimmer_id,
+        claimant_id: claimant.id,
+        swimmer_name: correctionTarget.swimmer_name,
+        event: correctionTarget.event,
+        meet_name: correctionTarget.submitted_meets?.name ?? null,
+        course: correctionTarget.course ?? correctionTarget.submitted_meets?.course ?? null,
+        original_time: correctionTarget.time,
+        proposed_time: ['time', 'time_and_round'].includes(correctionType) ? proposedCorrectionTime.trim() : null,
+        original_round: correctionTarget.round_name ?? null,
+        proposed_round: ['round', 'time_and_round'].includes(correctionType) ? proposedCorrectionRound.trim() : null,
+        correction_type: correctionType,
+        reason: correctionReason.trim(),
+        evidence_path: uploadedEvidencePath,
+        evidence_url: correctionEvidenceUrl.trim() || null,
+      }).select('result_id,correction_type').single();
+      if (error) throw error;
+      uploadedEvidencePath = null;
+      setCorrectionStatuses(current => ({ ...current, [String(data.result_id)]: { status: 'pending', correction_type: String(data.correction_type) as CorrectionStatus['correction_type'], reviewer_note: null } }));
+      setCorrectionTarget(null);
+      setProposedCorrectionTime('');
+      setProposedCorrectionRound('');
+      setCorrectionReason('');
+      setCorrectionEvidenceUrl('');
+      setCorrectionEvidenceFile(null);
+      setCorrectionNotice('Your correction report was sent to the admin team for review. The verified result will stay the same until it is reviewed.');
+    } catch (reason) {
+      if (uploadedEvidencePath && supabase) {
+        await supabase.storage.from('result-correction-evidence').remove([uploadedEvidencePath]);
+      }
+      const message = describeSupabaseError(reason);
+      setCorrectionError(message.includes('result_correction_requests_one_pending_per_result_idx')
+        ? 'There is already a correction report waiting for review for this result.'
+        : message);
+    } finally {
+      setCorrectionSaving(false);
+    }
   };
 
   const updatePassword = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -685,10 +808,11 @@ export default function ProfilePage() {
             </ProfilePanel>
 
             <ProfilePanel title="All results" action={<span className="font-mono text-xs text-[var(--muted)]">{profileResults.length} swims</span>}>
+              {correctionNotice && <p role="status" aria-live="polite" className="mb-4 border-l-2 border-emerald-600 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">{correctionNotice}</p>}
               {databaseResultsLoading ? <SkeletonTable rows={5} columns={5} /> : databaseResultsError ? <p role="status" className="py-5 text-sm text-[var(--muted)]">Your results could not be loaded. Try refreshing the page.</p> : profileResults.length ? <div className="ta-table-scroll">
                 <SortableTable><table className="w-full border-collapse text-left">
-                  <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Course</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Date</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet</th></tr></thead>
-                  <tbody>{profileResults.map(result => <tr key={result.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{result.event || '—'}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--blue)]">{result.time || '—'}</td><td className="px-3 py-3 font-mono text-xs text-[var(--muted)]">{result.course || result.submitted_meets?.course || '—'}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{result.submitted_meets?.meet_date || result.created_at.slice(0, 10) || '—'}</td><td className="max-w-56 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.submitted_meets?.name || '—'}</td></tr>)}</tbody>
+                  <thead><tr className="ta-table-header"><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Event</th><th className="px-3 py-3 text-right font-mono text-[10px] uppercase tracking-widest">Time</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Round</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Course</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Date</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Meet</th><th className="px-3 py-3 font-mono text-[10px] uppercase tracking-widest">Correction</th></tr></thead>
+                  <tbody>{profileResults.map(result => <tr key={result.id} className="ta-table-row"><td className="px-3 py-3 text-sm font-semibold text-[var(--ink)]">{result.event || '—'}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-[var(--blue)]">{result.time || '—'}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{result.round_name || 'Round not recorded'}</td><td className="px-3 py-3 font-mono text-xs text-[var(--muted)]">{result.course || result.submitted_meets?.course || '—'}</td><td className="px-3 py-3 text-xs text-[var(--muted)]">{result.submitted_meets?.meet_date || result.created_at.slice(0, 10) || '—'}</td><td className="max-w-56 truncate px-3 py-3 text-xs text-[var(--muted)]">{result.submitted_meets?.name || '—'}</td><td className="px-3 py-3 text-xs">{correctionStatuses[result.id]?.status === 'pending' ? <span className="font-semibold text-amber-700">Under review</span> : correctionStatuses[result.id]?.status === 'approved' ? <span className="font-semibold text-emerald-700" title={correctionStatuses[result.id].reviewer_note ?? undefined}>{correctionStatuses[result.id].correction_type === 'other' ? 'Report reviewed' : 'Correction approved'}</span> : result.status === 'verified' && result.swimmer_id && auth.isLoggedIn ? <button type="button" onClick={() => { setCorrectionTarget(result); setCorrectionType('time'); setProposedCorrectionTime(result.time); setProposedCorrectionRound(result.round_name ?? ''); setCorrectionReason(''); setCorrectionEvidenceUrl(''); setCorrectionError(''); }} className="font-semibold text-[var(--blue)] underline underline-offset-2">{correctionStatuses[result.id]?.status === 'rejected' ? 'Report again' : 'Report a correction'}</button> : <span className="text-[var(--muted)]">—</span>}</td></tr>)}</tbody>
                 </table></SortableTable>
               </div> : <div className="py-12 text-center"><Timer size={24} className="mx-auto text-[var(--blue)]" /><p className="mt-3 font-semibold text-[var(--ink)]">No swims linked yet</p><p className="mt-1 text-sm text-[var(--muted)]">Once your results are connected to your account, your times will appear here.</p></div>}
             </ProfilePanel>
@@ -859,6 +983,38 @@ export default function ProfilePage() {
               <button type="button" disabled={closeSaving} onClick={() => setCloseDialogOpen(false)} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--paper)]">Cancel</button>
               <button type="submit" disabled={closeSaving || closeConfirmation !== 'CLOSE'} className="bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50">{closeSaving ? 'Closing account…' : 'Permanently close account'}</button>
             </div>
+          </form>
+        </section>
+      </div>}
+      {correctionTarget && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--navy)]/75 p-4" onMouseDown={event => { if (event.target === event.currentTarget && !correctionSaving) setCorrectionTarget(null); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="result-correction-title" className="max-h-[90vh] w-full max-w-xl overflow-y-auto bg-white p-5 shadow-2xl sm:p-7">
+          <h2 id="result-correction-title" className="text-xl font-bold text-[var(--ink)]">Report a result correction</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{correctionTarget.swimmer_name} · {correctionTarget.event} · {correctionTarget.time}{correctionTarget.round_name ? ` · ${correctionTarget.round_name}` : ''}. The verified result stays unchanged until an admin reviews the report.</p>
+          <form onSubmit={event => void submitResultCorrection(event)} className="mt-5 space-y-4">
+            <label className="block text-sm font-semibold text-[var(--ink)]">What needs correcting?
+            <select value={correctionType} onChange={event => setCorrectionType(event.target.value as 'time' | 'round' | 'time_and_round' | 'other')} className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal outline-none focus:border-[var(--blue)]">
+                <option value="time">The time is wrong</option><option value="round">The round is wrong (heats / final)</option><option value="time_and_round">The time and round are wrong</option><option value="other">Something else about this result</option>
+              </select>
+            </label>
+            {['time', 'time_and_round'].includes(correctionType) && <label className="block text-sm font-semibold text-[var(--ink)]">Correct time
+              <input required value={proposedCorrectionTime} onChange={event => setProposedCorrectionTime(event.target.value)} placeholder="2:24.23" inputMode="decimal" className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-mono font-normal outline-none focus:border-[var(--blue)]" />
+            </label>}
+            {['round', 'time_and_round'].includes(correctionType) && <label className="block text-sm font-semibold text-[var(--ink)]">Correct round
+              <input required list="result-round-options" value={proposedCorrectionRound} onChange={event => setProposedCorrectionRound(event.target.value)} placeholder="Final" className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal outline-none focus:border-[var(--blue)]" />
+              <datalist id="result-round-options"><option value="Heats" /><option value="Preliminary" /><option value="Semifinal" /><option value="Final" /><option value="Timed Final" /></datalist>
+            </label>}
+            <label className="block text-sm font-semibold text-[var(--ink)]">Tell us what happened
+              <textarea required minLength={5} maxLength={1000} rows={4} value={correctionReason} onChange={event => setCorrectionReason(event.target.value)} placeholder="For example, this is my heat time. My final time was…" className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal outline-none focus:border-[var(--blue)]" />
+            </label>
+            <label className="block text-sm font-semibold text-[var(--ink)]">Upload proof <span className="text-red-700">(required)</span>
+              <input required type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={event => setCorrectionEvidenceFile(event.target.files?.[0] ?? null)} className="mt-2 block w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-sm font-normal file:mr-3 file:border-0 file:bg-[var(--navy)] file:px-3 file:py-2 file:text-white" />
+              <span className="mt-1 block text-xs font-normal text-[var(--muted)]">Upload a result sheet or other supporting proof (JPG, PNG, WebP or PDF, up to 10 MB). Admins can reference it when reviewing your report.</span>
+            </label>
+            <label className="block text-sm font-semibold text-[var(--ink)]">Additional source link (optional)
+              <input type="url" value={correctionEvidenceUrl} onChange={event => setCorrectionEvidenceUrl(event.target.value)} placeholder="https://…" className="mt-2 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2.5 font-normal outline-none focus:border-[var(--blue)]" />
+            </label>
+            {correctionError && <p role="alert" className="text-sm text-red-700">{correctionError}</p>}
+            <div className="flex flex-wrap justify-end gap-3 pt-1"><button type="button" disabled={correctionSaving} onClick={() => setCorrectionTarget(null)} className="border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] disabled:opacity-50">Cancel</button><button type="submit" disabled={correctionSaving} className="bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--blue)] disabled:opacity-50">{correctionSaving ? 'Sending report…' : 'Send report'}</button></div>
           </form>
         </section>
       </div>}

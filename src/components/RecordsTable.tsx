@@ -52,7 +52,8 @@ export default function RecordsTable({ records }: { records: WorldRecord[] }) {
     return sort.direction === 'asc' ? order : -order;
   });
 
-  return <div className="ta-table-shell overflow-hidden">
+  return <div className="ta-table-shell">
+    <div className="min-w-[680px]">
     <div className="grid grid-cols-[minmax(90px,0.2fr)_1fr_1fr] bg-[var(--navy)] text-white">
       {([['age', 'Age'], ['women', 'Women'], ['men', 'Men']] as const).map(([key, label]) => <button key={key} type="button" onClick={() => changeSort(key)} aria-sort={sort.key === key ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className={`flex items-center gap-1 px-4 py-3 text-left text-sm sm:px-5 ${key !== 'age' ? 'border-l border-white/15 font-semibold' : 'text-white/75'}`}>{label}<span aria-hidden="true" className="text-[var(--accent)]">{sort.key === key ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}</span></button>)}
     </div>
@@ -65,5 +66,6 @@ export default function RecordsTable({ records }: { records: WorldRecord[] }) {
       </div>;
     })}
     <p className="border-t border-[var(--border)] bg-[var(--paper)] px-4 py-4 text-sm text-[var(--muted)] sm:px-5">Girls and boys are listed with women and men for ages under 18.</p>
+    </div>
   </div>;
 }

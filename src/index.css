@@ -137,6 +137,7 @@
   /* Shared data-table treatment for the site's warm paper and navy palette. */
   .ta-table-shell {
     width: 100%;
+    max-width: 100%;
     min-width: 0;
     overflow-x: auto;
     overscroll-behavior-x: contain;
@@ -147,8 +148,8 @@
 
   /* Keep every data column available on narrow screens. The content can scroll
      horizontally instead of shrinking columns until values become unreadable. */
-  .ta-table-shell > table,
-  .ta-table-scroll > table {
+  .ta-table-shell table,
+  .ta-table-scroll table {
     width: 100%;
     min-width: max-content;
   }
@@ -167,6 +168,14 @@
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Keep wide tables inside their own scroll area so they never widen the
+     page or get clipped by a surrounding card on narrow screens. */
+  .ta-table-shell,
+  .ta-table-scroll {
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
   }
 
   .ta-table-header {

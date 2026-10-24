@@ -11,6 +11,7 @@ import DatabaseResultsTable from '../components/DatabaseResultsTable';
 import { loadDatabaseRankings } from '../lib/databaseRankings';
 import { loadMeetCatalog, type MeetCatalogEdition } from '../lib/meetCatalog';
 import type { Ranking } from '../types';
+import ClaimAccountWizard from '../components/ClaimAccountWizard';
 
 const RANKING_PREVIEW_SIZE = 4;
 
@@ -243,6 +244,7 @@ export default function DashboardPage() {
       </section>
 
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 sm:py-10">
+        <ClaimAccountWizard />
         {user.accountRole === 'coach' && <Link to="/coach/club" className="flex flex-wrap items-center justify-between gap-3 bg-[var(--navy)] px-5 py-4 text-white transition-colors hover:bg-[var(--navy-light)] sm:px-6"><span><span className="block font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">Coach workspace</span><span className="mt-1 block font-semibold">Create or manage your club</span></span><ArrowRight size={18} className="text-[var(--accent)]" /></Link>}
         <section className="grid gap-px bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
           {[
